@@ -1,9 +1,12 @@
+# !/usr/bin/python
+import sys, getopt
 import cv2
 import math
 import numpy as np
 from numpy import ones, vstack
 import time
 from numpy.linalg import lstsq
+
 width = 1280
 height = 960
 # width = 640
@@ -12,25 +15,31 @@ history = 500
 open_close_mask = 5
 
 
-#
-def draw_circle(event, x, y, flags, param):
-    if event == cv2.EVENT_LBUTTONDOWN:
-        print "Called %s %s" % (x, y)
-        print f1[y, x]
-        global color
-        color = hsv[y, x]
-        # cv2.circle(f1,(x,y),100,(255,0,0),-1)
-
 class CountourDetector(object):
+    def _get_color(self, event, x, y, flags, param):
+        if event == cv2.EVENT_LBUTTONDOWN:
+            print("Called %s %s" % (x, y))
+            print(self.f1[y, x])
+            self.color = self.hsv[y, x]
+            # cv2.circle(f1,(x,y),100,(255,0,0),-1)
+
     def __init__(self, c1):
         able_to_read, f1 = c1.read()
+        self.f1 = f1
+        self.hsv = cv2.cvtColor(f1, cv2.COLOR_BGR2HSV)
+        self.color = None
+        cv2.namedWindow("Original", cv2.WINDOW_NORMAL)
+        cv2.namedWindow("closed", cv2.WINDOW_NORMAL)
+        cv2.namedWindow("Keypoints", cv2.WINDOW_NORMAL)
         cv2.imshow("Original", f1)
-        cv2.setMouseCallback('Original', draw_circle)
+        cv2.setMouseCallback('Original', self._get_color)
         while (True):
             able_to_read, f1 = c1.read()
             if able_to_read:
                 cv2.imshow("Original", f1)
-                hsv = cv2.cvtColor(f1, cv2.COLOR_BGR2HSV)
+                cv2.resizeWindow("Original", 640, 480)
+                self.f1 = f1
+                self.hsv = cv2.cvtColor(f1, cv2.COLOR_BGR2HSV)
                 params = cv2.SimpleBlobDetector_Params()
                 params.filterByArea = True
                 params.minArea = 20
@@ -45,10 +54,10 @@ class CountourDetector(object):
 
                 detector = cv2.SimpleBlobDetector_create(params)
 
-                if color is not None:
-                    upper = np.array([color[0] + 20, color[1] + 60, color[2] + 60])
-                    lower = np.array([color[0] - 20, color[1] - 60, color[2] - 60])
-                    mask = cv2.inRange(hsv, lower, upper)
+                if self.color is not None:
+                    upper = np.array([self.color[0] + 20, self.color[1] + 60, self.color[2] + 60])
+                    lower = np.array([self.color[0] - 20, self.color[1] - 60, self.color[2] - 60])
+                    mask = cv2.inRange(self.hsv, lower, upper)
                     kernel = np.ones((open_close_mask, open_close_mask), np.uint8)
                     closed = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
                     opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel)
@@ -56,46 +65,63 @@ class CountourDetector(object):
                     im2, contours, hierarchy = cv2.findContours(opened, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
                     # for cnt in contours[1:2]:
                     #     print ("Countur %s "%contours.index(cnt))
-                        # approx = cv2.approxPolyDP(cnt, 0.01 * cv2.arcLength(cnt, True), True)
-                        # print len(approx)
-                        # if len(approx) == 5:
-                        #     print "pentagon"
-                        #     cv2.drawContours(canny, [cnt], 0, 255, -1)
-                        # elif len(approx) == 3:
-                        #     print "triangle"
-                        #     cv2.drawContours(canny, [cnt], 0, (0, 255, 0), -1)
-                        # elif len(approx) == 4:
-                        #     print "square"
-                        #     cv2.drawContours(canny, [cnt], 0, (0, 0, 255), -1)
-                        # elif len(approx) == 9:
-                        #     print "half-circle"
-                        #     cv2.drawContours(canny, [cnt], 0, (255, 255, 0), -1)
-                        # elif len(approx) > 15:
-                        #     print "circle"
+                    # approx = cv2.approxPolyDP(cnt, 0.01 * cv2.arcLength(cnt, True), True)
+                    # print len(approx)
+                    # if len(approx) == 5:
+                    #     print "pentagon"
+                    #     cv2.drawContours(canny, [cnt], 0, 255, -1)
+                    # elif len(approx) == 3:
+                    #     print "triangle"
+                    #     cv2.drawContours(canny, [cnt], 0, (0, 255, 0), -1)
+                    # elif len(approx) == 4:
+                    #     print "square"
+                    #     cv2.drawContours(canny, [cnt], 0, (0, 0, 255), -1)
+                    # elif len(approx) == 9:
+                    #     print "half-circle"
+                    #     cv2.drawContours(canny, [cnt], 0, (255, 255, 0), -1)
+                    # elif len(approx) > 15:
+                    #     print "circle"
                     asd = cv2.drawContours(f1, contours, -1, (0, 0, 255), -1)
                     keypoints = detector.detect(closed)
                     im_with_keypoints = cv2.drawKeypoints(closed, keypoints, np.array([]), (0, 0, 255),
                                                           cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
                     # cv2.imshow('mask', mask)
                     cv2.imshow('closed', asd)
+                    cv2.resizeWindow('closed', 640,480)
                     cv2.imshow('Keypoints', im_with_keypoints)
+                    cv2.resizeWindow('Keypoints', 640, 480)
                 k = cv2.waitKey(1) & 0xFF
                 if k == 27:
                     break
             else:
-                c1.set(1,0)
+                c1.set(1, 0)
         cv2.destroyAllWindows()
 
 
 class BlobDetector(object):
-    def __init__(self,c1):
+    def _get_color(self, event, x, y, flags, param):
+        if event == cv2.EVENT_LBUTTONDOWN:
+            print("Called %s %s" % (x, y))
+            print(self.f1[y, x])
+            self.color = self.hsv[y, x]
+            # cv2.circle(f1,(x,y),100,(255,0,0),-1)
+
+    def __init__(self, c1):
+        self.color = None
         able_to_read, f1 = c1.read()
+        self.f1 = f1
+        self.hsv = cv2.cvtColor(f1, cv2.COLOR_BGR2HSV)
+        cv2.namedWindow("Original", cv2.WINDOW_NORMAL)
+        cv2.namedWindow("closed", cv2.WINDOW_NORMAL)
+        cv2.namedWindow("Keypoints", cv2.WINDOW_NORMAL)
         cv2.imshow("Original", f1)
-        cv2.setMouseCallback('Original', draw_circle)
+        cv2.setMouseCallback('Original', self._get_color)
         while (True):
             able_to_read, f1 = c1.read()
             if able_to_read:
-                hsv = cv2.cvtColor(f1, cv2.COLOR_BGR2HSV)
+                self.f1 = f1
+                cv2.imshow("Original", f1)
+                self.hsv = cv2.cvtColor(f1, cv2.COLOR_BGR2HSV)
 
                 # cv2.setMouseCallback('Original', draw_circle)
                 params = cv2.SimpleBlobDetector_Params()
@@ -112,10 +138,10 @@ class BlobDetector(object):
 
                 detector = cv2.SimpleBlobDetector_create(params)
 
-                if color is not None:
-                    upper = np.array([color[0] + 20, color[1] + 60, color[2] + 60])
-                    lower = np.array([color[0] - 20, color[1] - 60, color[2] - 60])
-                    mask = cv2.inRange(hsv, lower, upper)
+                if self.color is not None:
+                    upper = np.array([self.color[0] + 20, self.color[1] + 60, self.color[2] + 60])
+                    lower = np.array([self.color[0] - 20, self.color[1] - 60, self.color[2] - 60])
+                    mask = cv2.inRange(self.hsv, lower, upper)
                     kernel = np.ones((open_close_mask, open_close_mask), np.uint8)
                     closed = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
                     opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel)
@@ -133,16 +159,21 @@ class BlobDetector(object):
                 c1.set(1, 0)
         cv2.destroyAllWindows()
 
+
 class BackgroundSubtractor(object):
     def __init__(self, c1):
         print("BackgroundSubstractor called")
         # c1.release()
         # c1 = cv2.VideoCapture('test.avi')
         able_to_read, background = c1.read()
+        cv2.namedWindow("Background", cv2.WINDOW_NORMAL)
+        cv2.namedWindow("Current", cv2.WINDOW_NORMAL)
+        cv2.namedWindow("FG Substraction", cv2.WINDOW_NORMAL)
+        cv2.namedWindow("Simple Diff", cv2.WINDOW_NORMAL)
         cv2.imshow("Background", background)
 
         fgbg = cv2.createBackgroundSubtractorMOG2(history=history)
-        while(True):
+        while (True):
             able_to_read, f1 = c1.read()
             if able_to_read:
                 diff = cv2.absdiff(background, f1)
@@ -150,6 +181,7 @@ class BackgroundSubtractor(object):
                 kernel = np.ones((open_close_mask, open_close_mask), np.uint8)
                 closed = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel)
                 opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel)
+                cv2.imshow("Current", f1)
                 cv2.imshow("FG Substraction", opened)
                 cv2.imshow("Simple Diff", diff)
                 time.sleep(0.05)
@@ -161,6 +193,7 @@ class BackgroundSubtractor(object):
                 break
         cv2.destroyAllWindows()
 
+
 class BoardCalibrator(object):
     def __init__(self, frame):
         self.field_angle = {1: 18, 2: 144, 3: 180, 4: 54, 5: 342, 6: 90, 7: 216, 8: 252, 9: 306, 10: 108, 11: 270,
@@ -168,6 +201,7 @@ class BoardCalibrator(object):
         self.frame = frame
         self.clicked = False
         self.fields = {20: None, 3: None, 6: None, 11: None, 'mid': None}
+        cv2.namedWindow("Calibration Window", cv2.WINDOW_NORMAL)
         cv2.imshow("Calibration Window", frame)
         for i in range(len(self.fields.keys())):
             cv2.setMouseCallback("Calibration Window", self._clickedIntoPicture, i)
@@ -177,8 +211,8 @@ class BoardCalibrator(object):
                 print("Escaped and closing.")
                 break
             else:
-                print "Thank you"
-        print self.fields
+                print("Thank you")
+        print(self.fields)
 
         points = [(self.fields[20]['x'], self.fields[20]['y']), (self.fields['mid']['x'], self.fields['mid']['y'])]
         x1, x2 = self._get_line_in_pic(points)
@@ -198,22 +232,22 @@ class BoardCalibrator(object):
 
     def _get_line_in_pic(self, points):
         x_coords, y_coords = zip(*points)
-        print x_coords
-        print y_coords
+        print (x_coords)
+        print (y_coords)
         A = vstack([x_coords, ones(len(x_coords))]).T
         m, c = lstsq(A, y_coords)[0]
         x1 = (0 - c) / m
-        print "x: %s , y: %s" % (x1, 0)
+        print ("x: %s , y: %s" % (x1, 0))
         x2 = (height - c) / m
-        print "x: %s , y: %s" % (x2, height)
+        print("x: %s , y: %s" % (x2, height))
         return x1, x2
 
     def _rotate_point(self, point, rangle):
-        b = point[1] # hieght
+        b = point[1]  # hieght
         print("a: %s" % b)
-        a = point[0] #
+        a = point[0]  #
         print("b %s" % a)
-        angle = math.atan(a/b)
+        angle = math.atan(a / b)
         print("angle %s" % math.degrees(angle))
         dangle = math.degrees(angle)
         c = b / math.cos(angle)
@@ -226,30 +260,49 @@ class BoardCalibrator(object):
         print("New b %s" % nb)
         return na, nb
 
-
     def _clickedIntoPicture(self, event, x, y, flags, param):
         if event == cv2.EVENT_LBUTTONDOWN:
             field_key = self.fields.keys()[param]
-            print self.frame[y, x]
+            print(self.frame[y, x])
             self.fields[field_key] = {'y': y, 'x': x}
 
+
+def main(argv):
+    inputfile = ''
+    try:
+        opts, args = getopt.getopt(argv, "h:i:d", ["ifile=", "device="])
+    except getopt.GetoptError:
+        print ('utils.py -i <inputputfile>')
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            print('utils.py -i <inputputfile>')
+            sys.exit()
+        elif opt in ("-i", "--ifile"):
+            inputfile = arg
+
+            c1 = cv2.VideoCapture(inputfile)
+            width = c1.get(3)
+            height = c1.get(4)
+
+            able_to_read, f1 = c1.read()
+            hsv = cv2.cvtColor(f1, cv2.COLOR_BGR2HSV)
+            print(able_to_read)
+            cc = CountourDetector(c1)
+            bs = BackgroundSubtractor(c1)
+            bd = BlobDetector(c1)
+            bc = BoardCalibrator(f1)
+            c1.release()
+        elif opt in ("-d", "--device"):
+            c1 = cv2.VideoCapture(0)
+            c1.set(3, width)
+            c1.set(4, height)
+    print ('Output file is "', inputfile)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
+
+
+
 #
-c1 = cv2.VideoCapture(0)
-c1 = cv2.VideoCapture('test.avi')
-if not c1.isOpened():
-
-    width = c1.get(3)
-    height = c1.get(4)
-else:
-    c1.set(3,width)
-    c1.set(4,height)
-color = None
-
-able_to_read, f1 = c1.read()
-hsv = cv2.cvtColor(f1, cv2.COLOR_BGR2HSV)
-print(able_to_read)
-cc = CountourDetector(c1)
-bs = BackgroundSubtractor(c1)
-bd = BlobDetector(c1)
-bc = BoardCalibrator(f1)
-c1.release()
