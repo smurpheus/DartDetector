@@ -1,14 +1,17 @@
 import numpy as np
 import cv2
+height = 480
+width = 640
+
 
 def save_vid(fname="Deafaultoutput"):
     fname += '.avi'
-    c1 = cv2.VideoCapture(0)
-    c1.set(3, 1280)
-    c1.set(4, 960)
+    c1 = cv2.VideoCapture(1)
+    c1.set(3, height)
+    c1.set(4, width)
     fps = c1.get(cv2.CAP_PROP_FPS)
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    out = cv2.VideoWriter(fname, fourcc, fps, (1280, 960))
+    out = cv2.VideoWriter(fname, fourcc, fps, (width, height))
     try:
         while (c1.isOpened()):
             ret, frame = c1.read()

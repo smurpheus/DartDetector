@@ -2,12 +2,14 @@ import cv2
 import math
 import numpy as np
 from numpy import ones, vstack
+import time
 from numpy.linalg import lstsq
 width = 1280
 height = 960
 # width = 640
 # height = 480
-
+history = 500
+open_close_mask = 5
 
 
 #
@@ -21,12 +23,14 @@ def draw_circle(event, x, y, flags, param):
 
 class CountourDetector(object):
     def __init__(self, c1):
+        able_to_read, f1 = c1.read()
+        cv2.imshow("Original", f1)
+        cv2.setMouseCallback('Original', draw_circle)
         while (True):
             able_to_read, f1 = c1.read()
             if able_to_read:
-                hsv = cv2.cvtColor(f1, cv2.COLOR_BGR2HSV)
                 cv2.imshow("Original", f1)
-                cv2.setMouseCallback('Original', draw_circle)
+                hsv = cv2.cvtColor(f1, cv2.COLOR_BGR2HSV)
                 params = cv2.SimpleBlobDetector_Params()
                 params.filterByArea = True
                 params.minArea = 20
@@ -45,41 +49,41 @@ class CountourDetector(object):
                     upper = np.array([color[0] + 20, color[1] + 60, color[2] + 60])
                     lower = np.array([color[0] - 20, color[1] - 60, color[2] - 60])
                     mask = cv2.inRange(hsv, lower, upper)
-                    kernel = np.ones((8, 8), np.uint8)
+                    kernel = np.ones((open_close_mask, open_close_mask), np.uint8)
                     closed = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
                     opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel)
                     canny = cv2.Canny(opened, 0, 255)
-                    contours = cv2.findContours(opened, 1, 2)
-                    for cnt in contours[1:2]:
-                        print ("Countur %s "%cnt)
-                        approx = cv2.approxPolyDP(cnt, 0.01 * cv2.arcLength(cnt, True), True)
-                        print len(approx)
-                        if len(approx) == 5:
-                            print "pentagon"
-                            cv2.drawContours(canny, [cnt], 0, 255, -1)
-                        elif len(approx) == 3:
-                            print "triangle"
-                            cv2.drawContours(canny, [cnt], 0, (0, 255, 0), -1)
-                        elif len(approx) == 4:
-                            print "square"
-                            cv2.drawContours(canny, [cnt], 0, (0, 0, 255), -1)
-                        elif len(approx) == 9:
-                            print "half-circle"
-                            cv2.drawContours(canny, [cnt], 0, (255, 255, 0), -1)
-                        elif len(approx) > 15:
-                            print "circle"
-                            cv2.drawContours(canny, [cnt], 0, (0, 255, 255), -1)
+                    im2, contours, hierarchy = cv2.findContours(opened, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+                    # for cnt in contours[1:2]:
+                    #     print ("Countur %s "%contours.index(cnt))
+                        # approx = cv2.approxPolyDP(cnt, 0.01 * cv2.arcLength(cnt, True), True)
+                        # print len(approx)
+                        # if len(approx) == 5:
+                        #     print "pentagon"
+                        #     cv2.drawContours(canny, [cnt], 0, 255, -1)
+                        # elif len(approx) == 3:
+                        #     print "triangle"
+                        #     cv2.drawContours(canny, [cnt], 0, (0, 255, 0), -1)
+                        # elif len(approx) == 4:
+                        #     print "square"
+                        #     cv2.drawContours(canny, [cnt], 0, (0, 0, 255), -1)
+                        # elif len(approx) == 9:
+                        #     print "half-circle"
+                        #     cv2.drawContours(canny, [cnt], 0, (255, 255, 0), -1)
+                        # elif len(approx) > 15:
+                        #     print "circle"
+                    asd = cv2.drawContours(f1, contours, -1, (0, 0, 255), -1)
                     keypoints = detector.detect(closed)
                     im_with_keypoints = cv2.drawKeypoints(closed, keypoints, np.array([]), (0, 0, 255),
                                                           cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
                     # cv2.imshow('mask', mask)
-                    cv2.imshow('closed', canny)
+                    cv2.imshow('closed', asd)
                     cv2.imshow('Keypoints', im_with_keypoints)
-                k = cv2.waitKey(5) & 0xFF
+                k = cv2.waitKey(1) & 0xFF
                 if k == 27:
                     break
             else:
-                c1 = cv2.VideoCapture('output.avi')
+                c1.set(1,0)
         cv2.destroyAllWindows()
 
 
@@ -112,7 +116,7 @@ class BlobDetector(object):
                     upper = np.array([color[0] + 20, color[1] + 60, color[2] + 60])
                     lower = np.array([color[0] - 20, color[1] - 60, color[2] - 60])
                     mask = cv2.inRange(hsv, lower, upper)
-                    kernel = np.ones((8, 8), np.uint8)
+                    kernel = np.ones((open_close_mask, open_close_mask), np.uint8)
                     closed = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
                     opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel)
                     canny = cv2.Canny(opened, 0, 255)
@@ -126,7 +130,7 @@ class BlobDetector(object):
                 if k == 27:
                     break
             else:
-                c1 = c1.set(cv2.CV_CAP_PROP_POS_AVI_RATIO, 0)
+                c1.set(1, 0)
         cv2.destroyAllWindows()
 
 class BackgroundSubtractor(object):
@@ -137,16 +141,21 @@ class BackgroundSubtractor(object):
         able_to_read, background = c1.read()
         cv2.imshow("Background", background)
 
-        fgbg = cv2.createBackgroundSubtractorMOG2(history=1000)
+        fgbg = cv2.createBackgroundSubtractorMOG2(history=history)
         while(True):
             able_to_read, f1 = c1.read()
             if able_to_read:
                 diff = cv2.absdiff(background, f1)
                 fgmask = fgbg.apply(f1)
-                cv2.imshow("FG Substraction", fgmask)
+                kernel = np.ones((open_close_mask, open_close_mask), np.uint8)
+                closed = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel)
+                opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel)
+                cv2.imshow("FG Substraction", opened)
                 cv2.imshow("Simple Diff", diff)
+                time.sleep(0.05)
             else:
-                pass
+                c1.set(1, 0)
+                fgbg = cv2.createBackgroundSubtractorMOG2(history=history)
             k = cv2.waitKey(5) & 0xFF
             if k == 27:
                 break
@@ -226,8 +235,9 @@ class BoardCalibrator(object):
 
 #
 c1 = cv2.VideoCapture(0)
+c1 = cv2.VideoCapture('test.avi')
 if not c1.isOpened():
-    c1 = cv2.VideoCapture('output.avi')
+
     width = c1.get(3)
     height = c1.get(4)
 else:
@@ -239,7 +249,7 @@ able_to_read, f1 = c1.read()
 hsv = cv2.cvtColor(f1, cv2.COLOR_BGR2HSV)
 print(able_to_read)
 cc = CountourDetector(c1)
-# bs = BackgroundSubtractor(c1)
-# bd = BlobDetector(c1)
+bs = BackgroundSubtractor(c1)
+bd = BlobDetector(c1)
 bc = BoardCalibrator(f1)
 c1.release()
