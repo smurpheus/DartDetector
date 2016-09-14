@@ -85,12 +85,15 @@ def calibration_pictures(size=(640, 480), device=0):
 def main(argv):
     outputfile = ''
     try:
-        opts, args = getopt.getopt(argv,"hi:o:s:",["ofile=", "size="])
+        opts, args = getopt.getopt(argv,"hi:o:s:d:r:c:",["ofile=", "size=", "device=" ])
     except getopt.GetoptError:
         print 'utils.py -o <outputfile>'
         sys.exit(2)
     width = 640
     height = 480
+    device = False
+    record = False
+    calibrate = False
     for opt, arg in opts:
         if opt == '-h':
             print 'utils.py -o <outputfile>'
@@ -103,9 +106,24 @@ def main(argv):
             if int(size) == 1280:
                 width = 1280
                 height = 960
+        elif opt in ("-d", "--device"):
+            device = arg
+        elif opt in ("-r", "--record"):
+            record = True
+        elif opt in ("-c", "--calibrate"):
+            calibrate = True
 
     print 'Output file is "', outputfile
-    save_vid(outputfile, (width, height))
+    if record:
+        if device:
+            save_vid(outputfile, (width, height), device)
+        else:
+            save_vid(outputfile, (width, height))
+    if calibrate:
+        if device:
+            calibration_pictures((width,height),device)
+        else:
+            calibration_pictures((width, height))
 
 if __name__ == "__main__":
    main(sys.argv[1:])
