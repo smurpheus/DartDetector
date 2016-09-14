@@ -5,18 +5,14 @@ import sys, getopt
 chess_w = 9
 chess_h = 6
 board = [170./170., 162./170., 107./170., 99./170.,15.9/170.,6.35/170.]
-criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-# prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
-objp = np.zeros((chess_h*chess_w,2.6), np.float32)
-objp[:,:2] = np.mgrid[0:chess_w,0:chess_h].T.reshape(-1,2)
 
 
-def save_vid(fname="Deafaultoutput", size=(640, 480)):
+def save_vid(fname="Deafaultoutput", size=(640, 480), device=0):
     fname += '.avi'
     width = size[0]
     height = size[1]
     print("%s x %s"%(width,height))
-    c1 = cv2.VideoCapture(1)
+    c1 = cv2.VideoCapture(device)
     c1.set(3, width)
     c1.set(4, height)
     fps = c1.get(cv2.CAP_PROP_FPS)
@@ -41,12 +37,15 @@ def save_vid(fname="Deafaultoutput", size=(640, 480)):
         cv2.destroyAllWindows()
 
 
-
-def calibration_pictures():
-    width = 1280
-    height = 960
+def calibration_pictures(size=(640, 480), device=0):
+    width = size[0]
+    height = size[1]
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+    # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
+    objp = np.zeros((chess_h * chess_w, 3), np.float32)
+    objp[:, :2] = np.mgrid[0:chess_w, 0:chess_h].T.reshape(-1, 2)
     print("%s x %s" % (width, height))
-    c1 = cv2.VideoCapture(0)
+    c1 = cv2.VideoCapture(device)
     objpoints = []  # 3d point in real world space
     imgpoints = []  # 2d points in image plane.
     for i in range(14):
