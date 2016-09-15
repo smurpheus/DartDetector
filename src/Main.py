@@ -178,11 +178,13 @@ class BoardCalibrator(object):
             rx, ry = self._rotate_point(np.array([x1 - self.fields['mid']['x'], 0 - self.fields['mid']['y']]), fangle)
             rx = rx + self.fields['mid']['x']
             ry = ry + self.fields['mid']['y']
+            trans = self._make_rotation_transformation(math.radians(fangle), (self.fields['mid']['x'], self.fields['mid']['y']))
+            rx, ry = trans((x1, 0))
             print("rx %s ry %s" % (rx, ry))
             points = [(rx, ry), (self.fields['mid']['x'], self.fields['mid']['y'])]
             rx1, rx2 = self._get_line_in_pic(points)
 
-            cv2.line(self.frame, (int(rx1), 0), (int(rx2), int(height)), (255, 0, 0), 2)
+            cv2.line(self.frame, (int(rx1), 0), (int(rx2), int(height)), (255, 0, 0), 1)
         cv2.imshow("Calibration Window", frame)
         k = cv2.waitKey(-1) & 0xFF
         # print "Line Solution is y = {m}x + {c}".format(m=m, c=c)
@@ -198,6 +200,18 @@ class BoardCalibrator(object):
         x2 = (height - c) / m
         print "x: %s , y: %s" % (x2, height)
         return x1, x2
+
+    def _make_rotation_transformation(self, angle, origin=(0, 0)):
+        cos_theta, sin_theta = math.cos(angle), math.sin(angle)
+        x0, y0 = origin
+
+        def xform(point):
+            x, y = point[0] - x0, point[1] - y0
+            return (x * cos_theta - y * sin_theta + x0,
+                    x * sin_theta + y * cos_theta + y0)
+
+        return xform
+
 
     def _rotate_point(self, point, rangle):
         b = point[1] # hieght
@@ -238,7 +252,7 @@ color = None
 able_to_read, f1 = c1.read()
 hsv = cv2.cvtColor(f1, cv2.COLOR_BGR2HSV)
 print(able_to_read)
-cc = CountourDetector(c1)
+# cc = CountourDetector(c1)
 # bs = BackgroundSubtractor(c1)
 # bd = BlobDetector(c1)
 bc = BoardCalibrator(f1)
