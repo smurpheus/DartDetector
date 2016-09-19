@@ -195,14 +195,22 @@ class BackgroundSubtractor(object):
 
 
 class BoardCalibrator(object):
-    def __init__(self, frame):
+    def __init__(self, inputframe):
         self.field_angle = {1: 18, 2: 144, 3: 180, 4: 54, 5: 342, 6: 90, 7: 216, 8: 252, 9: 306, 10: 108, 11: 270,
                             12: 324, 13: 72, 14: 288, 15: 126, 16: 234, 17: 162, 18: 36, 19: 198, 20: 0}
-        self.frame = frame
+        self.frame = inputframe
+        from utils import Camera
+        camera = Camera()
+        camera.load_config()
+        self.frame = camera.undistort_image(self.frame)
+        frame2 = camera.undistort_image_without_crop(self.frame)
         self.clicked = False
         self.fields = {20: None, 3: None, 6: None, 11: None, 'mid': None}
+        # cv2.namedWindow("Uncropped", cv2.WINDOW_NORMAL)
         cv2.namedWindow("Calibration Window", cv2.WINDOW_NORMAL)
-        cv2.imshow("Calibration Window", frame)
+        # cv2.imshow("Uncropped", frame2)
+        cv2.imshow("Calibration Window", self.frame)
+        cv2.waitKey(1)
         for i in range(len(self.fields.keys())):
             cv2.setMouseCallback("Calibration Window", self._clickedIntoPicture, i)
             print ("Select field %s please. Accept with any key." % (self.fields.keys()[i]))
@@ -228,7 +236,7 @@ class BoardCalibrator(object):
             rx1, rx2 = self._get_line_in_pic(points)
 
             cv2.line(self.frame, (int(rx1), 0), (int(rx2), int(height)), (255, 0, 0), 1)
-        cv2.imshow("Calibration Window", frame)
+        cv2.imshow("Calibration Window", self.frame)
         k = cv2.waitKey(-1) & 0xFF
         # print "Line Solution is y = {m}x + {c}".format(m=m, c=c)
 
