@@ -216,6 +216,15 @@ class Camera:
             cv2.destroyAllWindows()
 
 
+def get_color_diffs(colors):
+    diffs = []
+    for i in colors:
+        for e in colors[colors.index(i)+1:]:
+            diffs.append(abs(i - e))
+    return diffs
+
+[[ 54, 154 , 59],[ 19 , 38, 151],[24, 29, 22],[171, 207 ,208]]
+
 class Test:
     param = 200
     cannyup = 150
@@ -293,7 +302,7 @@ class Test:
                     if cv2.waitKey(1) & 0xFF == ord('q'):
                         break
                 else:
-                    break
+                    c1.set(1,0)
         except KeyboardInterrupt:
             pass
         finally:

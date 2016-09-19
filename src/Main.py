@@ -4,6 +4,7 @@ import cv2
 import math
 import numpy as np
 from numpy import ones, vstack
+from utils import Camera
 import time
 from numpy.linalg import lstsq
 
@@ -28,11 +29,15 @@ class CountourDetector(object):
         self.f1 = f1
         self.hsv = cv2.cvtColor(f1, cv2.COLOR_BGR2HSV)
         self.color = None
+        self.colors = {'red': None, 'green': None, 'black': None, 'white': None}
         cv2.namedWindow("Original", cv2.WINDOW_NORMAL)
         cv2.namedWindow("closed", cv2.WINDOW_NORMAL)
         cv2.namedWindow("Keypoints", cv2.WINDOW_NORMAL)
         cv2.imshow("Original", f1)
         cv2.setMouseCallback('Original', self._get_color)
+        for i in range(4):
+            print("click in a %s field please" %self.colors.keys()[i])
+
         while (True):
             able_to_read, f1 = c1.read()
             if able_to_read:
@@ -104,18 +109,44 @@ class BlobDetector(object):
             print("Called %s %s" % (x, y))
             print(self.f1[y, x])
             self.color = self.hsv[y, x]
+            for co, val in self.colors.iteritems():
+                if val is None:
+                    print("Color %s val %s" %(co,val))
+                    self.colors[co] = cv2.cvtColor(np.array([[self.f1[y, x]]],np.uint8), cv2.COLOR_BGR2HSV)
+                    break
             # cv2.circle(f1,(x,y),100,(255,0,0),-1)
+    def _fixbdiff(self, val):
+        self.bdiff = val
+
+    def _fixgdiff(self, val):
+        self.gdiff =val
+
+    def _fixrdiff(self, val):
+        self.rdiff = val
 
     def __init__(self, c1):
         self.color = None
         able_to_read, f1 = c1.read()
         self.f1 = f1
         self.hsv = cv2.cvtColor(f1, cv2.COLOR_BGR2HSV)
+        self.colors = {'red': None, 'green': None, 'black': None, 'white': None}
         cv2.namedWindow("Original", cv2.WINDOW_NORMAL)
         cv2.namedWindow("closed", cv2.WINDOW_NORMAL)
+        self.bdiff = 40
+        self.gdiff = 40
+        self.rdiff = 40
+        cv2.createTrackbar("bdiff", "closed", 120, 255, self._fixbdiff)
+        cv2.createTrackbar("gdiff", "closed", 120, 255, self._fixgdiff)
+        cv2.createTrackbar("rdif", "closed", 120, 255, self._fixrdiff)
         cv2.namedWindow("Keypoints", cv2.WINDOW_NORMAL)
         cv2.imshow("Original", f1)
         cv2.setMouseCallback('Original', self._get_color)
+        for i in range(4):
+            print("click in a %s field please" % self.colors.keys()[i])
+            k = cv2.waitKey(-1) & 0xFF
+            if k == 27:
+                break
+        print(self.colors)
         while (True):
             able_to_read, f1 = c1.read()
             if able_to_read:
@@ -139,18 +170,19 @@ class BlobDetector(object):
                 detector = cv2.SimpleBlobDetector_create(params)
 
                 if self.color is not None:
-                    upper = np.array([self.color[0] + 20, self.color[1] + 60, self.color[2] + 60])
-                    lower = np.array([self.color[0] - 20, self.color[1] - 60, self.color[2] - 60])
+                    upper = np.array([self.color[0] + self.bdiff, self.color[1] + self.gdiff, self.color[2] + self.rdiff])
+                    lower = np.array([self.color[0] - self.bdiff, self.color[1] - self.gdiff, self.color[2] - self.rdiff])
                     mask = cv2.inRange(self.hsv, lower, upper)
                     kernel = np.ones((open_close_mask, open_close_mask), np.uint8)
                     closed = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
                     opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel)
+                    corners = cv2.cornerHarris(opened, 9, 9, 5)
                     canny = cv2.Canny(opened, 0, 255)
                     keypoints = detector.detect(closed)
                     im_with_keypoints = cv2.drawKeypoints(closed, keypoints, np.array([]), (0, 0, 255),
                                                           cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
                     # cv2.imshow('mask', mask)
-                    cv2.imshow('closed', closed)
+                    cv2.imshow('closed', corners)
                     cv2.imshow('Keypoints', im_with_keypoints)
                 k = cv2.waitKey(5) & 0xFF
                 if k == 27:
@@ -163,8 +195,8 @@ class BlobDetector(object):
 class BackgroundSubtractor(object):
     def __init__(self, c1):
         print("BackgroundSubstractor called")
-        # c1.release()
-        # c1 = cv2.VideoCapture('test.avi')
+        self.camera = Camera()
+        # c1.release()re('test.avi')
         able_to_read, background = c1.read()
         cv2.namedWindow("Background", cv2.WINDOW_NORMAL)
         cv2.namedWindow("Current", cv2.WINDOW_NORMAL)
@@ -202,7 +234,7 @@ class BoardCalibrator(object):
         from utils import Camera
         camera = Camera()
         camera.load_config()
-        self.frame = camera.undistort_image(self.frame)
+        # self.frame = camera.undistort_image(self.frame)
         frame2 = camera.undistort_image_without_crop(self.frame)
         self.clicked = False
         self.fields = {20: None, 3: None, 6: None, 11: None, 'mid': None}
@@ -223,6 +255,17 @@ class BoardCalibrator(object):
         print(self.fields)
 
         points = [(self.fields[20]['x'], self.fields[20]['y']), (self.fields['mid']['x'], self.fields['mid']['y'])]
+        xdiff = abs(points[0][0] - points[1][0])
+        ydiff = abs(points[0][1] - points[1][1])
+        print  xdiff
+        print ydiff
+        print xdiff**2 + ydiff**2
+        c = (xdiff**2 + ydiff**2)**(1./2.)
+        print c
+        board = [170. / 170., 162. / 170., 107. / 170., 99. / 170., 15.9 / 170., 6.35 / 170.]
+        for i in board:
+            cv2.circle(self.frame, (self.fields['mid']['x'], self.fields['mid']['y']), int(c * i), [0, 0, 255])
+
         x1, x2 = self._get_line_in_pic(points)
         cv2.line(self.frame, (int(x1), 0), (int(x2), int(height)), (255, 0, 0), 2)
         for field, fangle in self.field_angle.iteritems():
