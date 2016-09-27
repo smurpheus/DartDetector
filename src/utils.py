@@ -3,7 +3,7 @@ import numpy as np
 import cv2
 import json
 import sys, getopt
-
+from pygame import mixer
 chess_w = 9
 chess_h = 6
 board = [170. / 170., 162. / 170., 107. / 170., 99. / 170., 15.9 / 170., 6.35 / 170.]
@@ -70,13 +70,14 @@ def draw_circles():
 
 
 class Camera:
-    def __init__(self, width=1280, heigth=960):
+    def __init__(self, width=1280, heigth=960, device=0):
         self.cameramatrix = None
         self.width = width
         self.height = heigth
         self.roi = []
         self.config = []
         self.was_configured = False
+        self.device = device
 
     def undistort_image(self, image):
         if self.was_configured:
@@ -123,14 +124,14 @@ class Camera:
                 f.write(json.dumps(self.config))
 
     def do_calibration(self, size=(640, 480), device=0):
-        width = size[0]
-        height = size[1]
-        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+        width = self.width
+        height = self.height
+        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 26, 0.001)
         # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
         objp = np.zeros((chess_h * chess_w, 3), np.float32)
         objp[:, :2] = np.mgrid[0:chess_w, 0:chess_h].T.reshape(-1, 2)
         print("%s x %s" % (width, height))
-        c1 = cv2.VideoCapture(device)
+        c1 = cv2.VideoCapture(self.device)
         c1.set(3, width)
         c1.set(4, height)
         c1.set(cv2.CAP_PROP_FPS, 30)
@@ -141,10 +142,14 @@ class Camera:
         while not c1.isOpened():
             pass
         try:
-            for i in range(14):
+            for i in range(1):
                 print("Processing image %s" % i)
                 ret, corners = False, None
                 readable, frame = c1.read()
+                cv2.imshow('Calibration Window', frame)
+                if cv2.waitKey(-1) & 0xFF == ord('q'):
+                    break
+                cv2.waitKey(5000)
                 # print("Tried to read %s"%readable)
                 # while (c1.isOpened()):
                 #     readable, frame = c1.read()
@@ -181,6 +186,11 @@ class Camera:
 
                 # Draw and display the corners
                 frame = cv2.drawChessboardCorners(frame, (chess_w, chess_h), corners2, ret)
+                  # Load the required library
+
+                mixer.init()
+                mixer.music.load('beep.mp3')
+                mixer.music.play()
                 print("""##########################################################################################\r\n
                             FOUND CORNERS STILL %d!!!!!!! \r\n
                          ###########################################################################################
@@ -201,12 +211,21 @@ class Camera:
             nrvecs = []
             for i in rvecs:
                 nrvecs.append(i.tolist())
+            nobjpoints = []
+            for i in objpoints:
+                nobjpoints.append(i.tolist())
+            nimgpoints = []
+            for i in imgpoints:
+                nimgpoints.append(i.tolist())
             dist = dist.tolist()
             config = {'mtx': mtx,
                       'dist': dist,
                       'rvecs': nrvecs,
-                      'tvecs': ntvecs}
+                      'tvecs': ntvecs,
+                      'imgpoints': nimgpoints,
+                      'objpoints': nobjpoints}
             self.config = config
+            self.was_configured = True
 
 
         except KeyboardInterrupt:

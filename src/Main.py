@@ -233,14 +233,23 @@ class BoardCalibrator(object):
         self.frame = inputframe
         from utils import Camera
         camera = Camera()
-        camera.load_config()
-        # self.frame = camera.undistort_image(self.frame)
+        camera.load_config("new_conf.json")
+        self.frame = camera.undistort_image(self.frame)
         frame2 = camera.undistort_image_without_crop(self.frame)
         self.clicked = False
         self.fields = {20: None, 3: None, 6: None, 11: None, 'mid': None}
         # cv2.namedWindow("Uncropped", cv2.WINDOW_NORMAL)
+        radius = int(camera.height/2) - 100
+        self.after = {'mid': {'y': int(camera.height/2), 'x': int(camera.width/2)},
+                      20: {'y': 100, 'x': int(camera.width/2)},
+                      3: {'y': int(camera.height - 100), 'x': int(camera.width/2)},
+                      11: {'x': int(camera.width/2) - radius, 'y': int(camera.height/2)},
+                      6: {'x': int(camera.width/2) + radius, 'y': int(camera.height/2)}}
+        self.after.pop(11)
+        self.after.pop(3)
         cv2.namedWindow("Calibration Window", cv2.WINDOW_NORMAL)
-        # cv2.imshow("Uncropped", frame2)
+        cv2.namedWindow("CONTROL Window", cv2.WINDOW_NORMAL)
+        cv2.imshow("CONTROL Window", frame2)
         cv2.imshow("Calibration Window", self.frame)
         cv2.waitKey(1)
         for i in range(len(self.fields.keys())):
@@ -253,7 +262,25 @@ class BoardCalibrator(object):
             else:
                 print("Thank you")
         print(self.fields)
+        before = []
+        after = []
 
+        for k, v in self.after.iteritems():
+            after.append([v['x'], v['y']])
+            before.append([self.fields[k]['x'],self.fields[k]['y']])
+        print  "AWESOME POINTS MATE"
+        print before
+        print after
+        M = cv2.getAffineTransform(np.float32(before[:3]), np.float32(after[:3]))
+        print "M: %s"%M
+        rows, cols, _ = self.frame.shape
+        frame2 = cv2.warpAffine(self.frame, M, (cols,rows))
+        board = [170. / 170., 162. / 170., 107. / 170., 99. / 170., 15.9 / 170., 6.35 / 170.]
+        for i in board:
+            cv2.circle(frame2, (self.after['mid']['x'], self.after['mid']['y']), int(radius * i), [0, 0, 255])
+        for xm,ym in after:
+            cv2.circle(frame2, (xm, ym), int(5), [0, 255, 255])
+        cv2.imshow("CONTROL Window", frame2)
         points = [(self.fields[20]['x'], self.fields[20]['y']), (self.fields['mid']['x'], self.fields['mid']['y'])]
         xdiff = abs(points[0][0] - points[1][0])
         ydiff = abs(points[0][1] - points[1][1])
@@ -262,7 +289,6 @@ class BoardCalibrator(object):
         print xdiff**2 + ydiff**2
         c = (xdiff**2 + ydiff**2)**(1./2.)
         print c
-        board = [170. / 170., 162. / 170., 107. / 170., 99. / 170., 15.9 / 170., 6.35 / 170.]
         for i in board:
             cv2.circle(self.frame, (self.fields['mid']['x'], self.fields['mid']['y']), int(c * i), [0, 0, 255])
 
@@ -334,6 +360,8 @@ class BoardCalibrator(object):
 
 def main(argv):
     inputfile = ''
+    width = 1280
+    height = 960
     try:
         opts, args = getopt.getopt(argv, "h:i:d", ["ifile=", "device="])
     except getopt.GetoptError:
@@ -359,9 +387,16 @@ def main(argv):
             bc = BoardCalibrator(f1)
             c1.release()
         elif opt in ("-d", "--device"):
-            c1 = cv2.VideoCapture(0)
+            c1 = cv2.VideoCapture(1)
             c1.set(3, width)
             c1.set(4, height)
+            able_to_read, f1 = c1.read()
+            hsv = cv2.cvtColor(f1, cv2.COLOR_BGR2HSV)
+            print(able_to_read)
+            cc = CountourDetector(c1)
+            bs = BackgroundSubtractor(c1)
+            bd = BlobDetector(c1)
+            bc = BoardCalibrator(f1)
     print ('Output file is "', inputfile)
 
 
