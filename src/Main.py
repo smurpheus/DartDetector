@@ -4,7 +4,7 @@ import cv2
 import math
 import numpy as np
 from numpy import ones, vstack
-from utils import Camera
+from utils import Camera, Board
 import time
 from numpy.linalg import lstsq
 
@@ -227,12 +227,13 @@ class BackgroundSubtractor(object):
 
 
 class BoardCalibrator(object):
+    imgpoints = []
     def __init__(self, inputframe):
         self.field_angle = {1: 18, 2: 144, 3: 180, 4: 54, 5: 342, 6: 90, 7: 216, 8: 252, 9: 306, 10: 108, 11: 270,
                             12: 324, 13: 72, 14: 288, 15: 126, 16: 234, 17: 162, 18: 36, 19: 198, 20: 0}
         self.frame = inputframe
         from utils import Camera
-        camera = Camera()
+        camera = Camera(width=680,heigth=480)
         camera.load_config("new_conf.json")
         self.frame = camera.undistort_image(self.frame)
         frame2 = camera.undistort_image_without_crop(self.frame)
@@ -261,6 +262,9 @@ class BoardCalibrator(object):
                 break
             else:
                 print("Thank you")
+
+
+
         print(self.fields)
         before = []
         after = []
@@ -275,9 +279,19 @@ class BoardCalibrator(object):
         print "M: %s"%M
         rows, cols, _ = self.frame.shape
         frame2 = cv2.warpAffine(self.frame, M, (cols,rows))
-        board = [170. / 170., 162. / 170., 107. / 170., 99. / 170., 15.9 / 170., 6.35 / 170.]
-        for i in board:
-            cv2.circle(frame2, (self.after['mid']['x'], self.after['mid']['y']), int(radius * i), [0, 0, 255])
+        b = Board(radius, (self.after['mid']['x'], self.after['mid']['y']))
+
+        for i in b.get_corners():
+            cv2.setMouseCallback("Calibration Window", self.click)
+            print ("Select field %s please. Accept with any key." %str(i))
+            k = cv2.waitKey(-1) & 0xFF
+            if k == 27:
+                print("Escaped and closing.")
+                break
+            else:
+                print("Thank you")
+        b.draw_board_to_frame(frame2)
+        print("Imagepoints %s"%self.imgpoints)
         for xm,ym in after:
             cv2.circle(frame2, (xm, ym), int(5), [0, 255, 255])
         cv2.imshow("CONTROL Window", frame2)
@@ -289,8 +303,8 @@ class BoardCalibrator(object):
         print xdiff**2 + ydiff**2
         c = (xdiff**2 + ydiff**2)**(1./2.)
         print c
-        for i in board:
-            cv2.circle(self.frame, (self.fields['mid']['x'], self.fields['mid']['y']), int(c * i), [0, 0, 255])
+        # for i in board:
+        #     cv2.circle(self.frame, (self.fields['mid']['x'], self.fields['mid']['y']), int(c * i), [0, 0, 255])
 
         x1, x2 = self._get_line_in_pic(points)
         cv2.line(self.frame, (int(x1), 0), (int(x2), int(height)), (255, 0, 0), 2)
@@ -309,16 +323,22 @@ class BoardCalibrator(object):
         k = cv2.waitKey(-1) & 0xFF
         # print "Line Solution is y = {m}x + {c}".format(m=m, c=c)
 
+    def click(self, event, x, y, flags, param):
+
+        if event == cv2.EVENT_LBUTTONDOWN:
+            print("Clicked %s: %s" % (x, y))
+            self.imgpoints.append([x, y])
+
     def _get_line_in_pic(self, points):
         x_coords, y_coords = zip(*points)
-        print (x_coords)
-        print (y_coords)
+        # print (x_coords)
+        # print (y_coords)
         A = vstack([x_coords, ones(len(x_coords))]).T
         m, c = lstsq(A, y_coords)[0]
         x1 = (0 - c) / m
-        print ("x: %s , y: %s" % (x1, 0))
+        # print ("x: %s , y: %s" % (x1, 0))
         x2 = (height - c) / m
-        print("x: %s , y: %s" % (x2, height))
+        # print("x: %s , y: %s" % (x2, height))
         return x1, x2
 
     def _make_rotation_transformation(self, angle, origin=(0, 0)):
@@ -335,20 +355,20 @@ class BoardCalibrator(object):
 
     def _rotate_point(self, point, rangle):
         b = point[1]  # hieght
-        print("a: %s" % b)
+        # print("a: %s" % b)
         a = point[0]  #
-        print("b %s" % a)
+        # print("b %s" % a)
         angle = math.atan(a / b)
-        print("angle %s" % math.degrees(angle))
+        # print("angle %s" % math.degrees(angle))
         dangle = math.degrees(angle)
         c = b / math.cos(angle)
-        print ("c %s" % c)
+        # print ("c %s" % c)
         ndangle = dangle + rangle
         nangle = math.radians(ndangle)
         na = math.sin(nangle) * c
-        print("New a %s" % na)
+        # print("New a %s" % na)
         nb = math.cos(nangle) * c
-        print("New b %s" % nb)
+        # print("New b %s" % nb)
         return na, nb
 
     def _clickedIntoPicture(self, event, x, y, flags, param):

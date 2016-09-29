@@ -7,7 +7,29 @@ from pygame import mixer
 chess_w = 9
 chess_h = 6
 board = [170. / 170., 162. / 170., 107. / 170., 99. / 170., 15.9 / 170., 6.35 / 170.]
+class Board:
+    circles = [170. / 170., 162. / 170., 107. / 170., 99. / 170., 15.9 / 170., 6.35 / 170.]
+    angles = [i * 18 + 9 for i in range(20)]
+    def __init__(self, radius=170, center=(0,0)):
+        self.radius = radius
+        self.center = center
 
+    def get_radius(self):
+        return [i * self.radius for i in self.circles]
+
+    def get_corners(self):
+        return [(np.sin(np.radians(i)) * self.radius + self.center[0], np.cos(np.radians(i)) * self.radius + self.center[1]) for i in self.angles]
+
+    def draw_board_to_frame(self, frame):
+        # Create a black image
+
+        # Draw a blue line with thickness of 5 px
+        for rad in self.get_radius():
+            cv2.circle(frame, (int(self.center[0]), int(self.center[1])), int(rad), [0, 0, 255])
+        for corner in self.get_corners():
+            cv2.line(frame, (int(self.center[0]), int(self.center[1])), (int(corner[0]),int(corner[1])), [0, 0, 255], 1)
+        # Display the image
+        return frame
 
 def save_vid(fname="Deafaultoutput", size=(640, 480), device=0):
     fname += '.avi'
