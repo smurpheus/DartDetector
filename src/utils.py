@@ -4,13 +4,18 @@ import cv2
 import json
 import sys, getopt
 from pygame import mixer
+
 chess_w = 9
 chess_h = 6
 board = [170. / 170., 162. / 170., 107. / 170., 99. / 170., 15.9 / 170., 6.35 / 170.]
+impoints = [[565, 407], [644, 90], [738, 104], [822, 148], [885, 218], [919, 317], [915, 437], [872, 555], [793, 660], [691, 737], [576, 772], [466, 767], [375, 731], [309, 661], [269, 576], [262, 481], [280, 386], [321, 292], [383, 214], [460, 147], [549, 105]]
+
+
 class Board:
     circles = [170. / 170., 162. / 170., 107. / 170., 99. / 170., 15.9 / 170., 6.35 / 170.]
     angles = [i * 18 + 9 for i in range(20)]
-    def __init__(self, radius=170, center=(0,0)):
+
+    def __init__(self, radius=170, center=(0, 0)):
         self.radius = radius
         self.center = center
 
@@ -18,7 +23,9 @@ class Board:
         return [i * self.radius for i in self.circles]
 
     def get_corners(self):
-        return [(np.sin(np.radians(i)) * self.radius + self.center[0], np.cos(np.radians(i)) * self.radius + self.center[1]) for i in self.angles]
+        return [
+            [np.sin(np.radians(i)) * self.radius + self.center[0], np.cos(np.radians(i)) * self.radius + self.center[1]]
+            for i in self.angles]
 
     def draw_board_to_frame(self, frame):
         # Create a black image
@@ -27,41 +34,48 @@ class Board:
         for rad in self.get_radius():
             cv2.circle(frame, (int(self.center[0]), int(self.center[1])), int(rad), [0, 0, 255])
         for corner in self.get_corners():
-            cv2.line(frame, (int(self.center[0]), int(self.center[1])), (int(corner[0]),int(corner[1])), [0, 0, 255], 1)
+            cv2.line(frame, (int(self.center[0]), int(self.center[1])), (int(corner[0]), int(corner[1])), [0, 0, 255],
+                     1)
         # Display the image
         return frame
+
 
 def save_vid(fname="Deafaultoutput", size=(640, 480), device=0):
     fname += '.avi'
     width = size[0]
     height = size[1]
     print("%s x %s" % (width, height))
+    print("opening device %s" % device)
     c1 = cv2.VideoCapture(device)
     c1.set(3, width)
     c1.set(4, height)
+    ret, frame = c1.read()
+    cv2.imshow('Preview', frame)
+    cv2.waitKey(-1)
     fps = c1.get(cv2.CAP_PROP_FPS)
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
     out = cv2.VideoWriter(fname, fourcc, fps, (width, height))
     try:
+        print("Trying to open: %s" % c1.isOpened())
         while (c1.isOpened()):
             ret, frame = c1.read()
             if ret == True:
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 edges = cv2.Canny(gray, 50, 150, apertureSize=3)
 
-                lines = cv2.HoughLines(edges, 1, np.pi / 180, 200)
-                if len(lines) > 0:
-                    for rho, theta in lines[0]:
-                        a = np.cos(theta)
-                        b = np.sin(theta)
-                        x0 = a * rho
-                        y0 = b * rho
-                        x1 = int(x0 + 1000 * (-b))
-                        y1 = int(y0 + 1000 * (a))
-                        x2 = int(x0 - 1000 * (-b))
-                        y2 = int(y0 - 1000 * (a))
-
-                        cv2.line(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
+                # lines = cv2.HoughLines(edges, 1, np.pi / 180, 200)
+                # if len(lines) > 0:
+                #     for rho, theta in lines[0]:
+                #         a = np.cos(theta)
+                #         b = np.sin(theta)
+                #         x0 = a * rho
+                #         y0 = b * rho
+                #         x1 = int(x0 + 1000 * (-b))
+                #         y1 = int(y0 + 1000 * (a))
+                #         x2 = int(x0 - 1000 * (-b))
+                #         y2 = int(y0 - 1000 * (a))
+                #
+                #         cv2.line(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
 
                 # write the flipped frame
                 out.write(frame)
@@ -92,6 +106,7 @@ def draw_circles():
 
 
 class Camera:
+    chessboard_size = 26
     def __init__(self, width=1280, heigth=960, device=0):
         self.cameramatrix = None
         self.width = width
@@ -100,6 +115,11 @@ class Camera:
         self.config = []
         self.was_configured = False
         self.device = device
+        if not device is False:
+            self.capture = cv2.VideoCapture(self.device)
+            self.capture.set(3, self.width)
+            self.capture.set(4, self.height)
+            self.capture.set(cv2.CAP_PROP_FPS, 30)
 
     def undistort_image(self, image):
         if self.was_configured:
@@ -145,50 +165,35 @@ class Camera:
             with open(filename, "w") as f:
                 f.write(json.dumps(self.config))
 
-    def do_calibration(self, size=(640, 480), device=0):
+    def do_calibration(self):
         width = self.width
         height = self.height
-        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 26, 0.001)
+        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, self.chessboard_size, 0.001)
         # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
         objp = np.zeros((chess_h * chess_w, 3), np.float32)
         objp[:, :2] = np.mgrid[0:chess_w, 0:chess_h].T.reshape(-1, 2)
+        objp = objp * self.chessboard_size
         print("%s x %s" % (width, height))
-        c1 = cv2.VideoCapture(self.device)
-        c1.set(3, width)
-        c1.set(4, height)
-        c1.set(cv2.CAP_PROP_FPS, 30)
+
         objpoints = []  # 3d point in real world space
         imgpoints = []  # 2d points in image plane.
         cv2.namedWindow("Calibration Window", cv2.WINDOW_NORMAL)
         cv2.startWindowThread()
-        while not c1.isOpened():
+        while not self.capture.isOpened():
             pass
         try:
             for i in range(1):
                 print("Processing image %s" % i)
                 ret, corners = False, None
-                readable, frame = c1.read()
+                readable, frame = self.capture.read()
                 cv2.imshow('Calibration Window', frame)
                 if cv2.waitKey(-1) & 0xFF == ord('q'):
                     break
                 cv2.waitKey(5000)
-                # print("Tried to read %s"%readable)
-                # while (c1.isOpened()):
-                #     readable, frame = c1.read()
-                #     if readable == True:
-                #         # write the flipped frame
-                #         cv2.imshow('Calibration Window', frame)
-                #         if cv2.waitKey(1) & 0xFF == ord('n'):
-                #             break
-                #     else:
-                #         break
-                # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                # ret, corners = cv2.findChessboardCorners(gray, (chess_w, chess_h), None)
-                # print("Ret: %s"%ret)
                 while (not ret):
-                    readable, frame = c1.read()
+                    readable, frame = self.capture.read()
                     for i in range(10):
-                        readable, frame = c1.read()
+                        readable, frame = self.capture.read()
                         if not readable:
                             readable = True
                             break
@@ -208,7 +213,7 @@ class Camera:
 
                 # Draw and display the corners
                 frame = cv2.drawChessboardCorners(frame, (chess_w, chess_h), corners2, ret)
-                  # Load the required library
+                # Load the required library
 
                 mixer.init()
                 mixer.music.load('beep.mp3')
@@ -221,11 +226,11 @@ class Camera:
                 cv2.waitKey(2000)
             print("Objpoints %s" % objpoints)
             print("Imgpoints %s" % imgpoints)
-            ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
-            print("MTX %s" % mtx)
-            print("DIST %s" % dist)
-            print("rvecs %s" % rvecs)
-            print("tvecs %s" % tvecs)
+            ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, (width, height ), None, None)
+            # print("MTX %s" % mtx)
+            # print("DIST %s" % dist)
+            # print("rvecs %s" % rvecs)
+            # print("tvecs %s" % tvecs)
             mtx = mtx.tolist()
             ntvecs = []
             for i in tvecs:
@@ -247,24 +252,29 @@ class Camera:
                       'imgpoints': nimgpoints,
                       'objpoints': nobjpoints}
             self.config = config
+            newcameramtx, roi = cv2.getOptimalNewCameraMatrix(np.array(config['mtx']), np.array(config['dist']),
+                                                              (self.width, self.height), 1, (self.width, self.height))
+            self.cameramatrix = newcameramtx
             self.was_configured = True
 
 
         except KeyboardInterrupt:
             pass
         finally:
-            c1.release()
+            self.capture.release()
             cv2.destroyAllWindows()
 
 
 def get_color_diffs(colors):
     diffs = []
     for i in colors:
-        for e in colors[colors.index(i)+1:]:
+        for e in colors[colors.index(i) + 1:]:
             diffs.append(abs(i - e))
     return diffs
 
-[[ 54, 154 , 59],[ 19 , 38, 151],[24, 29, 22],[171, 207 ,208]]
+
+[[54, 154, 59], [19, 38, 151], [24, 29, 22], [171, 207, 208]]
+
 
 class Test:
     param = 200
@@ -343,7 +353,7 @@ class Test:
                     if cv2.waitKey(1) & 0xFF == ord('q'):
                         break
                 else:
-                    c1.set(1,0)
+                    c1.set(1, 0)
         except KeyboardInterrupt:
             pass
         finally:

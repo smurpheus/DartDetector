@@ -36,7 +36,7 @@ class CountourDetector(object):
         cv2.imshow("Original", f1)
         cv2.setMouseCallback('Original', self._get_color)
         for i in range(4):
-            print("click in a %s field please" %self.colors.keys()[i])
+            print("click in a %s field please" % self.colors.keys()[i])
 
         while (True):
             able_to_read, f1 = c1.read()
@@ -92,7 +92,7 @@ class CountourDetector(object):
                                                           cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
                     # cv2.imshow('mask', mask)
                     cv2.imshow('closed', asd)
-                    cv2.resizeWindow('closed', 640,480)
+                    cv2.resizeWindow('closed', 640, 480)
                     cv2.imshow('Keypoints', im_with_keypoints)
                     cv2.resizeWindow('Keypoints', 640, 480)
                 k = cv2.waitKey(1) & 0xFF
@@ -111,15 +111,16 @@ class BlobDetector(object):
             self.color = self.hsv[y, x]
             for co, val in self.colors.iteritems():
                 if val is None:
-                    print("Color %s val %s" %(co,val))
-                    self.colors[co] = cv2.cvtColor(np.array([[self.f1[y, x]]],np.uint8), cv2.COLOR_BGR2HSV)
+                    print("Color %s val %s" % (co, val))
+                    self.colors[co] = cv2.cvtColor(np.array([[self.f1[y, x]]], np.uint8), cv2.COLOR_BGR2HSV)
                     break
-            # cv2.circle(f1,(x,y),100,(255,0,0),-1)
+                    # cv2.circle(f1,(x,y),100,(255,0,0),-1)
+
     def _fixbdiff(self, val):
         self.bdiff = val
 
     def _fixgdiff(self, val):
-        self.gdiff =val
+        self.gdiff = val
 
     def _fixrdiff(self, val):
         self.rdiff = val
@@ -170,8 +171,10 @@ class BlobDetector(object):
                 detector = cv2.SimpleBlobDetector_create(params)
 
                 if self.color is not None:
-                    upper = np.array([self.color[0] + self.bdiff, self.color[1] + self.gdiff, self.color[2] + self.rdiff])
-                    lower = np.array([self.color[0] - self.bdiff, self.color[1] - self.gdiff, self.color[2] - self.rdiff])
+                    upper = np.array(
+                        [self.color[0] + self.bdiff, self.color[1] + self.gdiff, self.color[2] + self.rdiff])
+                    lower = np.array(
+                        [self.color[0] - self.bdiff, self.color[1] - self.gdiff, self.color[2] - self.rdiff])
                     mask = cv2.inRange(self.hsv, lower, upper)
                     kernel = np.ones((open_close_mask, open_close_mask), np.uint8)
                     closed = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
@@ -228,24 +231,27 @@ class BackgroundSubtractor(object):
 
 class BoardCalibrator(object):
     imgpoints = []
+
     def __init__(self, inputframe):
         self.field_angle = {1: 18, 2: 144, 3: 180, 4: 54, 5: 342, 6: 90, 7: 216, 8: 252, 9: 306, 10: 108, 11: 270,
                             12: 324, 13: 72, 14: 288, 15: 126, 16: 234, 17: 162, 18: 36, 19: 198, 20: 0}
-        self.frame = inputframe
+        # self.frame = inputframe
         from utils import Camera
-        camera = Camera(width=680,heigth=480)
-        camera.load_config("new_conf.json")
-        self.frame = camera.undistort_image(self.frame)
+        camera = Camera(device=1)
+        camera.do_calibration()
+        r, self.frame = camera.capture.read()
+        # camera.load_config("sized_conf.json")
+        # self.frame = camera.undistort_image(self.frame)
         frame2 = camera.undistort_image_without_crop(self.frame)
         self.clicked = False
         self.fields = {20: None, 3: None, 6: None, 11: None, 'mid': None}
         # cv2.namedWindow("Uncropped", cv2.WINDOW_NORMAL)
-        radius = int(camera.height/2) - 100
-        self.after = {'mid': {'y': int(camera.height/2), 'x': int(camera.width/2)},
-                      20: {'y': 100, 'x': int(camera.width/2)},
-                      3: {'y': int(camera.height - 100), 'x': int(camera.width/2)},
-                      11: {'x': int(camera.width/2) - radius, 'y': int(camera.height/2)},
-                      6: {'x': int(camera.width/2) + radius, 'y': int(camera.height/2)}}
+        radius = int(camera.height / 2) - 100
+        self.after = {'mid': {'y': int(camera.height / 2), 'x': int(camera.width / 2)},
+                      20: {'y': 100, 'x': int(camera.width / 2)},
+                      3: {'y': int(camera.height - 100), 'x': int(camera.width / 2)},
+                      11: {'x': int(camera.width / 2) - radius, 'y': int(camera.height / 2)},
+                      6: {'x': int(camera.width / 2) + radius, 'y': int(camera.height / 2)}}
         self.after.pop(11)
         self.after.pop(3)
         cv2.namedWindow("Calibration Window", cv2.WINDOW_NORMAL)
@@ -253,6 +259,7 @@ class BoardCalibrator(object):
         cv2.imshow("CONTROL Window", frame2)
         cv2.imshow("Calibration Window", self.frame)
         cv2.waitKey(1)
+
         for i in range(len(self.fields.keys())):
             cv2.setMouseCallback("Calibration Window", self._clickedIntoPicture, i)
             print ("Select field %s please. Accept with any key." % (self.fields.keys()[i]))
@@ -263,36 +270,51 @@ class BoardCalibrator(object):
             else:
                 print("Thank you")
 
-
-
-        print(self.fields)
+        # print(self.fields)
         before = []
         after = []
 
         for k, v in self.after.iteritems():
             after.append([v['x'], v['y']])
-            before.append([self.fields[k]['x'],self.fields[k]['y']])
+            before.append([self.fields[k]['x'], self.fields[k]['y']])
         print  "AWESOME POINTS MATE"
         print before
         print after
         M = cv2.getAffineTransform(np.float32(before[:3]), np.float32(after[:3]))
-        print "M: %s"%M
+        print "M: %s" % M
         rows, cols, _ = self.frame.shape
-        frame2 = cv2.warpAffine(self.frame, M, (cols,rows))
+        frame2 = cv2.warpAffine(self.frame, M, (cols, rows))
         b = Board(radius, (self.after['mid']['x'], self.after['mid']['y']))
-
+        cv2.setMouseCallback("Calibration Window", self.click)
+        print ("Select mid pls.")
+        k = cv2.waitKey(-1) & 0xFF
+        if k == 27:
+            print("Escaped and closing.")
+        else:
+            print("Thank you")
         for i in b.get_corners():
-            cv2.setMouseCallback("Calibration Window", self.click)
-            print ("Select field %s please. Accept with any key." %str(i))
+            print ("Select field %s please. Accept with any key." % str(i))
             k = cv2.waitKey(-1) & 0xFF
             if k == 27:
                 print("Escaped and closing.")
                 break
             else:
                 print("Thank you")
+
+        print("Imagepoints %s" % self.imgpoints)
+
+        allobj = [[0, 0]] + Board().get_corners()
+        [i.append(0) for i in allobj]
+        nobj = np.array(allobj, np.float64)
+        print("Objp %s" % nobj)
+        _, rvec, tvec = cv2.solvePnP(nobj,
+                                     np.array(self.imgpoints, np.float64), camera.cameramatrix,
+                                     np.array(camera.config['dist']))
+        print("NEWRVEC: %s" % rvec)
+        print("NEWTVEC: %s" % tvec)
         b.draw_board_to_frame(frame2)
-        print("Imagepoints %s"%self.imgpoints)
-        for xm,ym in after:
+        print("Imagepoints %s" % self.imgpoints)
+        for xm, ym in after:
             cv2.circle(frame2, (xm, ym), int(5), [0, 255, 255])
         cv2.imshow("CONTROL Window", frame2)
         points = [(self.fields[20]['x'], self.fields[20]['y']), (self.fields['mid']['x'], self.fields['mid']['y'])]
@@ -300,8 +322,8 @@ class BoardCalibrator(object):
         ydiff = abs(points[0][1] - points[1][1])
         print  xdiff
         print ydiff
-        print xdiff**2 + ydiff**2
-        c = (xdiff**2 + ydiff**2)**(1./2.)
+        print xdiff ** 2 + ydiff ** 2
+        c = (xdiff ** 2 + ydiff ** 2) ** (1. / 2.)
         print c
         # for i in board:
         #     cv2.circle(self.frame, (self.fields['mid']['x'], self.fields['mid']['y']), int(c * i), [0, 0, 255])
@@ -312,7 +334,8 @@ class BoardCalibrator(object):
             rx, ry = self._rotate_point(np.array([x1 - self.fields['mid']['x'], 0 - self.fields['mid']['y']]), fangle)
             rx = rx + self.fields['mid']['x']
             ry = ry + self.fields['mid']['y']
-            trans = self._make_rotation_transformation(math.radians(fangle), (self.fields['mid']['x'], self.fields['mid']['y']))
+            trans = self._make_rotation_transformation(math.radians(fangle),
+                                                       (self.fields['mid']['x'], self.fields['mid']['y']))
             rx, ry = trans((x1, 0))
             print("rx %s ry %s" % (rx, ry))
             points = [(rx, ry), (self.fields['mid']['x'], self.fields['mid']['y'])]
@@ -351,7 +374,6 @@ class BoardCalibrator(object):
                     x * sin_theta + y * cos_theta + y0)
 
         return xform
-
 
     def _rotate_point(self, point, rangle):
         b = point[1]  # hieght
@@ -401,27 +423,24 @@ def main(argv):
             able_to_read, f1 = c1.read()
             hsv = cv2.cvtColor(f1, cv2.COLOR_BGR2HSV)
             print(able_to_read)
-            cc = CountourDetector(c1)
-            bs = BackgroundSubtractor(c1)
-            bd = BlobDetector(c1)
+            # cc = CountourDetector(c1)
+            # bs = BackgroundSubtractor(c1)
+            # bd = BlobDetector(c1)
             bc = BoardCalibrator(f1)
             c1.release()
         elif opt in ("-d", "--device"):
-            c1 = cv2.VideoCapture(1)
-            c1.set(3, width)
-            c1.set(4, height)
-            able_to_read, f1 = c1.read()
-            hsv = cv2.cvtColor(f1, cv2.COLOR_BGR2HSV)
-            print(able_to_read)
-            cc = CountourDetector(c1)
-            bs = BackgroundSubtractor(c1)
-            bd = BlobDetector(c1)
-            bc = BoardCalibrator(f1)
+            # c1 = cv2.VideoCapture(1)
+            # c1.set(3, width)
+            # c1.set(4, height)
+            # able_to_read, f1 = c1.read()
+            # hsv = cv2.cvtColor(f1, cv2.COLOR_BGR2HSV)
+            # print(able_to_read)
+            # cc = CountourDetector(c1)
+            # bs = BackgroundSubtractor(c1)
+            # bd = BlobDetector(c1)
+            bc = BoardCalibrator(None)
     print ('Output file is "', inputfile)
 
 
 if __name__ == "__main__":
     main(sys.argv[1:])
-
-
-
