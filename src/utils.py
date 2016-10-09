@@ -4,7 +4,7 @@ import cv2
 import json
 import sys, getopt
 from pygame import mixer
-
+import glob
 chess_w = 9
 chess_h = 6
 board = [170. / 170., 162. / 170., 107. / 170., 99. / 170., 15.9 / 170., 6.35 / 170.]
@@ -165,7 +165,7 @@ class Camera:
             with open(filename, "w") as f:
                 f.write(json.dumps(self.config))
 
-    def do_calibration(self):
+    def do_calibration(self, img=None):
         width = self.width
         height = self.height
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, self.chessboard_size, 0.001)
@@ -179,54 +179,71 @@ class Camera:
         imgpoints = []  # 2d points in image plane.
         cv2.namedWindow("Calibration Window", cv2.WINDOW_NORMAL)
         cv2.startWindowThread()
-        while not self.capture.isOpened():
+        while not self.device is False and not self.capture.isOpened() :
             pass
         try:
-            for i in range(1):
-                print("Processing image %s" % i)
-                ret, corners = False, None
-                readable, frame = self.capture.read()
-                cv2.imshow('Calibration Window', frame)
-                if cv2.waitKey(-1) & 0xFF == ord('q'):
-                    break
-                cv2.waitKey(5000)
-                while (not ret):
+            if not img:
+                for i in range(14):
+                    print("Processing image %s" % i)
+                    ret, corners = False, None
                     readable, frame = self.capture.read()
-                    for i in range(10):
-                        readable, frame = self.capture.read()
-                        if not readable:
-                            readable = True
-                            break
-                    if readable:
-                        cv2.imshow('Calibration Window', frame)
-                        if cv2.waitKey(500) & 0xFF == ord('q'):
-                            break
-                        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                        ret, corners = cv2.findChessboardCorners(gray, (chess_w, chess_h), None)
-                        if ret:
-                            frame2 = cv2.drawChessboardCorners(frame, (chess_w, chess_h), corners, ret)
-                            cv2.imshow('Calibration Window', frame2)
-                ret = False
-                objpoints.append(objp)
-                corners2 = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
-                imgpoints.append(corners2)
+                    cv2.imshow('Calibration Window', frame)
+                    if cv2.waitKey(-1) & 0xFF == ord('q'):
+                        break
+                    cv2.waitKey(5000)
+                    while (not ret):
+                        if img is None:
+                            readable, frame = self.capture.read()
+                        for _ in range(10):
+                            readable, frame = self.capture.read()
+                            if not readable:
+                                readable = True
+                                break
+                        if readable:
+                            cv2.imshow('Calibration Window', frame)
+                            if cv2.waitKey(500) & 0xFF == ord('q'):
+                                break
+                            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                            ret, corners = cv2.findChessboardCorners(gray, (chess_w, chess_h), None)
+                            # if ret:
+                            #     frame2 = cv2.drawChessboardCorners(frame, (chess_w, chess_h), corners, ret)
+                            #     cv2.imshow('Calibration Window', frame2)
+                    ret = False
+                    objpoints.append(objp)
+                    corners2 = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
+                    imgpoints.append(corners2)
 
-                # Draw and display the corners
-                frame = cv2.drawChessboardCorners(frame, (chess_w, chess_h), corners2, ret)
-                # Load the required library
+                    # Draw and display the corners
+                    cv2.imwrite("./calibraw%s.jpg"%i, frame)
+                    frame = cv2.drawChessboardCorners(frame, (chess_w, chess_h), corners2, ret)
+                    cv2.imwrite("./calib.jpg", frame)
+                    # Load the required library
 
-                mixer.init()
-                mixer.music.load('beep.mp3')
-                mixer.music.play()
-                print("""##########################################################################################\r\n
-                            FOUND CORNERS STILL %d!!!!!!! \r\n
-                         ###########################################################################################
-                      """ % (14 - i))
-                cv2.imshow('Calibration Window', frame)
-                cv2.waitKey(2000)
-            print("Objpoints %s" % objpoints)
-            print("Imgpoints %s" % imgpoints)
-            ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, (width, height ), None, None)
+                    mixer.init()
+                    mixer.music.load('beep.mp3')
+                    mixer.music.play()
+                    print("""##########################################################################################\r\n
+                                FOUND CORNERS STILL %d!!!!!!! \r\n
+                             ###########################################################################################
+                          """ % (14 - i))
+                    cv2.imshow('Calibration Window', frame)
+                    cv2.waitKey(2000)
+            else:
+                images = glob.glob('./calibimgs/*.jpg')
+                for fname in images:
+                    frame = cv2.imread(fname)
+                    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                    ret, corners = cv2.findChessboardCorners(gray, (chess_w, chess_h), None)
+                    if ret == True:
+                        objpoints.append(objp)
+                        corners2 = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
+                        imgpoints.append(corners)
+                        cv2.drawChessboardCorners(frame, (chess_w, chess_h), corners2, ret)
+                        cv2.imshow("Calibration Window", frame)
+                        cv2.waitKey(1)
+            # print("Objpoints %s" % objpoints)
+            # print("Imgpoints %s" % imgpoints)
+            ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1],None,None,criteria=criteria)
             # print("MTX %s" % mtx)
             # print("DIST %s" % dist)
             # print("rvecs %s" % rvecs)
@@ -245,23 +262,27 @@ class Camera:
             for i in imgpoints:
                 nimgpoints.append(i.tolist())
             dist = dist.tolist()
-            config = {'mtx': mtx,
-                      'dist': dist,
-                      'rvecs': nrvecs,
-                      'tvecs': ntvecs,
+            config = {'mtx': np.array(mtx),
+                      'dist': np.array(dist),
+                      'rvecs': np.array(nrvecs),
+                      'tvecs': np.array(ntvecs[0]),
                       'imgpoints': nimgpoints,
                       'objpoints': nobjpoints}
             self.config = config
+            # newcameramtx, roi = cv2.getOptimalNewCameraMatrix(np.array(config['mtx']), np.array(config['dist']),
+                                                              # (self.width, self.height))
             newcameramtx, roi = cv2.getOptimalNewCameraMatrix(np.array(config['mtx']), np.array(config['dist']),
-                                                              (self.width, self.height), 1, (self.width, self.height))
+                                                              (self.width, self.height), 0, (self.width, self.height))
             self.cameramatrix = newcameramtx
+            print(self.cameramatrix)
             self.was_configured = True
 
 
         except KeyboardInterrupt:
             pass
         finally:
-            self.capture.release()
+            if not self.device is False:
+                self.capture.release()
             cv2.destroyAllWindows()
 
 
@@ -273,7 +294,34 @@ def get_color_diffs(colors):
     return diffs
 
 
-[[54, 154, 59], [19, 38, 151], [24, 29, 22], [171, 207, 208]]
+def test_image(camera):
+    roto, _ = cv2.Rodrigues(camera.config['rvecs'][0])
+    print "Rotation Matrix: \r\n %s" % roto
+    tvec = camera.config['tvecs']
+    print "Translation vector: \r\n %s"%tvec
+    print "Camera Matrix: \r\n %s"%camera.config['mtx']
+    print "dist parameter: \r\n %s"%camera.config['dist']
+    newp, _ = cv2.projectPoints(np.array(camera.config['objpoints'][0]),roto,tvec,camera.config['mtx'], camera.config['dist'])
+    # print np.array(camera.config['imgpoints'][0])
+    # for i, x in zip(newp, np.array(camera.config['imgpoints'][0])):
+    #     print "%s::: %s"%(i, x)
+    # print newp
+    trans = np.concatenate((roto, tvec), 1)
+    print "combined Trans and Rot: \r\n %s" % trans
+    newp2 = []
+    for i in camera.config['objpoints'][0]:
+        p = np.array(i + [1]).reshape(4,1)
+        ip = np.array([np.array(i).reshape(3,1)])
+        # print ip
+        newpoint =  np.dot(np.array(camera.config['mtx']), np.dot(trans, p))
+        nnp = [[newpoint[0][0]/newpoint[2][0]],[newpoint[1][0]/newpoint[2][0]]]
+        newp2.append(nnp)
+    for i, x in zip(newp,newp2):
+        print "%s::: %s"%(i, x)
+
+    #     rotated = np.dot(roto, ip)
+    #     # print np.add(rotated, tvec)
+    #     # print np.dot(np.array(camera.config['mtx']), np.dot(trans, p))
 
 
 class Test:

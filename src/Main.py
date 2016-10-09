@@ -237,12 +237,12 @@ class BoardCalibrator(object):
                             12: 324, 13: 72, 14: 288, 15: 126, 16: 234, 17: 162, 18: 36, 19: 198, 20: 0}
         # self.frame = inputframe
         from utils import Camera
-        camera = Camera(device=1)
-        camera.do_calibration()
+        camera = Camera(device=0)
+        # camera.do_calibration()
         r, self.frame = camera.capture.read()
-        # camera.load_config("sized_conf.json")
+        camera.do_calibration(True)
         # self.frame = camera.undistort_image(self.frame)
-        frame2 = camera.undistort_image_without_crop(self.frame)
+        # frame2 = camera.undistort_image_without_crop(self.frame)
         self.clicked = False
         self.fields = {20: None, 3: None, 6: None, 11: None, 'mid': None}
         # cv2.namedWindow("Uncropped", cv2.WINDOW_NORMAL)
@@ -256,7 +256,7 @@ class BoardCalibrator(object):
         self.after.pop(3)
         cv2.namedWindow("Calibration Window", cv2.WINDOW_NORMAL)
         cv2.namedWindow("CONTROL Window", cv2.WINDOW_NORMAL)
-        cv2.imshow("CONTROL Window", frame2)
+        # cv2.imshow("CONTROL Window", frame2)
         cv2.imshow("Calibration Window", self.frame)
         cv2.waitKey(1)
 
@@ -280,10 +280,10 @@ class BoardCalibrator(object):
         print  "AWESOME POINTS MATE"
         print before
         print after
-        M = cv2.getAffineTransform(np.float32(before[:3]), np.float32(after[:3]))
-        print "M: %s" % M
+        # M = cv2.getAffineTransform(np.float32(before[:3]), np.float32(after[:3]))
+        # print "M: %s" % M
         rows, cols, _ = self.frame.shape
-        frame2 = cv2.warpAffine(self.frame, M, (cols, rows))
+        # frame2 = cv2.warpAffine(self.frame, M, (cols, rows))
         b = Board(radius, (self.after['mid']['x'], self.after['mid']['y']))
         cv2.setMouseCallback("Calibration Window", self.click)
         print ("Select mid pls.")
@@ -308,15 +308,20 @@ class BoardCalibrator(object):
         nobj = np.array(allobj, np.float64)
         print("Objp %s" % nobj)
         _, rvec, tvec = cv2.solvePnP(nobj,
-                                     np.array(self.imgpoints, np.float64), camera.cameramatrix,
+                                     np.array(self.imgpoints, np.float64), camera.config['mtx'],
                                      np.array(camera.config['dist']))
         print("NEWRVEC: %s" % rvec)
         print("NEWTVEC: %s" % tvec)
-        b.draw_board_to_frame(frame2)
+        rot, _ = cv2.Rodrigues(rvec)
+        print rot
+        newp, _ = cv2.projectPoints(nobj, rot, tvec, camera.config['mtx'],
+                                    camera.config['dist'])
+        print newp
+        # b.draw_board_to_frame(frame2)
         print("Imagepoints %s" % self.imgpoints)
-        for xm, ym in after:
-            cv2.circle(frame2, (xm, ym), int(5), [0, 255, 255])
-        cv2.imshow("CONTROL Window", frame2)
+        # for xm, ym in after:
+            # cv2.circle(frame2, (xm, ym), int(5), [0, 255, 255])
+        # cv2.imshow("CONTROL Window", frame2)
         points = [(self.fields[20]['x'], self.fields[20]['y']), (self.fields['mid']['x'], self.fields['mid']['y'])]
         xdiff = abs(points[0][0] - points[1][0])
         ydiff = abs(points[0][1] - points[1][1])
