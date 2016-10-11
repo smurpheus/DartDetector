@@ -296,10 +296,14 @@ def get_color_diffs(colors):
 
 def test_image(camera):
     roto, _ = cv2.Rodrigues(camera.config['rvecs'][0])
+    invroto = np.linalg.inv(roto)
     print "Rotation Matrix: \r\n %s" % roto
+    print "InverseRotation Matrix: \r\n %s" % invroto
     tvec = camera.config['tvecs']
     print "Translation vector: \r\n %s"%tvec
     print "Camera Matrix: \r\n %s"%camera.config['mtx']
+    invcam = np.linalg.inv(camera.config['mtx'])
+    print "Inverse Camera Matrix: \r\n %s" % invcam
     print "dist parameter: \r\n %s"%camera.config['dist']
     newp, _ = cv2.projectPoints(np.array(camera.config['objpoints'][0]),roto,tvec,camera.config['mtx'], camera.config['dist'])
     # print np.array(camera.config['imgpoints'][0])
@@ -311,10 +315,23 @@ def test_image(camera):
     newp2 = []
     for i in camera.config['objpoints'][0]:
         p = np.array(i + [1]).reshape(4,1)
-        ip = np.array([np.array(i).reshape(3,1)])
+        ip = np.array(np.array(i).reshape(3,1))
         # print ip
-        newpoint =  np.dot(np.array(camera.config['mtx']), np.dot(trans, p))
-        nnp = [[newpoint[0][0]/newpoint[2][0]],[newpoint[1][0]/newpoint[2][0]]]
+        # newpoint =  np.dot(np.array(camera.config['mtx']), np.dot(trans, p))
+        # print "NP normal: %s"%newpoint
+        newpoint = np.dot(np.array(camera.config['mtx']), np.dot(roto, ip) + tvec)
+
+        nnp = [[newpoint[0][0]/newpoint[2][0]],[newpoint[1][0]/newpoint[2][0]], [1]]
+        print "NP crazy: %s"%nnp
+        tempmat =  np.dot(np.dot(invroto, invcam), nnp)
+        tempmat2 = np.dot(invroto, tvec)
+        s = 0 + tempmat2[2][0]
+        a = tempmat[2][0]
+        s /= a
+
+
+        reverse = np.dot(invroto,np.dot(invcam, np.array(nnp)*s)) - np.dot(invroto,tvec)
+        print "reversed: %s"%reverse
         newp2.append(nnp)
     for i, x in zip(newp,newp2):
         print "%s::: %s"%(i, x)
