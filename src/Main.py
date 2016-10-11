@@ -4,7 +4,7 @@ import cv2
 import math
 import numpy as np
 from numpy import ones, vstack
-from utils import Camera, Board
+from utils import Camera, Board, projectReverse
 import time
 from numpy.linalg import lstsq
 
@@ -241,7 +241,7 @@ class BoardCalibrator(object):
         # camera.do_calibration()
         r, self.frame = camera.capture.read()
         camera.do_calibration(True)
-        # self.frame = camera.undistort_image(self.frame)
+        self.frame = camera.undistort_image(self.frame)
         # frame2 = camera.undistort_image_without_crop(self.frame)
         self.clicked = False
         self.fields = {20: None, 3: None, 6: None, 11: None, 'mid': None}
@@ -260,23 +260,23 @@ class BoardCalibrator(object):
         cv2.imshow("Calibration Window", self.frame)
         cv2.waitKey(1)
 
-        for i in range(len(self.fields.keys())):
-            cv2.setMouseCallback("Calibration Window", self._clickedIntoPicture, i)
-            print ("Select field %s please. Accept with any key." % (self.fields.keys()[i]))
-            k = cv2.waitKey(-1) & 0xFF
-            if k == 27:
-                print("Escaped and closing.")
-                break
-            else:
-                print("Thank you")
+        # for i in range(len(self.fields.keys())):
+        #     cv2.setMouseCallback("Calibration Window", self._clickedIntoPicture, i)
+        #     print ("Select field %s please. Accept with any key." % (self.fields.keys()[i]))
+        #     k = cv2.waitKey(-1) & 0xFF
+        #     if k == 27:
+        #         print("Escaped and closing.")
+        #         break
+        #     else:
+        #         print("Thank you")
 
         # print(self.fields)
         before = []
         after = []
 
-        for k, v in self.after.iteritems():
-            after.append([v['x'], v['y']])
-            before.append([self.fields[k]['x'], self.fields[k]['y']])
+        # for k, v in self.after.iteritems():
+        #     after.append([v['x'], v['y']])
+        #     before.append([self.fields[k]['x'], self.fields[k]['y']])
         print  "AWESOME POINTS MATE"
         print before
         print after
@@ -308,48 +308,66 @@ class BoardCalibrator(object):
         nobj = np.array(allobj, np.float64)
         print("Objp %s" % nobj)
         _, rvec, tvec = cv2.solvePnP(nobj,
-                                     np.array(self.imgpoints, np.float64), camera.config['mtx'],
+                                     np.array(self.imgpoints, np.float64), np.array(camera.config['mtx']),
                                      np.array(camera.config['dist']))
         print("NEWRVEC: %s" % rvec)
         print("NEWTVEC: %s" % tvec)
         rot, _ = cv2.Rodrigues(rvec)
-        print rot
-        newp, _ = cv2.projectPoints(nobj, rot, tvec, camera.config['mtx'],
-                                    camera.config['dist'])
-        print newp
+        rev = projectReverse(self.imgpoints,rot, tvec, camera.config['mtx'])
+        self.rot = rot
+        self.tvec = tvec
+        self.camera = camera
         # b.draw_board_to_frame(frame2)
         print("Imagepoints %s" % self.imgpoints)
+        print("Objecpoints %s" % rev)
         # for xm, ym in after:
             # cv2.circle(frame2, (xm, ym), int(5), [0, 255, 255])
         # cv2.imshow("CONTROL Window", frame2)
-        points = [(self.fields[20]['x'], self.fields[20]['y']), (self.fields['mid']['x'], self.fields['mid']['y'])]
-        xdiff = abs(points[0][0] - points[1][0])
-        ydiff = abs(points[0][1] - points[1][1])
-        print  xdiff
-        print ydiff
-        print xdiff ** 2 + ydiff ** 2
-        c = (xdiff ** 2 + ydiff ** 2) ** (1. / 2.)
-        print c
+        # points = [(self.fields[20]['x'], self.fields[20]['y']), (self.fields['mid']['x'], self.fields['mid']['y'])]
+        # xdiff = abs(points[0][0] - points[1][0])
+        # ydiff = abs(points[0][1] - points[1][1])
+        # print  xdiff
+        # print ydiff
+        # print xdiff ** 2 + ydiff ** 2
+        # c = (xdiff ** 2 + ydiff ** 2) ** (1. / 2.)
+        # print c
         # for i in board:
         #     cv2.circle(self.frame, (self.fields['mid']['x'], self.fields['mid']['y']), int(c * i), [0, 0, 255])
 
-        x1, x2 = self._get_line_in_pic(points)
-        cv2.line(self.frame, (int(x1), 0), (int(x2), int(height)), (255, 0, 0), 2)
-        for field, fangle in self.field_angle.iteritems():
-            rx, ry = self._rotate_point(np.array([x1 - self.fields['mid']['x'], 0 - self.fields['mid']['y']]), fangle)
-            rx = rx + self.fields['mid']['x']
-            ry = ry + self.fields['mid']['y']
-            trans = self._make_rotation_transformation(math.radians(fangle),
-                                                       (self.fields['mid']['x'], self.fields['mid']['y']))
-            rx, ry = trans((x1, 0))
-            print("rx %s ry %s" % (rx, ry))
-            points = [(rx, ry), (self.fields['mid']['x'], self.fields['mid']['y'])]
-            rx1, rx2 = self._get_line_in_pic(points)
+        # x1, x2 = self._get_line_in_pic(points)
+        # cv2.line(self.frame, (int(x1), 0), (int(x2), int(height)), (255, 0, 0), 2)
+        # for field, fangle in self.field_angle.iteritems():
+        #     rx, ry = self._rotate_point(np.array([x1 - self.fields['mid']['x'], 0 - self.fields['mid']['y']]), fangle)
+        #     rx = rx + self.fields['mid']['x']
+        #     ry = ry + self.fields['mid']['y']
+        #     trans = self._make_rotation_transformation(math.radians(fangle),
+        #                                                (self.fields['mid']['x'], self.fields['mid']['y']))
+        #     rx, ry = trans((x1, 0))
+        #     print("rx %s ry %s" % (rx, ry))
+        #     points = [(rx, ry), (self.fields['mid']['x'], self.fields['mid']['y'])]
+        #     rx1, rx2 = self._get_line_in_pic(points)
 
-            cv2.line(self.frame, (int(rx1), 0), (int(rx2), int(height)), (255, 0, 0), 1)
-        cv2.imshow("Calibration Window", self.frame)
+            # cv2.line(self.frame, (int(rx1), 0), (int(rx2), int(height)), (255, 0, 0), 1)
+        cv2.setMouseCallback("Calibration Window", self.calcObj)
+        while True:
+            r, self.frame = camera.capture.read()
+            if r:
+                self.frame = camera.undistort_image(self.frame)
+                cv2.imshow("Calibration Window", self.frame)
+            k = cv2.waitKey(1) & 0xFF
+            if k == 27:
+                break
+
         k = cv2.waitKey(-1) & 0xFF
         # print "Line Solution is y = {m}x + {c}".format(m=m, c=c)
+    def calcObj(self, event, x, y, flags, param):
+        if event == cv2.EVENT_LBUTTONDOWN:
+            print("Clicked %s: %s" % (x, y))
+
+            objp = projectReverse(np.array([[[x],[y]]]), self.rot, self.tvec, self.camera.config['mtx'])
+            print "Object Point %s"%objp
+            print "Field: %s" %Board().calculate_field(objp[0][:2])
+
 
     def click(self, event, x, y, flags, param):
 

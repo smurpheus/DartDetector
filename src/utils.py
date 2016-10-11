@@ -14,7 +14,7 @@ impoints = [[565, 407], [644, 90], [738, 104], [822, 148], [885, 218], [919, 317
 class Board:
     circles = [170. / 170., 162. / 170., 107. / 170., 99. / 170., 15.9 / 170., 6.35 / 170.]
     angles = [i * 18 + 9 for i in range(20)]
-
+    fields_in_order = [20,1,18,4,13,6,10,15,2,17,3,19,7,16,8,11,14,9,12,5]
     def __init__(self, radius=170, center=(0, 0)):
         self.radius = radius
         self.center = center
@@ -39,6 +39,29 @@ class Board:
         # Display the image
         return frame
 
+    def calculate_field(self, point):
+        fields_in_order = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5, 20]
+        angles = [0] + [i * 18 + 9 for i in range(21)]
+
+        x = point[0][0]
+        y = point[1][0]
+        dist_from_mid = np.sqrt(np.power(x, 2) + np.power(y,2))
+        angle = np.arcsin(x / dist_from_mid)
+        angle = np.degrees(angle)
+        if y > 0:
+            if angle < 0:
+                angle = 360 - abs(angle)
+        else:
+            if angle > 0:
+                angle = 180 - abs(angle)
+            else:
+                angle = 180 + abs(angle)
+        indexof = -1
+        for i in angles:
+            if angle > i and angle < angles[angles.index(i)+1]:
+                indexof = angles.index(i)
+                break
+        return fields_in_order[indexof]
 
 def save_vid(fname="Deafaultoutput", size=(640, 480), device=0):
     fname += '.avi'
@@ -123,7 +146,7 @@ class Camera:
 
     def undistort_image(self, image):
         if self.was_configured:
-            print("CONFIG \r\n%s" % self.config)
+            # print("CONFIG \r\n%s" % self.config)
             dst = cv2.undistort(image, np.array(self.config['mtx']), np.array(self.config['dist']), None,
                                 self.cameramatrix)
             # crop the image
@@ -274,6 +297,7 @@ class Camera:
             newcameramtx, roi = cv2.getOptimalNewCameraMatrix(np.array(config['mtx']), np.array(config['dist']),
                                                               (self.width, self.height), 0, (self.width, self.height))
             self.cameramatrix = newcameramtx
+            self.roi = roi
             print(self.cameramatrix)
             self.was_configured = True
 
@@ -281,8 +305,8 @@ class Camera:
         except KeyboardInterrupt:
             pass
         finally:
-            if not self.device is False:
-                self.capture.release()
+            # if not self.device is False:
+            #     self.capture.release()
             cv2.destroyAllWindows()
 
 
@@ -293,6 +317,22 @@ def get_color_diffs(colors):
             diffs.append(abs(i - e))
     return diffs
 
+
+def projectReverse(imgpoints, rvec, tvec, cameramatrix):
+    invroto = np.linalg.inv(rvec)
+    invcam = np.linalg.inv(cameramatrix)
+    objpoints =[]
+    for point in imgpoints:
+        p = np.array(point).reshape(2, 1)
+        ip = np.concatenate((p, [[1]]), 0)
+        tempmat = np.dot(np.dot(invroto, invcam), ip)
+        tempmat2 = np.dot(invroto, tvec)
+        s = 0 + tempmat2[2][0]
+        a = tempmat[2][0]
+        s /= a
+        reverse = np.dot(invroto, np.dot(invcam, np.array(ip) * s)) - np.dot(invroto, tvec)
+        objpoints.append(reverse)
+    return objpoints
 
 def test_image(camera):
     roto, _ = cv2.Rodrigues(camera.config['rvecs'][0])
@@ -321,16 +361,16 @@ def test_image(camera):
         # print "NP normal: %s"%newpoint
         newpoint = np.dot(np.array(camera.config['mtx']), np.dot(roto, ip) + tvec)
 
-        nnp = [[newpoint[0][0]/newpoint[2][0]],[newpoint[1][0]/newpoint[2][0]], [1]]
+        nnp = [[newpoint[0][0]/newpoint[2][0]],[newpoint[1][0]/newpoint[2][0]]]
         print "NP crazy: %s"%nnp
-        tempmat =  np.dot(np.dot(invroto, invcam), nnp)
-        tempmat2 = np.dot(invroto, tvec)
-        s = 0 + tempmat2[2][0]
-        a = tempmat[2][0]
-        s /= a
+        # tempmat =  np.dot(np.dot(invroto, invcam), nnp)
+        # tempmat2 = np.dot(invroto, tvec)
+        # s = 0 + tempmat2[2][0]
+        # a = tempmat[2][0]
+        # s /= a
 
-
-        reverse = np.dot(invroto,np.dot(invcam, np.array(nnp)*s)) - np.dot(invroto,tvec)
+        reverse = projectReverse([nnp], roto, tvec, camera.config['mtx'])
+        # reverse = np.dot(invroto,np.dot(invcam, np.array(nnp)*s)) - np.dot(invroto,tvec)
         print "reversed: %s"%reverse
         newp2.append(nnp)
     for i, x in zip(newp,newp2):
