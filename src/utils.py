@@ -42,7 +42,7 @@ class Board:
     def calculate_field(self, point):
         fields_in_order = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5, 20]
         angles = [0] + [i * 18 + 9 for i in range(21)]
-
+        multiplier = [2,1,3,1.0,"25","50"]
         x = point[0][0]
         y = point[1][0]
         dist_from_mid = np.sqrt(np.power(x, 2) + np.power(y,2))
@@ -56,12 +56,22 @@ class Board:
                 angle = 180 - abs(angle)
             else:
                 angle = 180 + abs(angle)
-        indexof = -1
+        indexof = 1
         for i in angles:
             if angle > i and angle < angles[angles.index(i)+1]:
                 indexof = angles.index(i)
                 break
-        return fields_in_order[indexof]
+
+        radiuses = self.get_radius() + [0]
+        mult = -1
+        for i in multiplier:
+            if dist_from_mid < radiuses[multiplier.index(i)] and dist_from_mid > radiuses[multiplier.index(i)+1]:
+                mult = i
+                break
+        if isinstance(mult, str):
+            return mult
+        else:
+            return mult * fields_in_order[indexof]
 
 def save_vid(fname="Deafaultoutput", size=(640, 480), device=0):
     fname += '.avi'
