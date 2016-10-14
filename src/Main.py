@@ -232,69 +232,24 @@ class BackgroundSubtractor(object):
 class BoardCalibrator(object):
     imgpoints = []
 
-    def __init__(self, inputframe):
-        self.field_angle = {1: 18, 2: 144, 3: 180, 4: 54, 5: 342, 6: 90, 7: 216, 8: 252, 9: 306, 10: 108, 11: 270,
-                            12: 324, 13: 72, 14: 288, 15: 126, 16: 234, 17: 162, 18: 36, 19: 198, 20: 0}
-        # self.frame = inputframe
-        from utils import Camera
-        camera = Camera(device=0)
-        # camera.do_calibration()
-        r, self.frame = camera.capture.read()
-        camera.do_calibration(True)
+    def __init__(self, input):
+        camera = Camera(device=input)
+        camera.do_calibration(img=True)
+        self.frame = camera.get_image()
         self.frame = camera.undistort_image(self.frame)
-        # frame2 = camera.undistort_image_without_crop(self.frame)
-        self.clicked = False
-        self.fields = {20: None, 3: None, 6: None, 11: None, 'mid': None}
-        # cv2.namedWindow("Uncropped", cv2.WINDOW_NORMAL)
-        radius = int(camera.height / 2) - 100
-        self.after = {'mid': {'y': int(camera.height / 2), 'x': int(camera.width / 2)},
-                      20: {'y': 100, 'x': int(camera.width / 2)},
-                      3: {'y': int(camera.height - 100), 'x': int(camera.width / 2)},
-                      11: {'x': int(camera.width / 2) - radius, 'y': int(camera.height / 2)},
-                      6: {'x': int(camera.width / 2) + radius, 'y': int(camera.height / 2)}}
-        self.after.pop(11)
-        self.after.pop(3)
         cv2.namedWindow("Calibration Window", cv2.WINDOW_NORMAL)
-        cv2.namedWindow("CONTROL Window", cv2.WINDOW_NORMAL)
-        # cv2.imshow("CONTROL Window", frame2)
         cv2.imshow("Calibration Window", self.frame)
         cv2.waitKey(1)
 
-        # for i in range(len(self.fields.keys())):
-        #     cv2.setMouseCallback("Calibration Window", self._clickedIntoPicture, i)
-        #     print ("Select field %s please. Accept with any key." % (self.fields.keys()[i]))
-        #     k = cv2.waitKey(-1) & 0xFF
-        #     if k == 27:
-        #         print("Escaped and closing.")
-        #         break
-        #     else:
-        #         print("Thank you")
-
-        # print(self.fields)
-        before = []
-        after = []
-
-        # for k, v in self.after.iteritems():
-        #     after.append([v['x'], v['y']])
-        #     before.append([self.fields[k]['x'], self.fields[k]['y']])
-        print  "AWESOME POINTS MATE"
-        print before
-        print after
-        # M = cv2.getAffineTransform(np.float32(before[:3]), np.float32(after[:3]))
-        # print "M: %s" % M
-        rows, cols, _ = self.frame.shape
-        # frame2 = cv2.warpAffine(self.frame, M, (cols, rows))
-        b = Board(radius, (self.after['mid']['x'], self.after['mid']['y']))
+        allobj = [[0, 0]] + Board().get_corners()
+        [i.append(0) for i in allobj]
+        nobj = np.array(allobj, np.float64)
+        config_points = nobj
         cv2.setMouseCallback("Calibration Window", self.click)
-        print ("Select mid pls.")
-        k = cv2.waitKey(-1) & 0xFF
-        if k == 27:
-            print("Escaped and closing.")
-        else:
-            print("Thank you")
-        for i in b.get_corners():
+        for i in config_points:
             print ("Select field %s please. Accept with any key." % str(i))
             k = cv2.waitKey(-1) & 0xFF
+            self.imgpoints.append(self.imgpoint)
             if k == 27:
                 print("Escaped and closing.")
                 break
@@ -303,9 +258,6 @@ class BoardCalibrator(object):
 
         print("Imagepoints %s" % self.imgpoints)
 
-        allobj = [[0, 0]] + Board().get_corners()
-        [i.append(0) for i in allobj]
-        nobj = np.array(allobj, np.float64)
         print("Objp %s" % nobj)
         _, rvec, tvec = cv2.solvePnP(nobj,
                                      np.array(self.imgpoints, np.float64), np.array(camera.config['mtx']),
@@ -320,46 +272,18 @@ class BoardCalibrator(object):
         # b.draw_board_to_frame(frame2)
         print("Imagepoints %s" % self.imgpoints)
         print("Objecpoints %s" % rev)
-        # for xm, ym in after:
-            # cv2.circle(frame2, (xm, ym), int(5), [0, 255, 255])
-        # cv2.imshow("CONTROL Window", frame2)
-        # points = [(self.fields[20]['x'], self.fields[20]['y']), (self.fields['mid']['x'], self.fields['mid']['y'])]
-        # xdiff = abs(points[0][0] - points[1][0])
-        # ydiff = abs(points[0][1] - points[1][1])
-        # print  xdiff
-        # print ydiff
-        # print xdiff ** 2 + ydiff ** 2
-        # c = (xdiff ** 2 + ydiff ** 2) ** (1. / 2.)
-        # print c
-        # for i in board:
-        #     cv2.circle(self.frame, (self.fields['mid']['x'], self.fields['mid']['y']), int(c * i), [0, 0, 255])
 
-        # x1, x2 = self._get_line_in_pic(points)
-        # cv2.line(self.frame, (int(x1), 0), (int(x2), int(height)), (255, 0, 0), 2)
-        # for field, fangle in self.field_angle.iteritems():
-        #     rx, ry = self._rotate_point(np.array([x1 - self.fields['mid']['x'], 0 - self.fields['mid']['y']]), fangle)
-        #     rx = rx + self.fields['mid']['x']
-        #     ry = ry + self.fields['mid']['y']
-        #     trans = self._make_rotation_transformation(math.radians(fangle),
-        #                                                (self.fields['mid']['x'], self.fields['mid']['y']))
-        #     rx, ry = trans((x1, 0))
-        #     print("rx %s ry %s" % (rx, ry))
-        #     points = [(rx, ry), (self.fields['mid']['x'], self.fields['mid']['y'])]
-        #     rx1, rx2 = self._get_line_in_pic(points)
-
-            # cv2.line(self.frame, (int(rx1), 0), (int(rx2), int(height)), (255, 0, 0), 1)
         cv2.setMouseCallback("Calibration Window", self.calcObj)
         while True:
-            r, self.frame = camera.capture.read()
-            if r:
-                self.frame = camera.undistort_image(self.frame)
-                cv2.imshow("Calibration Window", self.frame)
+            self.frame = camera.get_image()
+            self.frame = camera.undistort_image(self.frame)
+            cv2.imshow("Calibration Window", self.frame)
             k = cv2.waitKey(1) & 0xFF
             if k == 27:
                 break
 
         k = cv2.waitKey(-1) & 0xFF
-        # print "Line Solution is y = {m}x + {c}".format(m=m, c=c)
+
     def calcObj(self, event, x, y, flags, param):
         if event == cv2.EVENT_LBUTTONDOWN:
             print("Clicked %s: %s" % (x, y))
@@ -373,7 +297,8 @@ class BoardCalibrator(object):
 
         if event == cv2.EVENT_LBUTTONDOWN:
             print("Clicked %s: %s" % (x, y))
-            self.imgpoints.append([x, y])
+            self.imgpoint = [x,y]
+            # self.imgpoints.append([x, y])
 
     def _get_line_in_pic(self, points):
         x_coords, y_coords = zip(*points)
@@ -439,19 +364,19 @@ def main(argv):
         elif opt in ("-i", "--ifile"):
             inputfile = arg
 
-            c1 = cv2.VideoCapture(inputfile)
-            width = c1.get(3)
-            height = c1.get(4)
-
-            able_to_read, f1 = c1.read()
-            hsv = cv2.cvtColor(f1, cv2.COLOR_BGR2HSV)
-            print(able_to_read)
+            # c1 = cv2.VideoCapture(inputfile)
+            # # width = c1.get(3)
+            # # height = c1.get(4)
+            #
+            # able_to_read, f1 = c1.read()
+            # hsv = cv2.cvtColor(f1, cv2.COLOR_BGR2HSV)
+            # print(able_to_read)
             # cc = CountourDetector(c1)
             # bs = BackgroundSubtractor(c1)
             # bd = BlobDetector(c1)
-            bc = BoardCalibrator(f1)
-            c1.release()
+            bc = BoardCalibrator(inputfile)
         elif opt in ("-d", "--device"):
+            device = arg
             # c1 = cv2.VideoCapture(1)
             # c1.set(3, width)
             # c1.set(4, height)
@@ -461,7 +386,7 @@ def main(argv):
             # cc = CountourDetector(c1)
             # bs = BackgroundSubtractor(c1)
             # bd = BlobDetector(c1)
-            bc = BoardCalibrator(None)
+            bc = BoardCalibrator(device)
     print ('Output file is "', inputfile)
 
 

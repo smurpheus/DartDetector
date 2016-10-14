@@ -140,7 +140,7 @@ def draw_circles():
 
 class Camera:
     chessboard_size = 26
-    def __init__(self, width=1280, heigth=960, device=0):
+    def __init__(self, width=1280, heigth=960, device=None):
         self.cameramatrix = None
         self.width = width
         self.height = heigth
@@ -148,11 +148,29 @@ class Camera:
         self.config = []
         self.was_configured = False
         self.device = device
-        if not device is False:
+        if isinstance(device, int):
+            self.from_file = False
             self.capture = cv2.VideoCapture(self.device)
             self.capture.set(3, self.width)
             self.capture.set(4, self.height)
             self.capture.set(cv2.CAP_PROP_FPS, 30)
+        elif isinstance(device, str):
+            self.from_file = True
+            self.capture = cv2.VideoCapture(self.device)
+            self.width = int(self.capture.get(3))
+            self.heigth = int(self.capture.get(4))
+
+
+    def get_image(self):
+        able_to_read, f1 = self.capture.read()
+        if able_to_read:
+            return f1
+        else:
+            if self.from_file:
+                self.capture.set(1, 0)
+            able_to_read, f1 = self.capture.read()
+            if able_to_read:
+                return f1
 
     def undistort_image(self, image):
         if self.was_configured:
