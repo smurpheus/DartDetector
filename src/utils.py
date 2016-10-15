@@ -5,16 +5,20 @@ import json
 import sys, getopt
 from pygame import mixer
 import glob
+
 chess_w = 9
 chess_h = 6
 board = [170. / 170., 162. / 170., 107. / 170., 99. / 170., 15.9 / 170., 6.35 / 170.]
-impoints = [[565, 407], [644, 90], [738, 104], [822, 148], [885, 218], [919, 317], [915, 437], [872, 555], [793, 660], [691, 737], [576, 772], [466, 767], [375, 731], [309, 661], [269, 576], [262, 481], [280, 386], [321, 292], [383, 214], [460, 147], [549, 105]]
+impoints = [[565, 407], [644, 90], [738, 104], [822, 148], [885, 218], [919, 317], [915, 437], [872, 555], [793, 660],
+            [691, 737], [576, 772], [466, 767], [375, 731], [309, 661], [269, 576], [262, 481], [280, 386], [321, 292],
+            [383, 214], [460, 147], [549, 105]]
 
 
 class Board:
     circles = [170. / 170., 162. / 170., 107. / 170., 99. / 170., 15.9 / 170., 6.35 / 170.]
     angles = [i * 18 + 9 for i in range(20)]
-    fields_in_order = [20,1,18,4,13,6,10,15,2,17,3,19,7,16,8,11,14,9,12,5]
+    fields_in_order = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5]
+
     def __init__(self, radius=170, center=(0, 0)):
         self.radius = radius
         self.center = center
@@ -26,6 +30,45 @@ class Board:
         return [
             [np.sin(np.radians(i)) * self.radius + self.center[0], np.cos(np.radians(i)) * self.radius + self.center[1]]
             for i in self.angles]
+
+    def _get_configs(self):
+        result = []
+        # Outer Ring
+        angle = self.angles[0]
+        radius = self.circles[0] * self.radius
+        result.append([np.sin(np.radians(angle)) * radius + self.center[0],
+                       np.cos(np.radians(angle)) * radius + self.center[1]])
+        angle = self.angles[5]
+        radius = self.circles[0] * self.radius
+        result.append([np.sin(np.radians(angle)) * radius + self.center[0],
+                       np.cos(np.radians(angle)) * radius + self.center[1]])
+        angle = self.angles[10]
+        radius = self.circles[0] * self.radius
+        result.append([np.sin(np.radians(angle)) * radius + self.center[0],
+                       np.cos(np.radians(angle)) * radius + self.center[1]])
+        angle = self.angles[15]
+        radius = self.circles[0] * self.radius
+        result.append([np.sin(np.radians(angle)) * radius + self.center[0],
+                       np.cos(np.radians(angle)) * radius + self.center[1]])
+
+        #Inner Ring
+        angle = self.angles[2]
+        radius = self.circles[3] * self.radius
+        result.append([np.sin(np.radians(angle)) * radius + self.center[0],
+                       np.cos(np.radians(angle)) * radius + self.center[1]])
+        angle = self.angles[7]
+        radius = self.circles[3] * self.radius
+        result.append([np.sin(np.radians(angle)) * radius + self.center[0],
+                       np.cos(np.radians(angle)) * radius + self.center[1]])
+        angle = self.angles[12]
+        radius = self.circles[3] * self.radius
+        result.append([np.sin(np.radians(angle)) * radius + self.center[0],
+                       np.cos(np.radians(angle)) * radius + self.center[1]])
+        angle = self.angles[17]
+        radius = self.circles[3] * self.radius
+        result.append([np.sin(np.radians(angle)) * radius + self.center[0],
+                       np.cos(np.radians(angle)) * radius + self.center[1]])
+        return  result
 
     def draw_board_to_frame(self, frame):
         # Create a black image
@@ -42,10 +85,10 @@ class Board:
     def calculate_field(self, point):
         fields_in_order = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5, 20]
         angles = [0] + [i * 18 + 9 for i in range(21)]
-        multiplier = [2,1,3,1.0,"25","50"]
+        multiplier = [2, 1, 3, 1.0, "25", "50"]
         x = point[0][0]
         y = point[1][0]
-        dist_from_mid = np.sqrt(np.power(x, 2) + np.power(y,2))
+        dist_from_mid = np.sqrt(np.power(x, 2) + np.power(y, 2))
         angle = np.arcsin(x / dist_from_mid)
         angle = np.degrees(angle)
         if y > 0:
@@ -58,20 +101,24 @@ class Board:
                 angle = 180 + abs(angle)
         indexof = 1
         for i in angles:
-            if angle > i and angle < angles[angles.index(i)+1]:
+            if angle > i and angle < angles[angles.index(i) + 1]:
                 indexof = angles.index(i)
                 break
 
         radiuses = self.get_radius() + [0]
         mult = -1
-        for i in multiplier:
-            if dist_from_mid < radiuses[multiplier.index(i)] and dist_from_mid > radiuses[multiplier.index(i)+1]:
-                mult = i
-                break
+        if dist_from_mid > radiuses[0]:
+            mult = False
+        else:
+            for i in multiplier:
+                if dist_from_mid < radiuses[multiplier.index(i)] and dist_from_mid > radiuses[multiplier.index(i) + 1]:
+                    mult = i
+                    break
         if isinstance(mult, str):
             return mult
         else:
-            return mult * fields_in_order[indexof]
+            return abs(mult) * fields_in_order[indexof]
+
 
 def save_vid(fname="Deafaultoutput", size=(640, 480), device=0):
     fname += '.avi'
@@ -140,6 +187,7 @@ def draw_circles():
 
 class Camera:
     chessboard_size = 26
+
     def __init__(self, width=1280, heigth=960, device=None):
         self.cameramatrix = None
         self.width = width
@@ -159,7 +207,6 @@ class Camera:
             self.capture = cv2.VideoCapture(self.device)
             self.width = int(self.capture.get(3))
             self.heigth = int(self.capture.get(4))
-
 
     def get_image(self):
         able_to_read, f1 = self.capture.read()
@@ -230,7 +277,7 @@ class Camera:
         imgpoints = []  # 2d points in image plane.
         cv2.namedWindow("Calibration Window", cv2.WINDOW_NORMAL)
         cv2.startWindowThread()
-        while not self.device is False and not self.capture.isOpened() :
+        while not self.device is False and not self.capture.isOpened():
             pass
         try:
             if not img:
@@ -265,7 +312,7 @@ class Camera:
                     imgpoints.append(corners2)
 
                     # Draw and display the corners
-                    cv2.imwrite("./calibraw%s.jpg"%i, frame)
+                    cv2.imwrite("./calibraw%s.jpg" % i, frame)
                     frame = cv2.drawChessboardCorners(frame, (chess_w, chess_h), corners2, ret)
                     cv2.imwrite("./calib.jpg", frame)
                     # Load the required library
@@ -294,7 +341,8 @@ class Camera:
                         cv2.waitKey(1)
             # print("Objpoints %s" % objpoints)
             # print("Imgpoints %s" % imgpoints)
-            ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1],None,None,criteria=criteria)
+            ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None,
+                                                               criteria=criteria)
             # print("MTX %s" % mtx)
             # print("DIST %s" % dist)
             # print("rvecs %s" % rvecs)
@@ -321,13 +369,20 @@ class Camera:
                       'objpoints': nobjpoints}
             self.config = config
             # newcameramtx, roi = cv2.getOptimalNewCameraMatrix(np.array(config['mtx']), np.array(config['dist']),
-                                                              # (self.width, self.height))
+            # (self.width, self.height))
             newcameramtx, roi = cv2.getOptimalNewCameraMatrix(np.array(config['mtx']), np.array(config['dist']),
                                                               (self.width, self.height), 0, (self.width, self.height))
             self.cameramatrix = newcameramtx
             self.roi = roi
             print(self.cameramatrix)
             self.was_configured = True
+            mean_error = 0
+            for i in xrange(len(objpoints)):
+                imgpoints2, _ = cv2.projectPoints(objpoints[i], rvecs[i], tvecs[i], newcameramtx, np.array(dist))
+                error = cv2.norm(imgpoints[i], imgpoints2, cv2.NORM_L2) / len(imgpoints2)
+                mean_error += error
+
+            print "total error: ", mean_error / len(objpoints)
 
 
         except KeyboardInterrupt:
@@ -349,7 +404,7 @@ def get_color_diffs(colors):
 def projectReverse(imgpoints, rvec, tvec, cameramatrix):
     invroto = np.linalg.inv(rvec)
     invcam = np.linalg.inv(cameramatrix)
-    objpoints =[]
+    objpoints = []
     for point in imgpoints:
         p = np.array(point).reshape(2, 1)
         ip = np.concatenate((p, [[1]]), 0)
@@ -362,18 +417,20 @@ def projectReverse(imgpoints, rvec, tvec, cameramatrix):
         objpoints.append(reverse)
     return objpoints
 
+
 def test_image(camera):
     roto, _ = cv2.Rodrigues(camera.config['rvecs'][0])
     invroto = np.linalg.inv(roto)
     print "Rotation Matrix: \r\n %s" % roto
     print "InverseRotation Matrix: \r\n %s" % invroto
     tvec = camera.config['tvecs']
-    print "Translation vector: \r\n %s"%tvec
-    print "Camera Matrix: \r\n %s"%camera.config['mtx']
+    print "Translation vector: \r\n %s" % tvec
+    print "Camera Matrix: \r\n %s" % camera.config['mtx']
     invcam = np.linalg.inv(camera.config['mtx'])
     print "Inverse Camera Matrix: \r\n %s" % invcam
-    print "dist parameter: \r\n %s"%camera.config['dist']
-    newp, _ = cv2.projectPoints(np.array(camera.config['objpoints'][0]),roto,tvec,camera.config['mtx'], camera.config['dist'])
+    print "dist parameter: \r\n %s" % camera.config['dist']
+    newp, _ = cv2.projectPoints(np.array(camera.config['objpoints'][0]), roto, tvec, camera.config['mtx'],
+                                camera.config['dist'])
     # print np.array(camera.config['imgpoints'][0])
     # for i, x in zip(newp, np.array(camera.config['imgpoints'][0])):
     #     print "%s::: %s"%(i, x)
@@ -382,15 +439,15 @@ def test_image(camera):
     print "combined Trans and Rot: \r\n %s" % trans
     newp2 = []
     for i in camera.config['objpoints'][0]:
-        p = np.array(i + [1]).reshape(4,1)
-        ip = np.array(np.array(i).reshape(3,1))
+        p = np.array(i + [1]).reshape(4, 1)
+        ip = np.array(np.array(i).reshape(3, 1))
         # print ip
         # newpoint =  np.dot(np.array(camera.config['mtx']), np.dot(trans, p))
         # print "NP normal: %s"%newpoint
         newpoint = np.dot(np.array(camera.config['mtx']), np.dot(roto, ip) + tvec)
 
-        nnp = [[newpoint[0][0]/newpoint[2][0]],[newpoint[1][0]/newpoint[2][0]]]
-        print "NP crazy: %s"%nnp
+        nnp = [[newpoint[0][0] / newpoint[2][0]], [newpoint[1][0] / newpoint[2][0]]]
+        print "NP crazy: %s" % nnp
         # tempmat =  np.dot(np.dot(invroto, invcam), nnp)
         # tempmat2 = np.dot(invroto, tvec)
         # s = 0 + tempmat2[2][0]
@@ -399,14 +456,14 @@ def test_image(camera):
 
         reverse = projectReverse([nnp], roto, tvec, camera.config['mtx'])
         # reverse = np.dot(invroto,np.dot(invcam, np.array(nnp)*s)) - np.dot(invroto,tvec)
-        print "reversed: %s"%reverse
+        print "reversed: %s" % reverse
         newp2.append(nnp)
-    for i, x in zip(newp,newp2):
-        print "%s::: %s"%(i, x)
+    for i, x in zip(newp, newp2):
+        print "%s::: %s" % (i, x)
 
-    #     rotated = np.dot(roto, ip)
-    #     # print np.add(rotated, tvec)
-    #     # print np.dot(np.array(camera.config['mtx']), np.dot(trans, p))
+        #     rotated = np.dot(roto, ip)
+        #     # print np.add(rotated, tvec)
+        #     # print np.dot(np.array(camera.config['mtx']), np.dot(trans, p))
 
 
 class Test:

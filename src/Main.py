@@ -236,12 +236,12 @@ class BoardCalibrator(object):
         camera = Camera(device=input)
         camera.do_calibration(img=True)
         self.frame = camera.get_image()
-        self.frame = camera.undistort_image(self.frame)
+        # self.frame = camera.undistort_image(self.frame)
         cv2.namedWindow("Calibration Window", cv2.WINDOW_NORMAL)
         cv2.imshow("Calibration Window", self.frame)
         cv2.waitKey(1)
 
-        allobj = [[0, 0]] + Board().get_corners()
+        allobj = [[0, 0]] + Board()._get_configs()
         [i.append(0) for i in allobj]
         nobj = np.array(allobj, np.float64)
         config_points = nobj
@@ -261,7 +261,31 @@ class BoardCalibrator(object):
         print("Objp %s" % nobj)
         _, rvec, tvec = cv2.solvePnP(nobj,
                                      np.array(self.imgpoints, np.float64), np.array(camera.config['mtx']),
-                                     np.array(camera.config['dist']))
+                                     np.array(camera.config['dist']), None,None, False, cv2.SOLVEPNP_ITERATIVE)
+        mean_error = 0
+        imgpoints2, _ = cv2.projectPoints(nobj, rvec, tvec, camera.cameramatrix, camera.config['dist'])
+        impoints = np.array([[x] for x in self.imgpoints], np.float64)
+        error = cv2.norm(impoints, imgpoints2, cv2.NORM_L2) / len(imgpoints2)
+        mean_error += error
+
+        print "total error: ", mean_error
+        outers = Board().get_radius()
+        def calcy(x,r):
+            return np.sqrt(np.power(r,2)-np.power(x,2))
+
+        points = []
+        for outer in outers:
+            xs = [i*0.01 for i in range(0,int(outer*100))]
+            xs += [i*-0.01 for i in range(0,int(outer*100))]
+            for i in xs:
+                y = calcy(i,int(outer))
+                points.append([[i],[y],[0]])
+                points.append([[i], [-y], [0]])
+        points = np.array(points)
+        # points = np.array([[[0],[0],[0]], [[outer],[0],[0]]])
+        print points
+        imp, jac = cv2.projectPoints(points, rvec,tvec, np.array(camera.config['mtx']), np.array(camera.config['dist']))
+        print imp
         print("NEWRVEC: %s" % rvec)
         print("NEWTVEC: %s" % tvec)
         rot, _ = cv2.Rodrigues(rvec)
@@ -277,6 +301,12 @@ class BoardCalibrator(object):
         while True:
             self.frame = camera.get_image()
             self.frame = camera.undistort_image(self.frame)
+            for i in imp:
+                try:
+                    self.frame[i[0][1], i[0][0]] = [0,0,255]
+                except IndexError:
+                    pass
+            # self.frame = cv2.circle(self.frame,(int(np.round(imp[0][0][0])), int(np.round(imp[0][0][1]))),int(np.round(dist)),[0,0,255],1)
             cv2.imshow("Calibration Window", self.frame)
             k = cv2.waitKey(1) & 0xFF
             if k == 27:
@@ -340,12 +370,6 @@ class BoardCalibrator(object):
         nb = math.cos(nangle) * c
         # print("New b %s" % nb)
         return na, nb
-
-    def _clickedIntoPicture(self, event, x, y, flags, param):
-        if event == cv2.EVENT_LBUTTONDOWN:
-            field_key = self.fields.keys()[param]
-            print(self.frame[y, x])
-            self.fields[field_key] = {'y': y, 'x': x}
 
 
 def main(argv):
