@@ -196,38 +196,42 @@ class BlobDetector(object):
 
 
 class BackgroundSubtractor(object):
+    history = 500
+    fgbg = None
     def __init__(self, c1):
         print("BackgroundSubstractor called")
-        self.camera = Camera()
+        self.camera = Camera(device=c1)
         # c1.release()re('test.avi')
-        able_to_read, background = c1.read()
-        cv2.namedWindow("Background", cv2.WINDOW_NORMAL)
+        background = self.camera.get_image()
+        # cv2.namedWindow("Background", cv2.WINDOW_NORMAL)
         cv2.namedWindow("Current", cv2.WINDOW_NORMAL)
         cv2.namedWindow("FG Substraction", cv2.WINDOW_NORMAL)
-        cv2.namedWindow("Simple Diff", cv2.WINDOW_NORMAL)
-        cv2.imshow("Background", background)
+        cv2.createTrackbar("History", "Current", 100, 1000, self._set_history)
+        # cv2.namedWindow("Simple Diff", cv2.WINDOW_NORMAL)
+        # cv2.imshow("Background", background)
 
-        fgbg = cv2.createBackgroundSubtractorMOG2(history=history)
+        self.fgbg = cv2.createBackgroundSubtractorKNN(history=self.history)
         while (True):
-            able_to_read, f1 = c1.read()
-            if able_to_read:
-                diff = cv2.absdiff(background, f1)
-                fgmask = fgbg.apply(f1)
-                kernel = np.ones((open_close_mask, open_close_mask), np.uint8)
-                closed = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel)
-                opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel)
-                cv2.imshow("Current", f1)
-                cv2.imshow("FG Substraction", opened)
-                cv2.imshow("Simple Diff", diff)
-                time.sleep(0.05)
-            else:
-                c1.set(1, 0)
-                fgbg = cv2.createBackgroundSubtractorMOG2(history=history)
+            f1 = self.camera.get_image()
+            diff = cv2.absdiff(background, f1)
+            fgmask = self.fgbg.apply(f1)
+            ret, thresh = cv2.threshold(fgmask, 127, 255, 0)
+            kernel = np.ones((open_close_mask, open_close_mask), np.uint8)
+            contours,_,_ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+            # cv2.drawContours(f1, contours, -1, (0, 255, 0), 3)
+            closed = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel)
+            opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel)
+            cv2.imshow("Current", contours)
+            cv2.imshow("FG Substraction", opened)
+            # cv2.imshow("Simple Diff", diff)
+            time.sleep(0.05)
             k = cv2.waitKey(5) & 0xFF
             if k == 27:
                 break
         cv2.destroyAllWindows()
-
+    def _set_history(self, val):
+        self.history = val
+        self.fgbg = cv2.createBackgroundSubtractorKNN(history=self.history)
 
 class BoardCalibrator(object):
     imgpoints = []
@@ -396,9 +400,9 @@ def main(argv):
             # hsv = cv2.cvtColor(f1, cv2.COLOR_BGR2HSV)
             # print(able_to_read)
             # cc = CountourDetector(c1)
-            # bs = BackgroundSubtractor(c1)
+            bs = BackgroundSubtractor(inputfile)
             # bd = BlobDetector(c1)
-            bc = BoardCalibrator(inputfile)
+            # bc = BoardCalibrator(inputfile)
         elif opt in ("-d", "--device"):
             device = arg
             # c1 = cv2.VideoCapture(1)
