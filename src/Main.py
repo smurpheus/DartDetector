@@ -1,10 +1,10 @@
-# !/usr/bin/python
+#!/usr/bin/python
 import sys, getopt
 import cv2
 import math
 import numpy as np
 from numpy import ones, vstack
-from utils import Camera, Board, projectReverse
+from utils import Camera, Board, projectReverse, ContourStorage
 import time
 from numpy.linalg import lstsq
 
@@ -196,42 +196,167 @@ class BlobDetector(object):
 
 
 class BackgroundSubtractor(object):
+    ###Default ######
     history = 500
+    shad_tresh = 0.5
+    var_tresh = 16
+    var_max = 75
+    var_min = 4
+    #################
+    history = 500
+    shad_tresh = 0.45
+    var_tresh = 15
+    var_max = 75
+    var_min = 1
     fgbg = None
+    def _initialize_substractor(self):
+        self.fgbg = cv2.createBackgroundSubtractorMOG2()
+        self.fgbg.setHistory(self.history)
+        self.fgbg.setShadowThreshold(self.shad_tresh)
+        self.fgbg.setVarThreshold(self.var_tresh)
+        self.fgbg.setVarMax(self.var_max)
+        self.fgbg.setVarMin(self.var_min)
+        return self.fgbg
+
     def __init__(self, c1):
-        print("BackgroundSubstractor called")
+        print("BackgroundSubstractor called with capture %s" % c1)
         self.camera = Camera(device=c1)
         # c1.release()re('test.avi')
-        background = self.camera.get_image()
+        background,reseted = self.camera.get_image()
         # cv2.namedWindow("Background", cv2.WINDOW_NORMAL)
         cv2.namedWindow("Current", cv2.WINDOW_NORMAL)
+        cv2.namedWindow("Original", cv2.WINDOW_NORMAL)
         cv2.namedWindow("FG Substraction", cv2.WINDOW_NORMAL)
-        cv2.createTrackbar("History", "Current", 100, 1000, self._set_history)
+        cv2.createTrackbar("History", "Current", self.history, 1000, self._set_history)
+        cv2.createTrackbar("Shadow Treshold", "Current", int(self.shad_tresh*100), 100, self._set_shad_tresh)
+        cv2.createTrackbar("VarThreshold", "Current", self.var_tresh, 100, self._set_var_tresh)
+        cv2.createTrackbar("VarMax", "Current", self.var_max, 100, self._set_var_max)
+        cv2.createTrackbar("VarMin", "Current", self.var_min, 100, self._set_var_min)
         # cv2.namedWindow("Simple Diff", cv2.WINDOW_NORMAL)
         # cv2.imshow("Background", background)
 
-        self.fgbg = cv2.createBackgroundSubtractorKNN(history=self.history)
+        # self.fgbg = cv2.createBackgroundSubtractorKNN(history=self.history)
+        storage = ContourStorage()
+
+
+        from matplotlib import pyplot as plt
+        template = cv2.imread('../resources/arrowtemplate.jpg', 0)
+        orb = cv2.ORB_create()
+
+        # find the keypoints and descriptors with SIFT
+        kp1, des1 = orb.detectAndCompute(template, None)
+        # print kp1
+        bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+
+
+
+
+
+        for each in kp1:
+            print each.angle, each.pt, each.octave
+            cv2.circle(template, (int(each.pt[0]), int(each.pt[1])),5,(0,0,255), 1)
+        # print des1
+        cv2.imshow("Original", template)
+        cv2.waitKey(-1)
+        self._initialize_substractor()
+
         while (True):
-            f1 = self.camera.get_image()
+            f1,reseted = self.camera.get_image()
+            if reseted:
+                self._initialize_substractor()
+
+
+            kp2, des2 = orb.detectAndCompute(f1, None)
+            # Match descriptors.
+            matches = bf.match(des1, des2)
+
+            # Sort them in the order of their distance.
+            matches = sorted(matches, key=lambda x: x.distance)
+
+            # Draw first 10 matches.
+            img3 = cv2.drawMatches(template, kp1, f1, kp2, matches[:100], flags=2, outImg=f1)
+            cv2.imshow("Original", img3)
+            cv2.waitKey(-1)
+
+
             diff = cv2.absdiff(background, f1)
-            fgmask = self.fgbg.apply(f1)
-            ret, thresh = cv2.threshold(fgmask, 127, 255, 0)
-            kernel = np.ones((open_close_mask, open_close_mask), np.uint8)
-            contours,_,_ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-            # cv2.drawContours(f1, contours, -1, (0, 255, 0), 3)
-            closed = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel)
-            opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel)
-            cv2.imshow("Current", contours)
-            cv2.imshow("FG Substraction", opened)
+            cv2.imshow("Original",f1)
+
+            fgmask1 = self.fgbg.apply(f1)
+            fgmask1 = cv2.inRange(fgmask1, 250, 255)
+            kernel = np.ones((3,3), np.uint8)
+            opened = cv2.morphologyEx(fgmask1, cv2.MORPH_OPEN, kernel)
+            kernel = np.ones((20, 20), np.uint8)
+            closed = cv2.morphologyEx(opened, cv2.MORPH_CLOSE, kernel)
+            closed2 = np.array(closed)
+            im2, contours, hierarchy = cv2.findContours(closed2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            # cv2.drawContours(f1, contours, -1,(0,255,0),-1)
+            colored = cv2.cvtColor(closed2, cv2.COLOR_GRAY2BGR)
+            contours = [c for c in contours if cv2.contourArea(c) > 1000]
+            storage.add_to_storage(contours, f1)
+            print len(storage.storage)
+            img, contours, maxc = storage.get_biggest_contour_image()
+            for cnt in contours:
+                if len(cnt) > 100:
+                    cv2.drawContours(colored, [cnt], 0, (0, 255, 0), -1)
+
+                    rect = cv2.minAreaRect(cnt)
+                    box = cv2.boxPoints(rect)
+                    box = np.int0(box)
+                    cv2.drawContours(colored, [box], 0, (0, 0, 255), 2)
+                    rows, cols = colored.shape[:2]
+                    [vx, vy, x, y] = cv2.fitLine(cnt, cv2.DIST_L2, 0, 0.01, 0.01)
+                    lefty = int((-x * vy / vx) + y)
+                    righty = int(((cols - x) * vy / vx) + y)
+                    cv2.line(colored, (cols - 1, righty), (0, lefty), (0, 255, 0), 2)
+                    ellipse = cv2.fitEllipse(cnt)
+                    cv2.ellipse(colored, ellipse, (0, 255, 0), 2)
+                    M = cv2.moments(cnt)
+                    cx = int(M['m10'] / M['m00'])
+                    cy = int(M['m01'] / M['m00'])
+                    colored[cy, cx] = [0, 0, 255]
+                    hull = cv2.convexHull(cnt)
+                area = cv2.contourArea(cnt)
+                print("asd", area)
+            cv2.imshow("Current", closed)
+            cv2.imshow("FG Substraction", colored)
+
+            # fgmask = self.fgbg.apply(f1)
+            # ret, thresh = cv2.threshold(fgmask, 127, 255, 0)
+            #
+            # contours,_,_ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+            # # cv2.drawContours(f1, contours, -1, (0, 255, 0), 3)
+            # closed = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel)
+
+            # cv2.imshow("Current", contours)
+
             # cv2.imshow("Simple Diff", diff)
             time.sleep(0.05)
-            k = cv2.waitKey(5) & 0xFF
+            k = cv2.waitKey(1) & 0xFF
             if k == 27:
                 break
         cv2.destroyAllWindows()
     def _set_history(self, val):
         self.history = val
-        self.fgbg = cv2.createBackgroundSubtractorKNN(history=self.history)
+        self.fgbg.setHistory(self.history)
+
+    def _set_shad_tresh(self, val):
+        self.shad_tresh = val/100.
+        self.fgbg.setShadowThreshold(self.shad_tresh)
+
+
+    def _set_var_tresh(self, val):
+        self.var_tresh = val
+        self.fgbg.setVarThreshold(self.var_tresh)
+
+    def _set_var_min(self, val):
+        self.var_min = val
+        self.fgbg.setVarMin(self.var_min)
+
+    def _set_var_max(self, val):
+        self.var_max = val
+        self.fgbg.setVarMax(self.var_max)
+
 
 class BoardCalibrator(object):
     imgpoints = []
@@ -239,7 +364,7 @@ class BoardCalibrator(object):
     def __init__(self, input):
         camera = Camera(device=input)
         camera.do_calibration(img=True)
-        self.frame = camera.get_image()
+        self.frame,reseted  = camera.get_image()
         # self.frame = camera.undistort_image(self.frame)
         cv2.namedWindow("Calibration Window", cv2.WINDOW_NORMAL)
         cv2.namedWindow("Calibration Hint", cv2.WINDOW_NORMAL)
@@ -284,8 +409,8 @@ class BoardCalibrator(object):
 
         points = []
         for outer in outers:
-            xs = [i*0.01 for i in range(0,int(outer*100))]
-            xs += [i*-0.01 for i in range(0,int(outer*100))]
+            xs = [i*0.1 for i in range(0,int(outer*10))]
+            xs += [i*-0.1 for i in range(0,int(outer*10))]
             for i in xs:
                 y = calcy(i,int(outer))
                 points.append([[i],[y],[0]])
@@ -308,7 +433,7 @@ class BoardCalibrator(object):
 
         cv2.setMouseCallback("Calibration Window", self.calcObj)
         while True:
-            self.frame = camera.get_image()
+            self.frame,reseted  = camera.get_image()
             self.frame = camera.undistort_image(self.frame)
             for i in imp:
                 try:
@@ -405,11 +530,15 @@ def main(argv):
             # hsv = cv2.cvtColor(f1, cv2.COLOR_BGR2HSV)
             # print(able_to_read)
             # cc = CountourDetector(c1)
-            # bs = BackgroundSubtractor(inputfile)
+            bs = BackgroundSubtractor(inputfile)
             # bd = BlobDetector(c1)
-            bc = BoardCalibrator(inputfile)
+            # bc = BoardCalibrator(inputfile)
         elif opt in ("-d", "--device"):
-            device = arg
+            if arg == "":
+                device = 0
+            device = int(arg)
+
+            print "With device called"
             # c1 = cv2.VideoCapture(1)
             # c1.set(3, width)
             # c1.set(4, height)
@@ -417,9 +546,9 @@ def main(argv):
             # hsv = cv2.cvtColor(f1, cv2.COLOR_BGR2HSV)
             # print(able_to_read)
             # cc = CountourDetector(c1)
-            # bs = BackgroundSubtractor(c1)
+            bs = BackgroundSubtractor(device)
             # bd = BlobDetector(c1)
-            bc = BoardCalibrator(device)
+            # bc = BoardCalibrator(device)
     print ('Output file is "', inputfile)
 
 
