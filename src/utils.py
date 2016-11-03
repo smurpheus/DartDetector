@@ -16,8 +16,39 @@ impoints = [[565, 407], [644, 90], [738, 104], [822, 148], [885, 218], [919, 317
 
 class Board:
     circles = [170. / 170., 162. / 170., 107. / 170., 99. / 170., 15.9 / 170., 6.35 / 170.]
+    circles = [170. / 170., 160. / 170., 105. / 170., 97. / 170., 14.9 / 170., 6 / 170.]
     angles = [i * 18 + 9 for i in range(20)]
     fields_in_order = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5]
+
+    def get_config_hint(self, cur_point = -1):
+        img = np.zeros((512, 512, 3), np.uint8)
+        mid = int(512 /2.)
+        rad = mid * 0.9
+        for c in self.circles:
+            cv2.circle(img, (mid,mid), int(c * rad), (0,0,255), 1)
+        corners = [
+            [np.sin(np.radians(i)) * rad + mid, np.cos(np.radians(i)) * rad + mid]
+            for i in self.angles]
+        corners2 = [
+            [np.sin(np.radians(i)) * (rad * self.circles[-2]) + mid, np.cos(np.radians(i)) * (rad * self.circles[-2]) + mid]
+            for i in self.angles]
+        for corner in corners:
+            x, y = corner
+            x2, y2 = corners2[corners.index(corner)]
+            cv2.line(img, (int(x2),int(y2)), (int(x),int(y)),(0,0,255), 1)
+        if cur_point == -1:
+            for x, y in self._get_configs(custum_rad=rad):
+                x += mid
+                y = (y*(-1)) + mid
+                img[int(y),int(x)] = (255, 0, 0)
+                cv2.circle(img, (int(x),int(y)), 10, (0, 255, 0), 1)
+        else:
+            x,y = self._get_configs(custum_rad=rad)[cur_point]
+            x += mid
+            y = (y * (-1)) + mid
+            img[int(y), int(x)] = (255, 0, 0)
+            cv2.circle(img, (int(x), int(y)), 10, (0, 255, 0), 1)
+        return img
 
     def __init__(self, radius=170, center=(0, 0)):
         self.radius = radius
@@ -31,43 +62,61 @@ class Board:
             [np.sin(np.radians(i)) * self.radius + self.center[0], np.cos(np.radians(i)) * self.radius + self.center[1]]
             for i in self.angles]
 
-    def _get_configs(self):
+    def _get_configs(self, custum_rad = False):
+        if not custum_rad:
+            c_radius = self.radius
+        else:
+            c_radius = custum_rad
         result = []
+        result.append([self.center[0], self.center[1]])
         # Outer Ring
-        angle = self.angles[0]
-        radius = self.circles[0] * self.radius
-        result.append([np.sin(np.radians(angle)) * radius + self.center[0],
-                       np.cos(np.radians(angle)) * radius + self.center[1]])
-        angle = self.angles[5]
-        radius = self.circles[0] * self.radius
+        # angle = self.angles[0]
+        # radius = self.circles[0] * c_radius
+        # result.append([np.sin(np.radians(angle)) * radius + self.center[0],
+        #                np.cos(np.radians(angle)) * radius + self.center[1]])
+        # angle = self.angles[5]
+        # radius = self.circles[0] * c_radius
+        # result.append([np.sin(np.radians(angle)) * radius + self.center[0],
+        #                np.cos(np.radians(angle)) * radius + self.center[1]])
+        # angle = self.angles[10]
+        # radius = self.circles[0] * c_radius
+        # result.append([np.sin(np.radians(angle)) * radius + self.center[0],
+        #                np.cos(np.radians(angle)) * radius + self.center[1]])
+        # angle = self.angles[15]
+        # radius = self.circles[0] * c_radius
+        # result.append([np.sin(np.radians(angle)) * radius + self.center[0],
+        #                np.cos(np.radians(angle)) * radius + self.center[1]])
+        #
+        # #Inner Ring
+        # angle = self.angles[2]
+        # radius = self.circles[3] * c_radius
+        # result.append([np.sin(np.radians(angle)) * radius + self.center[0],
+        #                np.cos(np.radians(angle)) * radius + self.center[1]])
+        # angle = self.angles[7]
+        # radius = self.circles[3] * c_radius
+        # result.append([np.sin(np.radians(angle)) * radius + self.center[0],
+        #                np.cos(np.radians(angle)) * radius + self.center[1]])
+        # angle = self.angles[12]
+        # radius = self.circles[3] * c_radius
+        # result.append([np.sin(np.radians(angle)) * radius + self.center[0],
+        #                np.cos(np.radians(angle)) * radius + self.center[1]])
+        # angle = self.angles[17]
+        # radius = self.circles[3] * c_radius
+        # result.append([np.sin(np.radians(angle)) * radius + self.center[0],
+        #                np.cos(np.radians(angle)) * radius + self.center[1]])
+        angle = self.angles[2]
+        radius = self.circles[0] * c_radius
         result.append([np.sin(np.radians(angle)) * radius + self.center[0],
                        np.cos(np.radians(angle)) * radius + self.center[1]])
         angle = self.angles[10]
-        radius = self.circles[0] * self.radius
+        radius = self.circles[0] * c_radius
         result.append([np.sin(np.radians(angle)) * radius + self.center[0],
                        np.cos(np.radians(angle)) * radius + self.center[1]])
         angle = self.angles[15]
-        radius = self.circles[0] * self.radius
+        radius = self.circles[0] * c_radius
         result.append([np.sin(np.radians(angle)) * radius + self.center[0],
                        np.cos(np.radians(angle)) * radius + self.center[1]])
 
-        #Inner Ring
-        angle = self.angles[2]
-        radius = self.circles[3] * self.radius
-        result.append([np.sin(np.radians(angle)) * radius + self.center[0],
-                       np.cos(np.radians(angle)) * radius + self.center[1]])
-        angle = self.angles[7]
-        radius = self.circles[3] * self.radius
-        result.append([np.sin(np.radians(angle)) * radius + self.center[0],
-                       np.cos(np.radians(angle)) * radius + self.center[1]])
-        angle = self.angles[12]
-        radius = self.circles[3] * self.radius
-        result.append([np.sin(np.radians(angle)) * radius + self.center[0],
-                       np.cos(np.radians(angle)) * radius + self.center[1]])
-        angle = self.angles[17]
-        radius = self.circles[3] * self.radius
-        result.append([np.sin(np.radians(angle)) * radius + self.center[0],
-                       np.cos(np.radians(angle)) * radius + self.center[1]])
         return  result
 
     def draw_board_to_frame(self, frame):

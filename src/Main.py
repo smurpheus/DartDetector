@@ -242,16 +242,20 @@ class BoardCalibrator(object):
         self.frame = camera.get_image()
         # self.frame = camera.undistort_image(self.frame)
         cv2.namedWindow("Calibration Window", cv2.WINDOW_NORMAL)
+        cv2.namedWindow("Calibration Hint", cv2.WINDOW_NORMAL)
         cv2.imshow("Calibration Window", self.frame)
         cv2.waitKey(1)
 
-        allobj = [[0, 0]] + Board()._get_configs()
+        allobj = Board()._get_configs()
         [i.append(0) for i in allobj]
         nobj = np.array(allobj, np.float64)
         config_points = nobj
         cv2.setMouseCallback("Calibration Window", self.click)
+        pos = 0
         for i in config_points:
             print ("Select field %s please. Accept with any key." % str(i))
+            hintim = Board().get_config_hint(pos)
+            cv2.imshow("Calibration Hint", hintim)
             k = cv2.waitKey(-1) & 0xFF
             self.imgpoints.append(self.imgpoint)
             if k == 27:
@@ -259,6 +263,7 @@ class BoardCalibrator(object):
                 break
             else:
                 print("Thank you")
+                pos += 1
 
         print("Imagepoints %s" % self.imgpoints)
 
@@ -400,9 +405,9 @@ def main(argv):
             # hsv = cv2.cvtColor(f1, cv2.COLOR_BGR2HSV)
             # print(able_to_read)
             # cc = CountourDetector(c1)
-            bs = BackgroundSubtractor(inputfile)
+            # bs = BackgroundSubtractor(inputfile)
             # bd = BlobDetector(c1)
-            # bc = BoardCalibrator(inputfile)
+            bc = BoardCalibrator(inputfile)
         elif opt in ("-d", "--device"):
             device = arg
             # c1 = cv2.VideoCapture(1)
