@@ -5,18 +5,17 @@ import json
 import sys, getopt
 from pygame import mixer
 import glob
-
+from operator import itemgetter
+import time
+import matplotlib.pyplot as plt
 chess_w = 9
 chess_h = 6
 board = [170. / 170., 162. / 170., 107. / 170., 99. / 170., 15.9 / 170., 6.35 / 170.]
-impoints = [[565, 407], [644, 90], [738, 104], [822, 148], [885, 218], [919, 317], [915, 437], [872, 555], [793, 660],
-            [691, 737], [576, 772], [466, 767], [375, 731], [309, 661], [269, 576], [262, 481], [280, 386], [321, 292],
-            [383, 214], [460, 147], [549, 105]]
 
 
 class Board:
     circles = [170. / 170., 162. / 170., 107. / 170., 99. / 170., 15.9 / 170., 6.35 / 170.]
-    circles = [170. / 170., 160. / 170., 105. / 170., 97. / 170., 14.9 / 170., 6 / 170.]
+    circles = [170. / 170., 160. / 170., 107. / 170., 97. / 170., 15.9 / 170., 6 / 170.]
     angles = [i * 18 + 9 for i in range(20)]
     fields_in_order = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5]
 
@@ -104,16 +103,16 @@ class Board:
         # radius = self.circles[3] * c_radius
         # result.append([np.sin(np.radians(angle)) * radius + self.center[0],
         #                np.cos(np.radians(angle)) * radius + self.center[1]])
-        angle = self.angles[2]
-        radius = self.circles[0] * c_radius
+        angle = self.angles[3]
+        radius = self.circles[1] * c_radius
         result.append([np.sin(np.radians(angle)) * radius + self.center[0],
                        np.cos(np.radians(angle)) * radius + self.center[1]])
-        angle = self.angles[10]
-        radius = self.circles[0] * c_radius
+        angle = self.angles[9]
+        radius = self.circles[1] * c_radius
         result.append([np.sin(np.radians(angle)) * radius + self.center[0],
                        np.cos(np.radians(angle)) * radius + self.center[1]])
-        angle = self.angles[15]
-        radius = self.circles[0] * c_radius
+        angle = self.angles[17]
+        radius = self.circles[1] * c_radius
         result.append([np.sin(np.radians(angle)) * radius + self.center[0],
                        np.cos(np.radians(angle)) * radius + self.center[1]])
 
@@ -233,6 +232,39 @@ def draw_circles():
 
     cv2.waitKey(0)
 
+class ContourStorage:
+    storage = []
+    size = 50
+    def __init__(self):
+        plt.ion()
+        plt.title('Woooohoo')
+
+    def add_to_storage(self, contours, image):
+        if len(self.storage) + 1 > self.size:
+            self.storage.remove(self.storage[0])
+        cnts = [cv2.contourArea(cnt) for cnt in contours]
+        xcnt = 0
+        if len(cnts) > 0:
+            xcnt = max(cnts)
+        self.storage.append((image, contours, xcnt))
+        self.plot_data()
+
+    def get_biggest_contour_image(self):
+        return max(self.storage, key=itemgetter(2))
+
+    def plot_data(self):
+        m = self.get_biggest_contour_image()[2]
+        y = [x[2] for x in self.storage]
+        y2 = [len(x[1]) for x in self.storage]
+        plt.clf()
+        plt.axis([0, self.size, 0, m])
+        plt.subplot(2, 1, 1)
+        plt.plot(range(len(self.storage)), y, 'r.-')
+        plt.subplot(2, 1, 2)
+        plt.plot(range(len(self.storage)), y2, 'g.-')
+        plt.show()
+
+
 
 class Camera:
     chessboard_size = 26
@@ -245,29 +277,42 @@ class Camera:
         self.config = []
         self.was_configured = False
         self.device = device
-        if isinstance(device, int):
+        if isinstance(self.device, int):
             self.from_file = False
             self.capture = cv2.VideoCapture(self.device)
+            while self.capture.isOpened() == False:
+                time.sleep(1)
+                print "Waiting"
             self.capture.set(3, self.width)
             self.capture.set(4, self.height)
             self.capture.set(cv2.CAP_PROP_FPS, 30)
         elif isinstance(device, str):
             self.from_file = True
             self.capture = cv2.VideoCapture(self.device)
+            tot_frame = self.capture.get(cv2.CAP_PROP_FRAME_COUNT)
+            print "There are %s Frames in this File" % tot_frame
+
             self.width = int(self.capture.get(3))
             self.heigth = int(self.capture.get(4))
 
     def get_image(self):
         able_to_read, f1 = self.capture.read()
         if able_to_read:
-            return f1
+            return f1, False
         else:
             if self.from_file:
                 self.capture.set(1, 0)
             able_to_read, f1 = self.capture.read()
+            print "Reading Frame: ",self.capture.get(1)
             if able_to_read:
-                return f1
-
+                return f1, True
+            else:
+                time.sleep(2)
+                able_to_read, f1 = self.capture.read()
+                if able_to_read:
+                    return f1, True
+                else:
+                    False, False
     def undistort_image(self, image):
         if self.was_configured:
             # print("CONFIG \r\n%s" % self.config)

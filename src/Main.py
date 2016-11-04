@@ -240,24 +240,22 @@ class BackgroundSubtractor(object):
 
 
         from matplotlib import pyplot as plt
-        template = cv2.imread('../resources/arrowtemplate.jpg', 0)
-        orb = cv2.ORB_create()
+        # template = cv2.imread('../resources/arrowtemplate.jpg', 0)
+        # orb = cv2.ORB_create()
+        #
+        # # find the keypoints and descriptors with SIFT
+        # kp1, des1 = orb.detectAndCompute(template, None)
+        # # print kp1
+        # bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 
-        # find the keypoints and descriptors with SIFT
-        kp1, des1 = orb.detectAndCompute(template, None)
-        # print kp1
-        bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+        # for each in kp1:
+        #     print each.angle, each.pt, each.octave
+        #     cv2.circle(template, (int(each.pt[0]), int(each.pt[1])),5,(0,0,255), 1)
+        # # print des1
+        # cv2.imshow("Original", template)
+        # cv2.waitKey(-1)
 
 
-
-
-
-        for each in kp1:
-            print each.angle, each.pt, each.octave
-            cv2.circle(template, (int(each.pt[0]), int(each.pt[1])),5,(0,0,255), 1)
-        # print des1
-        cv2.imshow("Original", template)
-        cv2.waitKey(-1)
         self._initialize_substractor()
 
         while (True):
@@ -266,17 +264,17 @@ class BackgroundSubtractor(object):
                 self._initialize_substractor()
 
 
-            kp2, des2 = orb.detectAndCompute(f1, None)
-            # Match descriptors.
-            matches = bf.match(des1, des2)
-
-            # Sort them in the order of their distance.
-            matches = sorted(matches, key=lambda x: x.distance)
-
-            # Draw first 10 matches.
-            img3 = cv2.drawMatches(template, kp1, f1, kp2, matches[:100], flags=2, outImg=f1)
-            cv2.imshow("Original", img3)
-            cv2.waitKey(-1)
+            # kp2, des2 = orb.detectAndCompute(f1, None)
+            # # Match descriptors.
+            # matches = bf.match(des1, des2)
+            #
+            # # Sort them in the order of their distance.
+            # matches = sorted(matches, key=lambda x: x.distance)
+            #
+            # # Draw first 10 matches.
+            # img3 = cv2.drawMatches(template, kp1, f1, kp2, matches[:100], flags=2, outImg=f1)
+            # cv2.imshow("Original", img3)
+            # cv2.waitKey(-1)
 
 
             diff = cv2.absdiff(background, f1)
@@ -292,9 +290,8 @@ class BackgroundSubtractor(object):
             im2, contours, hierarchy = cv2.findContours(closed2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             # cv2.drawContours(f1, contours, -1,(0,255,0),-1)
             colored = cv2.cvtColor(closed2, cv2.COLOR_GRAY2BGR)
-            contours = [c for c in contours if cv2.contourArea(c) > 1000]
+            # contours = [c for c in contours if cv2.contourArea(c) > 1000]
             storage.add_to_storage(contours, f1)
-            print len(storage.storage)
             img, contours, maxc = storage.get_biggest_contour_image()
             for cnt in contours:
                 if len(cnt) > 100:
@@ -314,10 +311,10 @@ class BackgroundSubtractor(object):
                     M = cv2.moments(cnt)
                     cx = int(M['m10'] / M['m00'])
                     cy = int(M['m01'] / M['m00'])
+                    cv2.circle(colored,(cx,cy), 5, [255, 0, 0], 2)
                     colored[cy, cx] = [0, 0, 255]
                     hull = cv2.convexHull(cnt)
                 area = cv2.contourArea(cnt)
-                print("asd", area)
             cv2.imshow("Current", closed)
             cv2.imshow("FG Substraction", colored)
 
