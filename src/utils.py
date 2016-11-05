@@ -8,6 +8,8 @@ import glob
 from operator import itemgetter
 import time
 import matplotlib.pyplot as plt
+from collections import deque
+import timeit
 chess_w = 9
 chess_h = 6
 board = [170. / 170., 162. / 170., 107. / 170., 99. / 170., 15.9 / 170., 6.35 / 170.]
@@ -233,36 +235,162 @@ def draw_circles():
     cv2.waitKey(0)
 
 class ContourStorage:
-    storage = []
-    size = 50
+    size = 200
+    storage = []#deque([], size)
+    means = deque([0] * size, size)
+    deviations = deque([0] * size, size)
+    tendecy = deque([0] * size, size)
+    history = 0
+    percentage_of_history = 0.03
     def __init__(self):
+        pass
         plt.ion()
-        plt.title('Woooohoo')
+        self.figure = plt.figure()
+        self.plt1 = self.figure.add_subplot(311)
+        self.line1, = self.plt1.plot(range(self.size), [0] * self.size, 'r.-')
+        self.plt2 = self.figure.add_subplot(312)
+        self.line2, = self.plt2.plot(range(self.size), [0] * self.size, 'r.-')
+        self.plt3 = self.figure.add_subplot(313)
+        self.line3, self.line4 = self.plt3.plot(range(self.size), [0] * self.size, 'r.-', range(self.size), [0] * self.size, 'g.-')
 
-    def add_to_storage(self, contours, image):
+
+    def add_to_storage(self, contours, image, history=500):
+        self.history = history
         if len(self.storage) + 1 > self.size:
             self.storage.remove(self.storage[0])
-        cnts = [cv2.contourArea(cnt) for cnt in contours]
+        cnts = []
+        acnts = []
+        for cnt in contours:
+            area = cv2.contourArea(cnt)
+            rect = cv2.minAreaRect(cnt)
+            box = cv2.boxPoints(rect)
+            box = np.int0(box)
+            barea = cv2.contourArea(box)
+            if barea < 0.33 * image.size:
+                cnts.append(area)
+                acnts.append(cnt)
         xcnt = 0
         if len(cnts) > 0:
             xcnt = max(cnts)
-        self.storage.append((image, contours, xcnt))
+        self.storage.append((image, acnts, xcnt))
+        import cProfile, pstats, io
+        pr = cProfile.Profile()
+        pr.enable()
         self.plot_data()
+        pr.disable()
+        s = io.StringIO()
+        sortby = 'cumulative'
+        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+        # ps.print_stats()
+        print(s.getvalue())
 
     def get_biggest_contour_image(self):
         return max(self.storage, key=itemgetter(2))
+
+    def _calc_tendency(self):
+        size = 6
+        start_list = [x[2] for x in self.storage]
+        mean_tendency = list(start_list)[-size:]
+        if len(mean_tendency) == size:
+            middle = int(len(mean_tendency) / 2)
+            first_half = list(mean_tendency)[:middle]
+            second_half = list(mean_tendency)[middle:]
+            fm = np.mean(first_half)
+            sm = np.mean(second_half)
+            return sm - fm
+        else:
+            return 0
+
+    def _find_best_contour(self, blobs):
+        y = [x[2] for x in self.storage]
+        best = []
+        for blob in blobs:
+            blob_contours = y[blob[0]: blob[1]]
+            blob_mean = np.mean(blob_contours)
+            diffs = []
+            min_num = blob_mean
+            index = 0
+            for blob_contour in blob_contours:
+                diff = abs(blob_contour - blob_mean)
+                if diff < min_num:
+                    min_num = diff
+                    index = blob_contours.index(blob_contour)
+            best.append(index+blob[0])
+
+        return best
+
+    def _find_blob(self):
+        y = [x[2] for x in self.storage]
+        mean = np.mean(y)
+        blobs = []
+        start = False
+        y3 = []
+        ind = 0
+        for i in y:
+            if i > mean and start is False:
+                start = ind
+            elif i <= mean and not start is False:
+                blobs.append((start, ind))
+                start = False
+            ind += 1
+
+        # for i in y3:
+        #     if i > 0 and start is False:
+        #         start = y3.index(i)
+        #     if i <= 0 and not start is False:
+        #         blobs.append((start, y3.index(i)))
+        #         start = False
+        blobs = [x for x in blobs if x[1]-x[0] > self.history * self.percentage_of_history]
+        for each in blobs:
+            print np.mean(y[each[0]: each[1]])
+        return blobs
+
+    def get_best_contours(self):
+        blobs = self._find_blob()
+        positions = self._find_best_contour(blobs)
+        result = []
+        for pos in positions:
+            result += self.storage[pos][1]
+        return result
 
     def plot_data(self):
         m = self.get_biggest_contour_image()[2]
         y = [x[2] for x in self.storage]
         y2 = [len(x[1]) for x in self.storage]
-        plt.clf()
-        plt.axis([0, self.size, 0, m])
-        plt.subplot(2, 1, 1)
-        plt.plot(range(len(self.storage)), y, 'r.-')
-        plt.subplot(2, 1, 2)
-        plt.plot(range(len(self.storage)), y2, 'g.-')
-        plt.show()
+
+        deviation = np.std(y)
+        mean = np.mean(y)
+        y3 = []
+        for i in self.storage:
+            if i[2] > mean:
+                y3.append(i[2])
+            else:
+                y3.append(0)
+        self.means.append(mean)
+        self.deviations.append(deviation)
+        self.plt1.axis([0, self.size, 0, m])
+        self.line1.set_xdata(range(len(y)))
+        self.line1.set_ydata(y)
+        self.plt2.axis([0, self.size, 0, max(y3)])
+        self.line2.set_xdata(range(len(y3)))
+        self.line2.set_ydata(y3)
+        self.plt3.axis([0, self.size, 0, max([max(self.means),max(self.deviations)])])
+
+        self.line3.set_ydata(self.means)
+        self.line4.set_ydata(self.deviations)
+        self.figure.canvas.draw()
+
+        # plt.clf()
+        # plt.axis([0, self.size, 0, m])
+        # plt.subplot(4, 1, 1)
+        # plt.plot(range(len(self.storage)), y, 'r.-')
+        # plt.subplot(4, 1, 2)
+        # plt.plot(range(len(self.storage)), y3, 'g.-')
+        # # plt.show()
+        # plt.subplot(4, 1, 3)
+        # plt.plot(range(len(self.means)), self.means, 'y.-', range(len(self.deviations)), self.deviations, 'g.-')
+        # plt.show()
+
 
 
 
