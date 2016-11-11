@@ -236,28 +236,30 @@ def draw_circles():
 
 class ContourStorage:
     size = 200
-    storage = []#deque([], size)
+    storage = deque([], size)
     means = deque([0] * size, size)
     deviations = deque([0] * size, size)
     tendecy = deque([0] * size, size)
     history = 0
     percentage_of_history = 0.03
-    def __init__(self):
-        pass
-        plt.ion()
-        self.figure = plt.figure()
-        self.plt1 = self.figure.add_subplot(311)
-        self.line1, = self.plt1.plot(range(self.size), [0] * self.size, 'r.-')
-        self.plt2 = self.figure.add_subplot(312)
-        self.line2, = self.plt2.plot(range(self.size), [0] * self.size, 'r.-')
-        self.plt3 = self.figure.add_subplot(313)
-        self.line3, self.line4 = self.plt3.plot(range(self.size), [0] * self.size, 'r.-', range(self.size), [0] * self.size, 'g.-')
+    plotting = True
+    def __init__(self, plotting=False):
+        self.plotting = plotting
+        if plotting:
+            plt.ion()
+            self.figure = plt.figure()
+            self.plt1 = self.figure.add_subplot(311)
+            self.line1, = self.plt1.plot(range(self.size), [0] * self.size, 'r.-')
+            self.plt2 = self.figure.add_subplot(312)
+            self.line2, = self.plt2.plot(range(self.size), [0] * self.size, 'r.-')
+            self.plt3 = self.figure.add_subplot(313)
+            self.line3, self.line4 = self.plt3.plot(range(self.size), [0] * self.size, 'r.-', range(self.size), [0] * self.size, 'g.-')
 
 
-    def add_to_storage(self, contours, image, history=500):
-        self.history = history
-        if len(self.storage) + 1 > self.size:
-            self.storage.remove(self.storage[0])
+
+    def add_to_storage(self, contours, image):
+        # if len(self.storage) + 1 > self.size:
+        #     self.storage.remove(self.storage[0])
         cnts = []
         acnts = []
         for cnt in contours:
@@ -266,23 +268,16 @@ class ContourStorage:
             box = cv2.boxPoints(rect)
             box = np.int0(box)
             barea = cv2.contourArea(box)
-            if barea < 0.33 * image.size:
+            if barea < 0.15 * image.size:
                 cnts.append(area)
                 acnts.append(cnt)
         xcnt = 0
         if len(cnts) > 0:
             xcnt = max(cnts)
-        self.storage.append((image, acnts, xcnt))
-        import cProfile, pstats, io
-        pr = cProfile.Profile()
-        pr.enable()
-        self.plot_data()
-        pr.disable()
-        s = io.StringIO()
-        sortby = 'cumulative'
-        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-        # ps.print_stats()
-        print(s.getvalue())
+        self.storage.append([image, acnts, xcnt])
+        if self.plotting:
+            self.plot_data()
+
 
     def get_biggest_contour_image(self):
         return max(self.storage, key=itemgetter(2))
@@ -319,7 +314,8 @@ class ContourStorage:
 
         return best
 
-    def _find_blob(self):
+    def _find_blob(self, history=500):
+        self.history = history
         y = [x[2] for x in self.storage]
         mean = np.mean(y)
         blobs = []
@@ -340,13 +336,20 @@ class ContourStorage:
         #     if i <= 0 and not start is False:
         #         blobs.append((start, y3.index(i)))
         #         start = False
-        blobs = [x for x in blobs if x[1]-x[0] > self.history * self.percentage_of_history]
-        for each in blobs:
-            print np.mean(y[each[0]: each[1]])
-        return blobs
+        # blobs = [x for x in blobs if x[1]-x[0] > self.history * self.percentage_of_history]
+        nblobs = []
+        for blob in blobs:
+            if blob[1] - blob[0] > self.history * self.percentage_of_history:
+                nblobs.append(blob)
+            else:
+                for i in range(blob[0], blob[1]):
+                    self.storage[i][2] = mean
+        # for each in blobs:
+        #     print np.mean(y[each[0]: each[1]])
+        return nblobs
 
-    def get_best_contours(self):
-        blobs = self._find_blob()
+    def get_best_contours(self, history=500):
+        blobs = self._find_blob(history=500)
         positions = self._find_best_contour(blobs)
         result = []
         for pos in positions:
@@ -380,16 +383,6 @@ class ContourStorage:
         self.line4.set_ydata(self.deviations)
         self.figure.canvas.draw()
 
-        # plt.clf()
-        # plt.axis([0, self.size, 0, m])
-        # plt.subplot(4, 1, 1)
-        # plt.plot(range(len(self.storage)), y, 'r.-')
-        # plt.subplot(4, 1, 2)
-        # plt.plot(range(len(self.storage)), y3, 'g.-')
-        # # plt.show()
-        # plt.subplot(4, 1, 3)
-        # plt.plot(range(len(self.means)), self.means, 'y.-', range(len(self.deviations)), self.deviations, 'g.-')
-        # plt.show()
 
 
 

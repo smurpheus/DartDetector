@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import sys, getopt
+from sys import stdout
 import cv2
 import math
 import numpy as np
@@ -217,7 +218,7 @@ class BackgroundSubtractor(object):
         self.fgbg.setVarMax(self.var_max)
         self.fgbg.setVarMin(self.var_min)
         return self.fgbg
-    @profile
+
     def __init__(self, c1):
         print("BackgroundSubstractor called with capture %s" % c1)
         self.camera = Camera(device=c1)
@@ -257,11 +258,7 @@ class BackgroundSubtractor(object):
 
 
         self._initialize_substractor()
-        oltime = time.time()
         while (True):
-            ntime = time.time()
-            print "Time needed for one trip around: %s" %(ntime - oltime)
-            oltime = ntime
             f1,reseted = self.camera.get_image()
             if reseted:
                 self._initialize_substractor()
@@ -281,7 +278,7 @@ class BackgroundSubtractor(object):
 
 
             # diff = cv2.absdiff(background, f1)
-            cv2.imshow("Original",f1)
+
             fgmask1 = self.fgbg.apply(f1)
             fgmask1 = cv2.inRange(fgmask1, 250, 255)
             kernel = np.ones((3,3), np.uint8)
@@ -293,23 +290,34 @@ class BackgroundSubtractor(object):
             # cv2.drawContours(f1, contours, -1,(0,255,0),-1)
             colored = cv2.cvtColor(closed2, cv2.COLOR_GRAY2BGR)
             # contours = [c for c in contours if cv2.contourArea(c) > 1000]
-            storage.add_to_storage(contours, f1, history=self.history)
+            storage.add_to_storage(contours, f1)
             # img, contours, maxc = storage.get_biggest_contour_image()
-            contours = storage.get_best_contours()
+            contours = storage.get_best_contours(history=self.history)
+            stdout.flush()
             for cnt in contours:
                 if len(cnt) > 100:
                     cv2.drawContours(colored, [cnt], 0, (0, 255, 0), -1)
+                    approx = cv2.approxPolyDP(cnt, 0.01 * cv2.arcLength(cnt, True), True)
+                    cv2.drawContours(colored, [approx], 0, (255, 255, 0), 2)
 
+                    stdout.flush()
+                    # print "ratio: %s" % aspect_ratio
                     rect = cv2.minAreaRect(cnt)
                     box = cv2.boxPoints(rect)
+                    b = box
+                    cv2.circle(colored, (b[0][0], b[0][1]), 4, [0,255,255], 2)
+                    cv2.circle(colored, (b[1][0], b[1][1]), 4, [0,255,255], 2)
+                    cv2.circle(colored, (b[2][0], b[2][1]), 4, [255,0,255], 2)
+                    dist1 = np.linalg.norm(b[0] - b[1])
+                    dist2 = np.linalg.norm(b[1] - b[2])
+                    # cv2.circle(colored, (b[3][0], b[3][1]), 4, [0,255,255], 2)
                     box = np.int0(box)
-                    print "Box points ", cv2.contourArea(box)
                     cv2.drawContours(colored, [box], 0, (0, 0, 255), 2)
                     rows, cols = colored.shape[:2]
                     [vx, vy, x, y] = cv2.fitLine(cnt, cv2.DIST_L2, 0, 0.01, 0.01)
                     lefty = int((-x * vy / vx) + y)
                     righty = int(((cols - x) * vy / vx) + y)
-                    print (cols - 1, righty), (0, lefty)
+                    # print (cols - 1, righty), (0, lefty)
                     cimg = np.zeros_like(colored)
                     cv2.drawContours(cimg, [cnt], 0, color=255, thickness=-1)
                     # Access the image pixels and create a 1D numpy array then add to list
@@ -340,13 +348,18 @@ class BackgroundSubtractor(object):
                         if mdist is None or dist > mdist:
                             mdist = dist
                             mpt = p
-                    print "Maxpoint: ", mpt
-                    cv2.circle(colored, (mpt[0], mpt[1]), 3, [255, 0, 0], 2)
-                    colored[mpt[1], mpt[0]] = [0, 0, 255]
+                    stdout.write("\rratio: %s Box points: %s  Maxpoint: %s  Arclen: %s" % ((dist1/dist2), cv2.contourArea(box), mpt, cv2.arcLength(cnt, True)))
+
+                    if not mpt is None:
+                        cv2.circle(colored, (mpt[0], mpt[1]), 3, [255, 0, 0], 2)
+                        colored[mpt[1], mpt[0]] = [0, 0, 255]
+                        cv2.circle(f1, (mpt[0], mpt[1]), 3, [255, 0, 0], 2)
+                        f1[mpt[1], mpt[0]] = [0, 0, 255]
 
                 # area = cv2.contourArea(cnt)
             cv2.imshow("Current", closed)
             cv2.imshow("FG Substraction", colored)
+            cv2.imshow("Original", f1)
 
             # fgmask = self.fgbg.apply(f1)
             # ret, thresh = cv2.threshold(fgmask, 127, 255, 0)
