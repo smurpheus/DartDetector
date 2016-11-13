@@ -240,7 +240,6 @@ class BackgroundSubtractor(object):
         storage = ContourStorage()
 
 
-        from matplotlib import pyplot as plt
         # template = cv2.imread('../resources/arrowtemplate.jpg', 0)
         # orb = cv2.ORB_create()
         #
@@ -310,7 +309,6 @@ class BackgroundSubtractor(object):
                     cv2.circle(colored, (b[2][0], b[2][1]), 4, [255,0,255], 2)
                     dist1 = np.linalg.norm(b[0] - b[1])
                     dist2 = np.linalg.norm(b[1] - b[2])
-                    # cv2.circle(colored, (b[3][0], b[3][1]), 4, [0,255,255], 2)
                     box = np.int0(box)
                     cv2.drawContours(colored, [box], 0, (0, 0, 255), 2)
                     rows, cols = colored.shape[:2]
