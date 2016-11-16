@@ -243,7 +243,7 @@ class ContourStorage:
     history = 0
     percentage_of_history = 0.03
     plotting = True
-    def __init__(self, plotting=False):
+    def __init__(self, plotting=True):
         self.plotting = plotting
         if plotting:
             plt.ion()
