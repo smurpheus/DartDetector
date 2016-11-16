@@ -10,6 +10,7 @@ import time
 import matplotlib.pyplot as plt
 from collections import deque
 import timeit
+from matplotlib import pyplot as plt
 chess_w = 9
 chess_h = 6
 board = [170. / 170., 162. / 170., 107. / 170., 99. / 170., 15.9 / 170., 6.35 / 170.]
@@ -248,12 +249,15 @@ class ContourStorage:
         if plotting:
             plt.ion()
             self.figure = plt.figure()
-            self.plt1 = self.figure.add_subplot(311)
+            self.plt1 = self.figure.add_subplot(411)
             self.line1, = self.plt1.plot(range(self.size), [0] * self.size, 'r.-')
-            self.plt2 = self.figure.add_subplot(312)
+            self.plt2 = self.figure.add_subplot(412)
             self.line2, = self.plt2.plot(range(self.size), [0] * self.size, 'r.-')
-            self.plt3 = self.figure.add_subplot(313)
+            self.plt3 = self.figure.add_subplot(413)
             self.line3, self.line4 = self.plt3.plot(range(self.size), [0] * self.size, 'r.-', range(self.size), [0] * self.size, 'g.-')
+
+            self.plt5 = self.figure.add_subplot(414)
+            self.line5, = self.plt5.plot(range(self.size), [0] * self.size, 'r.-')
 
 
 
@@ -344,8 +348,6 @@ class ContourStorage:
             else:
                 for i in range(blob[0], blob[1]):
                     self.storage[i][2] = mean
-        # for each in blobs:
-        #     print np.mean(y[each[0]: each[1]])
         return nblobs
 
     def get_best_contours(self, history=500):
@@ -357,9 +359,16 @@ class ContourStorage:
         return result
 
     def plot_data(self):
-        m = self.get_biggest_contour_image()[2]
+        im, c, m = self.get_biggest_contour_image()
         y = [x[2] for x in self.storage]
         y2 = [len(x[1]) for x in self.storage]
+        y3 = []
+        for a,c,m in self.storage:
+            rect = cv2.minAreaRect(c)
+            box = cv2.boxPoints(rect)
+            dist1 = np.linalg.norm(box[0] - box[1])
+            dist2 = np.linalg.norm(box[1] - box[2])
+
 
         deviation = np.std(y)
         mean = np.mean(y)
@@ -381,6 +390,10 @@ class ContourStorage:
 
         self.line3.set_ydata(self.means)
         self.line4.set_ydata(self.deviations)
+
+        self.plt5.axis([0, self.size, 0, max(y3)])
+        self.line5.set_xdata(range(len(y3)))
+        self.line5.set_ydata(y3)
         self.figure.canvas.draw()
 
 
