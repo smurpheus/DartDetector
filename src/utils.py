@@ -256,8 +256,8 @@ class ContourStorage:
             self.plt3 = self.figure.add_subplot(413)
             self.line3, self.line4 = self.plt3.plot(range(self.size), [0] * self.size, 'r.-', range(self.size), [0] * self.size, 'g.-')
 
-            self.plt5 = self.figure.add_subplot(414)
-            self.line5, = self.plt5.plot(range(self.size), [0] * self.size, 'r.-')
+            # self.plt5 = self.figure.add_subplot(414)
+            # self.line5, = self.plt5.plot(range(self.size), [0] * self.size, 'r.-')
 
 
 
@@ -272,7 +272,7 @@ class ContourStorage:
             box = cv2.boxPoints(rect)
             box = np.int0(box)
             barea = cv2.contourArea(box)
-            if barea < 0.15 * image.size:
+            if barea < 0.08 * image.size:
                 cnts.append(area)
                 acnts.append(cnt)
         xcnt = 0
@@ -362,12 +362,14 @@ class ContourStorage:
         im, c, m = self.get_biggest_contour_image()
         y = [x[2] for x in self.storage]
         y2 = [len(x[1]) for x in self.storage]
-        y3 = []
-        for a,c,m in self.storage:
-            rect = cv2.minAreaRect(c)
-            box = cv2.boxPoints(rect)
-            dist1 = np.linalg.norm(box[0] - box[1])
-            dist2 = np.linalg.norm(box[1] - box[2])
+        # y4 = []
+        # for a,c,m in self.storage:
+        #     for i in c:
+        #         rect = cv2.minAreaRect(i)
+        #         box = cv2.boxPoints(rect)
+        #         dist1 = np.linalg.norm(box[0] - box[1])
+        #         dist2 = np.linalg.norm(box[1] - box[2])
+        #     y4.append(dist2/dist1)
 
 
         deviation = np.std(y)
@@ -380,20 +382,21 @@ class ContourStorage:
                 y3.append(0)
         self.means.append(mean)
         self.deviations.append(deviation)
-        self.plt1.axis([0, self.size, 0, m])
-        self.line1.set_xdata(range(len(y)))
-        self.line1.set_ydata(y)
-        self.plt2.axis([0, self.size, 0, max(y3)])
-        self.line2.set_xdata(range(len(y3)))
-        self.line2.set_ydata(y3)
-        self.plt3.axis([0, self.size, 0, max([max(self.means),max(self.deviations)])])
+        self.plt1.axis([0, self.size, 0, max(y3)*1.3])
+        self.line1.set_xdata(range(len(y3)))
+        self.line1.set_ydata(y3)
 
+        self.plt2.axis([0, self.size, 0, max(y)])
+        self.line2.set_xdata(range(len(y)))
+        self.line2.set_ydata(y)
+
+        self.plt3.axis([0, self.size, 0, max([max(self.means),max(self.deviations)])])
         self.line3.set_ydata(self.means)
         self.line4.set_ydata(self.deviations)
 
-        self.plt5.axis([0, self.size, 0, max(y3)])
-        self.line5.set_xdata(range(len(y3)))
-        self.line5.set_ydata(y3)
+        # self.plt5.axis([0, self.size, 0, max(y4)])
+        # self.line5.set_xdata(range(len(y4)))
+        # self.line5.set_ydata(y4)
         self.figure.canvas.draw()
 
 
