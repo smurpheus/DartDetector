@@ -244,6 +244,7 @@ class ContourStorage:
     history = 0
     percentage_of_history = 0.03
     plotting = True
+    paused = False
     def __init__(self, plotting=True):
         self.plotting = plotting
         if plotting:
@@ -259,28 +260,50 @@ class ContourStorage:
             # self.plt5 = self.figure.add_subplot(414)
             # self.line5, = self.plt5.plot(range(self.size), [0] * self.size, 'r.-')
 
+    def detect_arrow(self,history=500):
+        contours = self.get_best_contours(history)
+        for cnt in contours:
+            rect = cv2.minAreaRect(cnt)
+            box = cv2.boxPoints(rect)
+            b = box
+            dist1 = np.linalg.norm(b[0] - b[1])
+            dist2 = np.linalg.norm(b[1] - b[2])
+            ratio = (dist1 / dist2)
 
+            approx = cv2.approxPolyDP(cnt, 0.01 * cv2.arcLength(cnt, True), True)
+            approx_len = cv2.arcLength(approx, True)
+            area = cv2.contourArea(cnt)
 
     def add_to_storage(self, contours, image):
         # if len(self.storage) + 1 > self.size:
         #     self.storage.remove(self.storage[0])
         cnts = []
         acnts = []
-        for cnt in contours:
-            area = cv2.contourArea(cnt)
-            rect = cv2.minAreaRect(cnt)
-            box = cv2.boxPoints(rect)
-            box = np.int0(box)
-            barea = cv2.contourArea(box)
-            if barea < 0.08 * image.size:
-                cnts.append(area)
-                acnts.append(cnt)
-        xcnt = 0
-        if len(cnts) > 0:
-            xcnt = max(cnts)
-        self.storage.append([image, acnts, xcnt])
-        if self.plotting:
-            self.plot_data()
+        if not self.paused:
+            for cnt in contours:
+                area = cv2.contourArea(cnt)
+                rect = cv2.minAreaRect(cnt)
+                box = cv2.boxPoints(rect)
+                box = np.int0(box)
+                barea = cv2.contourArea(box)
+                if barea < 0.08 * image.size:
+                    cnts.append(area)
+                    acnts.append(cnt)
+                else:
+                    self.paused = self.history * self.percentage_of_history
+                    return
+            xcnt = 0
+            if len(cnts) > 0:
+                xcnt = max(cnts)
+            self.storage.append([image, acnts, xcnt])
+            if self.plotting:
+                self.plot_data()
+        else:
+            print("Execution was paused because of a blob that was to big.")
+            if self.paused <= 0:
+                self.paused = False
+            self.paused -= 1
+
 
 
     def get_biggest_contour_image(self):

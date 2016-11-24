@@ -8,6 +8,7 @@ from numpy import ones, vstack
 from utils import Camera, Board, projectReverse, ContourStorage
 import time
 from numpy.linalg import lstsq
+from pygame import mixer
 
 width = 1280
 height = 960
@@ -295,6 +296,9 @@ class BackgroundSubtractor(object):
             stdout.flush()
             for cnt in contours:
                 if len(cnt) > 100:
+                    mixer.init()
+                    mixer.music.load('beep.mp3')
+                    mixer.music.play()
                     cv2.drawContours(colored, [cnt], 0, (0, 255, 0), -1)
                     approx = cv2.approxPolyDP(cnt, 0.01 * cv2.arcLength(cnt, True), True)
                     cv2.drawContours(colored, [approx], 0, (255, 255, 0), 2)
