@@ -300,7 +300,15 @@ class BackgroundSubtractor(object):
             print str("Arrows: %s"%arrows)
             stdout.flush()
             for arrow in arrows:
-                cv2.drawContours(colored, arrow.contours, -1, (0, 255, 0), -1)
+                cv2.drawContours(f1, arrow.contours, -1, (0, 255, 0), -1)
+                cv2.drawContours(f1, [arrow.aproximated], 0, (255, 255, 0), 2)
+                cv2.circle(f1, (arrow.tip[0], arrow.tip[1]), 3, [255, 0, 0], 2)
+                f1[arrow.tip[1], arrow.tip[0]] = [0, 0, 255]
+                cv2.circle(f1, (arrow.tip2[0], arrow.tip2[1]), 3, [255, 0, 0], 2)
+                f1[arrow.tip2[1], arrow.tip2[0]] = [0, 0, 255]
+                rows, cols = f1.shape[:2]
+                cv2.line(f1, (cols - 1, arrow.line[1]), (0, arrow.line[0]), (255, 255, 0), 1)
+                cv2.drawContours(f1, [np.int0(arrow.bbox)], 0, (0, 0, 255), 2)
             # for cnt in contours:
             #     if len(cnt) > 100:
             #         mixer.init()
@@ -379,6 +387,8 @@ class BackgroundSubtractor(object):
 
             # cv2.imshow("Simple Diff", diff)
             k = cv2.waitKey(1) & 0xFF
+            if k == ord('f') or len(arrows) >= 3:
+                arrows = []
             if k == 27:
                 break
             if k == 119:

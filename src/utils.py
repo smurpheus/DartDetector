@@ -241,6 +241,7 @@ def draw_circles():
 class Arrow:
     centroid = None
     tip = None
+    tip2 = None
     contours = None
     img = None
     line = None
@@ -264,17 +265,18 @@ class Arrow:
         return output
 
     def detect_arrow(self):
-        print self
         for cnt in self.contours:
             if cv2.contourArea(cnt) > self.min_cnt_size:
                 # Calculate the Moments of the contour
+                approx = cv2.approxPolyDP(cnt, 0.015 * cv2.arcLength(cnt, True), True)
+                self.aproximated = approx
                 M = cv2.moments(cnt)
                 cx = int(M['m10'] / M['m00'])
                 cy = int(M['m01'] / M['m00'])
                 self.centroid = np.array([cx, cy])
                 # Calculate a fitting line trough the contour
                 rows, cols = self.img.shape[:2]
-                [vx, vy, x, y] = cv2.fitLine(cnt, cv2.DIST_L2, 0, 0.01, 0.01)
+                [vx, vy, x, y] = cv2.fitLine(approx, cv2.DIST_L2, 0, 0.01, 0.01)
                 lefty = int((-x * vy / vx) + y)
                 righty = int(((cols - x) * vy / vx) + y)
                 self.line = (lefty, righty)
@@ -299,13 +301,28 @@ class Arrow:
                 ratio = (dist1 / dist2)
                 self.ratio = (dist1 / dist2)
                 # Approximate a contour
-                approx = cv2.approxPolyDP(cnt, 0.01 * cv2.arcLength(cnt, True), True)
-                self.aproximated = approx
+
                 approx_len = cv2.arcLength(approx, True)
                 area = cv2.contourArea(cnt)
                 # calculate the possible tip
                 mdist = None
                 mpt = None
+                cimg = np.zeros_like(self.img)
+                box = np.int0(box)
+                cv2.drawContours(cimg, [box], 0, color=255, thickness=3)
+                pts = np.where(cimg == 255)
+                pts = zip(pts[1], pts[0])
+                cntimg = np.zeros_like(self.img)
+                box2 = np.int0(approx)
+                cv2.drawContours(cntimg, [box2], 0, color=255, thickness=3)
+                pts2 = np.where(cntimg == 255)
+                pts2 = zip(pts2[1], pts2[0])
+                diff = np.array([np.array(x) for x in pts2 if x in pts])
+                def centeroidnp(arr):
+                    length = arr.shape[0]
+                    sum_x = np.sum(arr[:, 0])
+                    sum_y = np.sum(arr[:, 1])
+                    return [sum_x / length, sum_y / length]
 
                 for pt in pts_on_line:
                     p = np.array(pt)
@@ -314,6 +331,15 @@ class Arrow:
                         mdist = dist
                         mpt = p
                 self.tip = mpt
+                diff2 = []
+                for pt in diff:
+                    if np.linalg.norm(pt - mpt) < 50:
+                        diff2.append(pt)
+                if len(diff2) > 0:
+                    self.tip2 = centeroidnp(np.array(diff2))
+                else:
+                    self.tip2 = self.tip
+                print "Possible tips %s" % (self.tip2)
                 if self.min_ratio < self.ratio < self.max_ratio:
                     self.success = True
 
