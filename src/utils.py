@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from collections import deque
 import timeit
 from matplotlib import pyplot as plt
+
 chess_w = 9
 chess_h = 6
 board = [170. / 170., 162. / 170., 107. / 170., 99. / 170., 15.9 / 170., 6.35 / 170.]
@@ -22,30 +23,31 @@ class Board:
     angles = [i * 18 + 9 for i in range(20)]
     fields_in_order = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5]
 
-    def get_config_hint(self, cur_point = -1):
+    def get_config_hint(self, cur_point=-1):
         img = np.zeros((512, 512, 3), np.uint8)
-        mid = int(512 /2.)
+        mid = int(512 / 2.)
         rad = mid * 0.9
         for c in self.circles:
-            cv2.circle(img, (mid,mid), int(c * rad), (0,0,255), 1)
+            cv2.circle(img, (mid, mid), int(c * rad), (0, 0, 255), 1)
         corners = [
             [np.sin(np.radians(i)) * rad + mid, np.cos(np.radians(i)) * rad + mid]
             for i in self.angles]
         corners2 = [
-            [np.sin(np.radians(i)) * (rad * self.circles[-2]) + mid, np.cos(np.radians(i)) * (rad * self.circles[-2]) + mid]
+            [np.sin(np.radians(i)) * (rad * self.circles[-2]) + mid,
+             np.cos(np.radians(i)) * (rad * self.circles[-2]) + mid]
             for i in self.angles]
         for corner in corners:
             x, y = corner
             x2, y2 = corners2[corners.index(corner)]
-            cv2.line(img, (int(x2),int(y2)), (int(x),int(y)),(0,0,255), 1)
+            cv2.line(img, (int(x2), int(y2)), (int(x), int(y)), (0, 0, 255), 1)
         if cur_point == -1:
             for x, y in self._get_configs(custum_rad=rad):
                 x += mid
-                y = (y*(-1)) + mid
-                img[int(y),int(x)] = (255, 0, 0)
-                cv2.circle(img, (int(x),int(y)), 10, (0, 255, 0), 1)
+                y = (y * (-1)) + mid
+                img[int(y), int(x)] = (255, 0, 0)
+                cv2.circle(img, (int(x), int(y)), 10, (0, 255, 0), 1)
         else:
-            x,y = self._get_configs(custum_rad=rad)[cur_point]
+            x, y = self._get_configs(custum_rad=rad)[cur_point]
             x += mid
             y = (y * (-1)) + mid
             img[int(y), int(x)] = (255, 0, 0)
@@ -64,7 +66,7 @@ class Board:
             [np.sin(np.radians(i)) * self.radius + self.center[0], np.cos(np.radians(i)) * self.radius + self.center[1]]
             for i in self.angles]
 
-    def _get_configs(self, custum_rad = False):
+    def _get_configs(self, custum_rad=False):
         if not custum_rad:
             c_radius = self.radius
         else:
@@ -119,7 +121,7 @@ class Board:
         result.append([np.sin(np.radians(angle)) * radius + self.center[0],
                        np.cos(np.radians(angle)) * radius + self.center[1]])
 
-        return  result
+        return result
 
     def draw_board_to_frame(self, frame):
         # Create a black image
@@ -235,6 +237,87 @@ def draw_circles():
 
     cv2.waitKey(0)
 
+
+class Arrow:
+    centroid = None
+    tip = None
+    contours = None
+    img = None
+    line = None
+    aproximated = None
+    ratio = None
+    bbox = None
+    min_cnt_size = 3000
+    min_ratio = 2
+    max_ratio = 3.5
+    success = False
+
+    def __init__(self, contours, img):
+        self.contours = [x for x in contours if cv2.contourArea(x) > self.min_cnt_size]
+        self.img = img
+        self.detect_arrow()
+
+    def __repr__(self):
+        output = ""
+        output += "Centroid=%s;;tip=%s;;Contour_num=%s;;Contour_sizes=%s;;ratio=%s" % (
+        self.centroid, self.tip, len(self.contours), [cv2.contourArea(x) for x in self.contours], self.ratio)
+        return output
+
+    def detect_arrow(self):
+        print self
+        for cnt in self.contours:
+            if cv2.contourArea(cnt) > self.min_cnt_size:
+                # Calculate the Moments of the contour
+                M = cv2.moments(cnt)
+                cx = int(M['m10'] / M['m00'])
+                cy = int(M['m01'] / M['m00'])
+                self.centroid = np.array([cx, cy])
+                # Calculate a fitting line trough the contour
+                rows, cols = self.img.shape[:2]
+                [vx, vy, x, y] = cv2.fitLine(cnt, cv2.DIST_L2, 0, 0.01, 0.01)
+                lefty = int((-x * vy / vx) + y)
+                righty = int(((cols - x) * vy / vx) + y)
+                self.line = (lefty, righty)
+                cimg = np.zeros_like(self.img)
+                cv2.drawContours(cimg, [cnt], 0, color=255, thickness=-1)
+                # Access the image pixels and create a 1D numpy array then add to list
+                pts = np.where(cimg == 255)
+                pts = zip(pts[1], pts[0])
+                pts_on_line = []
+                for pt in pts:
+                    x, y = pt
+                    ly = int(np.interp(int(x), [0, cols - 1], [lefty, righty]))
+                    if y < ly + 1 and y > ly - 1:
+                        pts_on_line.append(pt)
+                # calculate box around the contour
+                rect = cv2.minAreaRect(cnt)
+                box = cv2.boxPoints(rect)
+                b = box
+                self.bbox = box
+                dist1 = np.linalg.norm(b[0] - b[1])
+                dist2 = np.linalg.norm(b[1] - b[2])
+                ratio = (dist1 / dist2)
+                self.ratio = (dist1 / dist2)
+                # Approximate a contour
+                approx = cv2.approxPolyDP(cnt, 0.01 * cv2.arcLength(cnt, True), True)
+                self.aproximated = approx
+                approx_len = cv2.arcLength(approx, True)
+                area = cv2.contourArea(cnt)
+                # calculate the possible tip
+                mdist = None
+                mpt = None
+
+                for pt in pts_on_line:
+                    p = np.array(pt)
+                    dist = np.linalg.norm(self.centroid - p)
+                    if mdist is None or dist > mdist:
+                        mdist = dist
+                        mpt = p
+                self.tip = mpt
+                if self.min_ratio < self.ratio < self.max_ratio:
+                    self.success = True
+
+
 class ContourStorage:
     size = 200
     storage = deque([], size)
@@ -245,6 +328,7 @@ class ContourStorage:
     percentage_of_history = 0.03
     plotting = True
     paused = False
+
     def __init__(self, plotting=True):
         self.plotting = plotting
         if plotting:
@@ -255,24 +339,11 @@ class ContourStorage:
             self.plt2 = self.figure.add_subplot(412)
             self.line2, = self.plt2.plot(range(self.size), [0] * self.size, 'r.-')
             self.plt3 = self.figure.add_subplot(413)
-            self.line3, self.line4 = self.plt3.plot(range(self.size), [0] * self.size, 'r.-', range(self.size), [0] * self.size, 'g.-')
+            self.line3, self.line4 = self.plt3.plot(range(self.size), [0] * self.size, 'r.-', range(self.size),
+                                                    [0] * self.size, 'g.-')
 
             # self.plt5 = self.figure.add_subplot(414)
             # self.line5, = self.plt5.plot(range(self.size), [0] * self.size, 'r.-')
-
-    def detect_arrow(self,history=500):
-        contours = self.get_best_contours(history)
-        for cnt in contours:
-            rect = cv2.minAreaRect(cnt)
-            box = cv2.boxPoints(rect)
-            b = box
-            dist1 = np.linalg.norm(b[0] - b[1])
-            dist2 = np.linalg.norm(b[1] - b[2])
-            ratio = (dist1 / dist2)
-
-            approx = cv2.approxPolyDP(cnt, 0.01 * cv2.arcLength(cnt, True), True)
-            approx_len = cv2.arcLength(approx, True)
-            area = cv2.contourArea(cnt)
 
     def add_to_storage(self, contours, image):
         # if len(self.storage) + 1 > self.size:
@@ -304,7 +375,19 @@ class ContourStorage:
                 self.paused = False
             self.paused -= 1
 
-
+    def get_arrow(self, history=500):
+        blobs = self._find_blob(history)
+        positions = self._find_best_contour(blobs)
+        result = []
+        for pos in positions:
+            img, cnt, _ = self.storage[pos]
+            arrow = Arrow(cnt, img)
+            if arrow.success:
+                result.append(arrow)
+        for s, e in blobs:
+            for each in range(s, e):
+                self.storage[each][2] = 0
+        return result
 
     def get_biggest_contour_image(self):
         return max(self.storage, key=itemgetter(2))
@@ -324,6 +407,7 @@ class ContourStorage:
             return 0
 
     def _find_best_contour(self, blobs):
+        corcection_factor = 1.15
         y = [x[2] for x in self.storage]
         best = []
         for blob in blobs:
@@ -331,13 +415,14 @@ class ContourStorage:
             blob_mean = np.mean(blob_contours)
             diffs = []
             min_num = blob_mean
+            blob_mean = blob_mean * corcection_factor
             index = 0
             for blob_contour in blob_contours:
                 diff = abs(blob_contour - blob_mean)
-                if diff < min_num:
+                if diff < min_num and abs(blob_contour - blob_mean) > 0:
                     min_num = diff
                     index = blob_contours.index(blob_contour)
-            best.append(index+blob[0])
+            best.append(index + blob[0])
 
         return best
 
@@ -405,7 +490,7 @@ class ContourStorage:
                 y3.append(0)
         self.means.append(mean)
         self.deviations.append(deviation)
-        self.plt1.axis([0, self.size, 0, max(y3)*1.3])
+        self.plt1.axis([0, self.size, 0, max(y3) * 1.3])
         self.line1.set_xdata(range(len(y3)))
         self.line1.set_ydata(y3)
 
@@ -413,7 +498,7 @@ class ContourStorage:
         self.line2.set_xdata(range(len(y)))
         self.line2.set_ydata(y)
 
-        self.plt3.axis([0, self.size, 0, max([max(self.means),max(self.deviations)])])
+        self.plt3.axis([0, self.size, 0, max([max(self.means), max(self.deviations)])])
         self.line3.set_ydata(self.means)
         self.line4.set_ydata(self.deviations)
 
@@ -421,9 +506,6 @@ class ContourStorage:
         # self.line5.set_xdata(range(len(y4)))
         # self.line5.set_ydata(y4)
         self.figure.canvas.draw()
-
-
-
 
 
 class Camera:
@@ -463,7 +545,7 @@ class Camera:
             if self.from_file:
                 self.capture.set(1, 0)
             able_to_read, f1 = self.capture.read()
-            print "Reading Frame: ",self.capture.get(1)
+            print "Reading Frame: ", self.capture.get(1)
             if able_to_read:
                 return f1, True
             else:
@@ -473,6 +555,7 @@ class Camera:
                     return f1, True
                 else:
                     False, False
+
     def undistort_image(self, image):
         if self.was_configured:
             # print("CONFIG \r\n%s" % self.config)

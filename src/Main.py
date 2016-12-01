@@ -206,8 +206,8 @@ class BackgroundSubtractor(object):
     var_min = 4
     #################
     history = 500
-    shad_tresh = 0.35
-    var_tresh = 15
+    shad_tresh = 0.22
+    var_tresh = 10
     var_max = 75
     var_min = 1
     fgbg = None
@@ -258,6 +258,7 @@ class BackgroundSubtractor(object):
 
 
         self._initialize_substractor()
+        arrows = []
         while (True):
             f1,reseted = self.camera.get_image()
             if reseted:
@@ -292,71 +293,75 @@ class BackgroundSubtractor(object):
             # contours = [c for c in contours if cv2.contourArea(c) > 1000]
             storage.add_to_storage(contours, f1)
             # img, contours, maxc = storage.get_biggest_contour_image()
-            contours = storage.get_best_contours(history=self.history)
+            # contours = storage.get_best_contours(history=self.history)
+            arrow = storage.get_arrow(self.history)
+            if len(arrow) > 0:
+                arrows += arrow
+            print str("Arrows: %s"%arrows)
             stdout.flush()
-            for cnt in contours:
-                if len(cnt) > 100:
-                    mixer.init()
-                    mixer.music.load('beep.mp3')
-                    mixer.music.play()
-                    cv2.drawContours(colored, [cnt], 0, (0, 255, 0), -1)
-                    approx = cv2.approxPolyDP(cnt, 0.01 * cv2.arcLength(cnt, True), True)
-                    cv2.drawContours(colored, [approx], 0, (255, 255, 0), 2)
-
-                    stdout.flush()
-                    # print "ratio: %s" % aspect_ratio
-                    rect = cv2.minAreaRect(cnt)
-                    box = cv2.boxPoints(rect)
-                    b = box
-                    cv2.circle(colored, (b[0][0], b[0][1]), 4, [0,255,255], 2)
-                    cv2.circle(colored, (b[1][0], b[1][1]), 4, [0,255,255], 2)
-                    cv2.circle(colored, (b[2][0], b[2][1]), 4, [255,0,255], 2)
-                    dist1 = np.linalg.norm(b[0] - b[1])
-                    dist2 = np.linalg.norm(b[1] - b[2])
-                    box = np.int0(box)
-                    cv2.drawContours(colored, [box], 0, (0, 0, 255), 2)
-                    rows, cols = colored.shape[:2]
-                    [vx, vy, x, y] = cv2.fitLine(cnt, cv2.DIST_L2, 0, 0.01, 0.01)
-                    lefty = int((-x * vy / vx) + y)
-                    righty = int(((cols - x) * vy / vx) + y)
-                    # print (cols - 1, righty), (0, lefty)
-                    cimg = np.zeros_like(colored)
-                    cv2.drawContours(cimg, [cnt], 0, color=255, thickness=-1)
-                    # Access the image pixels and create a 1D numpy array then add to list
-                    pts = np.where(cimg == 255)
-                    pts = zip(pts[1], pts[0])
-                    pts_on_line = []
-                    for pt in pts:
-                        x, y = pt
-                        ly = int(np.interp(int(x), [0, cols - 1], [lefty, righty]))
-                        if y < ly +1 and y > ly -1:
-                            pts_on_line.append(pt)
-                    cv2.line(colored, (cols - 1, righty), (0, lefty), (255, 255, 0), 1)
-                    # ellipse = cv2.fitEllipse(cnt)
-                    # cv2.ellipse(colored, ellipse, (0, 255, 0), 2)
-                    M = cv2.moments(cnt)
-                    cx = int(M['m10'] / M['m00'])
-                    cy = int(M['m01'] / M['m00'])
-                    cv2.circle(colored,(cx,cy), 5, [255, 0, 0], 2)
-                    colored[cy, cx] = [0, 0, 255]
-                    hull = cv2.convexHull(cnt)
-
-                    centroid = np.array([cx,cy])
-                    mdist = None
-                    mpt = None
-                    for pt in pts_on_line:
-                        p = np.array(pt)
-                        dist = np.linalg.norm(centroid-p)
-                        if mdist is None or dist > mdist:
-                            mdist = dist
-                            mpt = p
-                    stdout.write("\rratio: %s Box points: %s  Maxpoint: %s  Arclen: %s" % ((dist1/dist2), cv2.contourArea(box), mpt, cv2.arcLength(cnt, True)))
-
-                    if not mpt is None:
-                        cv2.circle(colored, (mpt[0], mpt[1]), 3, [255, 0, 0], 2)
-                        colored[mpt[1], mpt[0]] = [0, 0, 255]
-                        cv2.circle(f1, (mpt[0], mpt[1]), 3, [255, 0, 0], 2)
-                        f1[mpt[1], mpt[0]] = [0, 0, 255]
+            for arrow in arrows:
+                cv2.drawContours(colored, arrow.contours, -1, (0, 255, 0), -1)
+            # for cnt in contours:
+            #     if len(cnt) > 100:
+            #         mixer.init()
+            #         mixer.music.load('beep.mp3')
+            #         mixer.music.play()
+            #         cv2.drawContours(colored, [cnt], 0, (0, 255, 0), -1)
+            #         approx = cv2.approxPolyDP(cnt, 0.01 * cv2.arcLength(cnt, True), True)
+            #         cv2.drawContours(colored, [approx], 0, (255, 255, 0), 2)
+            #
+            #         stdout.flush()
+            #         # print "ratio: %s" % aspect_ratio
+            #         # rect = cv2.min0
+            #         cv2.circle(colored, (b[0][0], b[0][1]), 4, [0,255,255], 2)
+            #         cv2.circle(colored, (b[1][0], b[1][1]), 4, [0,255,255], 2)
+            #         cv2.circle(colored, (b[2][0], b[2][1]), 4, [255,0,255], 2)
+            #         dist1 = np.linalg.norm(b[0] - b[1])
+            #         dist2 = np.linalg.norm(b[1] - b[2])
+            #         box = np.int0(box)
+            #         cv2.drawContours(colored, [box], 0, (0, 0, 255), 2)
+            #         rows, cols = colored.shape[:2]
+            #         # [vx, vy, x, y] = cv2.fitLine(cnt, cv2.DIST_L2, 0, 0.01, 0.01)
+            #         # lefty = int((-x * vy / vx) + y)
+            #         # righty = int(((cols - x) * vy / vx) + y)
+            #         # # print (cols - 1, righty), (0, lefty)
+            #         # cimg = np.zeros_like(colored)
+            #         # cv2.drawContours(cimg, [cnt], 0, color=255, thickness=-1)
+            #         # # Access the image pixels and create a 1D numpy array then add to list
+            #         # pts = np.where(cimg == 255)
+            #         # pts = zip(pts[1], pts[0])
+            #         # pts_on_line = []
+            #         # for pt in pts:
+            #         #     x, y = pt
+            #         #     ly = int(np.interp(int(x), [0, cols - 1], [lefty, righty]))
+            #         #     if y < ly +1 and y > ly -1:
+            #         #         pts_on_line.append(pt)
+            #         cv2.line(colored, (cols - 1, righty), (0, lefty), (255, 255, 0), 1)
+            #         # ellipse = cv2.fitEllipse(cnt)
+            #         # cv2.ellipse(colored, ellipse, (0, 255, 0), 2)
+            #         # M = cv2.moments(cnt)
+            #         # cx = int(M['m10'] / M['m00'])
+            #         # cy = int(M['m01'] / M['m00'])
+            #         cv2.circle(colored,(cx,cy), 5, [255, 0, 0], 2)
+            #         colored[cy, cx] = [0, 0, 255]
+            #         # hull = cv2.convexHull(cnt)
+            #
+            #         # centroid = np.array([cx,cy])
+            #         # mdist = None
+            #         # mpt = None
+            #         # for pt in pts_on_line:
+            #         #     p = np.array(pt)
+            #         #     dist = np.linalg.norm(centroid-p)
+            #         #     if mdist is None or dist > mdist:
+            #         #         mdist = dist
+            #         #         mpt = p
+            #         # stdout.write("\rratio: %s Box points: %s  Maxpoint: %s  Arclen: %s" % ((dist1/dist2), cv2.contourArea(box), mpt, cv2.arcLength(cnt, True)))
+            #
+            #         if not mpt is None:
+            #             cv2.circle(colored, (mpt[0], mpt[1]), 3, [255, 0, 0], 2)
+            #             colored[mpt[1], mpt[0]] = [0, 0, 255]
+            #             cv2.circle(f1, (mpt[0], mpt[1]), 3, [255, 0, 0], 2)
+            #             f1[mpt[1], mpt[0]] = [0, 0, 255]
 
                 # area = cv2.contourArea(cnt)
             cv2.imshow("Current", closed)
