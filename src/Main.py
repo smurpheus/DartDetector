@@ -210,7 +210,7 @@ class BackgroundSubtractor(Thread):
     var_min = 4
     #################
     history = 500
-    shad_tresh = 0.22
+    shad_tresh = 0.3
     var_tresh = 10
     var_max = 75
     var_min = 1
@@ -374,9 +374,14 @@ class MainApplikacation(object):
             spamwriter = csv.writer(csvfile, delimiter=',',dialect='excel',
                                     quotechar='|', quoting=csv.QUOTE_MINIMAL)
             datas = zip(self.detected, self.real, self.was_covert)
-            spamwriter.writerow(['Detected', 'Reality', 'Was Covert'])
+            spamwriter.writerow(['Detected', 'Reality', 'Was Covert', 'Diff'])
             for each in datas:
-                spamwriter.writerow(each)
+                entry = list(each)
+                if each[0] == each[1]:
+                    entry.append(True)
+                else:
+                    entry.append(False)
+                spamwriter.writerow(entry)
 
     @profile
     def __init__(self, inp):
