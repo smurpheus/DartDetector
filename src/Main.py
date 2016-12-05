@@ -311,11 +311,17 @@ class BackgroundSubtractor(Thread):
                 cv2.drawContours(f1, arrow.contours, -1, (0, 255, 0), -1)
                 cv2.drawContours(f1, [arrow.aproximated], 0, (255, 255, 0), 2)
 
-                cv2.circle(f1, (arrow.tip[0], arrow.tip[1]), 3, [150, 255, 0], 2)
-                f1[arrow.tip[1], arrow.tip[0]] = [150, 255, 0]
+                cv2.circle(f1, (arrow.tip[0], arrow.tip[1]), 3, [255, 0, 0], 2)
+                f1[arrow.tip[1], arrow.tip[0]] = [255, 0, 0]
 
-                cv2.circle(f1, (arrow.tip2[0], arrow.tip2[1]), 3, [255, 0, 0], 2)
-                f1[arrow.tip2[1], arrow.tip2[0]] = [0, 0, 255]
+                cv2.circle(f1, (arrow.tip2[0], arrow.tip2[1]), 3, [101,8,108], 2)
+                f1[arrow.tip2[1], arrow.tip2[0]] = [101,8,108]
+
+                cv2.circle(f1, (arrow.tip3[0], arrow.tip3[1]), 3, [225,97,53], 2)
+                f1[arrow.tip2[1], arrow.tip2[0]] = [225,97,53]
+
+                cv2.circle(f1, (arrow.tip4[0], arrow.tip4[1]), 3, [81,106,37], 2)
+                f1[arrow.tip2[1], arrow.tip2[0]] = [81,106,37]
 
                 rows, cols = f1.shape[:2]
                 cv2.line(f1, (cols - 1, arrow.line[1]), (0, arrow.line[0]), (255, 255, 0), 1)

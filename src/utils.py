@@ -322,6 +322,7 @@ class Arrow:
                         if mdist is None or dist > mdist:
                             mdist = dist
                             mpt = p
+                    # tip is the point of the contour farest away from centroid
                     self.tip = mpt
                     # Approximate a contour
 
@@ -344,6 +345,8 @@ class Arrow:
                         if mdist2 is None or dist > mdist2:
                             mdist2 = dist
                             mpt2 = p
+                    # tip2 is the point where the line crosses the bounding box
+                    self.tip2 = mpt2
                     # print "Possible tips2 %s" % (mpt2)
 
                     box2 = np.int0(approx)
@@ -354,18 +357,26 @@ class Arrow:
                         sum_x = np.sum(arr[:, 0])
                         sum_y = np.sum(arr[:, 1])
                         return [sum_x / length, sum_y / length]
+                    diff2 = [pt for pt in diff if np.linalg.norm(pt - mpt2) < 30]
 
-
-                    diff2 = []
-                    for pt in diff:
-                        if np.linalg.norm(pt - mpt) < 50:
-                            diff2.append(pt)
+                    box3 = np.int0(cnt)
+                    approxpts3 = self._get_points_on_cnt(box3)
+                    diff = np.array([np.array(x) for x in approxpts3 if x in boxpts])
+                    diff3 = [pt for pt in diff if np.linalg.norm(pt - mpt2) < 30]
+                    # diff2 = []
+                    # for pt in diff:
+                    #     if np.linalg.norm(pt - mpt) < 50:
+                    #         diff2.append(pt)
+                    # tip3 is the point where approximated point and box cut eachother
                     if len(diff2) > 0:
-
-                        self.tip2 = centeroidnp(np.array(diff2))
-                        # print "Possible tip2: %s "%self.tip2
+                        self.tip3 = centeroidnp(np.array(diff2))
                     else:
-                        self.tip2 = self.tip
+                        self.tip3 = self.tip
+                    # tip4 is the point where the contour cuts the bounding box
+                    if len(diff3) > 0:
+                        self.tip4 = centeroidnp(np.array(diff3))
+                    else:
+                        self.tip4 = self.tip
                     # print "Possible tips %s" % (self.tip2)
         self.contours = ncontours
 
