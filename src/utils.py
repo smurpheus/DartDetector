@@ -260,89 +260,114 @@ class Arrow:
 
     def __repr__(self):
         output = ""
-        output += "Centroid=%s;;tip=%s;;Contour_num=%s;;Contour_sizes=%s;;ratio=%s" % (
-        self.centroid, self.tip, len(self.contours), [cv2.contourArea(x) for x in self.contours], self.ratio)
+        output += "Centroid=%s;;tip=%s;;Contour_num=%s;;Contour_sizes=%s;;ratio=%s;;success=%s" % (
+        self.centroid, self.tip, len(self.contours), [cv2.contourArea(x) for x in self.contours], self.ratio,self.success)
         return output
 
+    def _get_points_on_cnt(self, cnt):
+        cimg = np.zeros_like(self.img)
+        cv2.drawContours(cimg, [cnt], 0, color=255, thickness=-1)
+        # Access the image pixels and create a 1D numpy array then add to list
+        pts = np.where(cimg == 255)
+        pts = zip(pts[1], pts[0])
+        return pts
+
+
     def detect_arrow(self):
+        ncontours = []
         for cnt in self.contours:
             if cv2.contourArea(cnt) > self.min_cnt_size:
-                # Calculate the Moments of the contour
-                approx = cv2.approxPolyDP(cnt, 0.015 * cv2.arcLength(cnt, True), True)
-                self.aproximated = approx
-                M = cv2.moments(cnt)
-                cx = int(M['m10'] / M['m00'])
-                cy = int(M['m01'] / M['m00'])
-                self.centroid = np.array([cx, cy])
-                # Calculate a fitting line trough the contour
-                rows, cols = self.img.shape[:2]
-                [vx, vy, x, y] = cv2.fitLine(approx, cv2.DIST_L2, 0, 0.01, 0.01)
-                lefty = int((-x * vy / vx) + y)
-                righty = int(((cols - x) * vy / vx) + y)
-                self.line = (lefty, righty)
-                cimg = np.zeros_like(self.img)
-                cv2.drawContours(cimg, [cnt], 0, color=255, thickness=-1)
-                # Access the image pixels and create a 1D numpy array then add to list
-                pts = np.where(cimg == 255)
-                pts = zip(pts[1], pts[0])
-                pts_on_line = []
-                for pt in pts:
-                    x, y = pt
-                    ly = int(np.interp(int(x), [0, cols - 1], [lefty, righty]))
-                    if y < ly + 1 and y > ly - 1:
-                        pts_on_line.append(pt)
                 # calculate box around the contour
                 rect = cv2.minAreaRect(cnt)
                 box = cv2.boxPoints(rect)
                 b = box
-                self.bbox = box
+
                 dist1 = np.linalg.norm(b[0] - b[1])
                 dist2 = np.linalg.norm(b[1] - b[2])
                 ratio = (dist1 / dist2)
-                self.ratio = (dist1 / dist2)
-                # Approximate a contour
-
-                approx_len = cv2.arcLength(approx, True)
-                area = cv2.contourArea(cnt)
-                # calculate the possible tip
-                mdist = None
-                mpt = None
-                cimg = np.zeros_like(self.img)
-                box = np.int0(box)
-                cv2.drawContours(cimg, [box], 0, color=255, thickness=3)
-                pts = np.where(cimg == 255)
-                pts = zip(pts[1], pts[0])
-                cntimg = np.zeros_like(self.img)
-                box2 = np.int0(approx)
-                cv2.drawContours(cntimg, [box2], 0, color=255, thickness=3)
-                pts2 = np.where(cntimg == 255)
-                pts2 = zip(pts2[1], pts2[0])
-                diff = np.array([np.array(x) for x in pts2 if x in pts])
-                def centeroidnp(arr):
-                    length = arr.shape[0]
-                    sum_x = np.sum(arr[:, 0])
-                    sum_y = np.sum(arr[:, 1])
-                    return [sum_x / length, sum_y / length]
-
-                for pt in pts_on_line:
-                    p = np.array(pt)
-                    dist = np.linalg.norm(self.centroid - p)
-                    if mdist is None or dist > mdist:
-                        mdist = dist
-                        mpt = p
-                self.tip = mpt
-                diff2 = []
-                for pt in diff:
-                    if np.linalg.norm(pt - mpt) < 50:
-                        diff2.append(pt)
-                if len(diff2) > 0:
-                    self.tip2 = centeroidnp(np.array(diff2))
-                else:
-                    self.tip2 = self.tip
-                print "Possible tips %s" % (self.tip2)
-                if self.min_ratio < self.ratio < self.max_ratio:
+                if self.min_ratio < ratio < self.max_ratio:
+                    self.bbox = box
+                    self.ratio = (dist1 / dist2)
                     self.success = True
+                    ncontours.append(cnt)
+                    # Calculate the Moments of the contour
+                    approx = cv2.approxPolyDP(cnt, 0.015 * cv2.arcLength(cnt, True), True)
+                    self.aproximated = approx
 
+                    M = cv2.moments(cnt)
+                    cx = int(M['m10'] / M['m00'])
+                    cy = int(M['m01'] / M['m00'])
+                    self.centroid = np.array([cx, cy])
+                    # Calculate a fitting line trough the contour
+                    rows, cols = self.img.shape[:2]
+                    [vx, vy, x, y] = cv2.fitLine(cnt, cv2.DIST_L2, 0, 0.01, 0.01)
+                    lefty = int((-x * vy / vx) + y)
+                    righty = int(((cols - x) * vy / vx) + y)
+                    self.line = (lefty, righty)
+
+                    ##############################################
+                    ###### Standard Tip ##########################
+                    pts = self._get_points_on_cnt(cnt)
+                    pts_on_line = []
+                    for pt in pts:
+                        x, y = pt
+                        ly = int(np.interp(int(x), [0, cols - 1], [lefty, righty]))
+                        if y < ly + 1 and y > ly - 1:
+                            pts_on_line.append(pt)
+                    mdist = None
+                    mpt = None
+                    for pt in pts_on_line:
+                        p = np.array(pt)
+                        dist = np.linalg.norm(self.centroid - p)
+                        if mdist is None or dist > mdist:
+                            mdist = dist
+                            mpt = p
+                    self.tip = mpt
+                    # Approximate a contour
+
+                    approx_len = cv2.arcLength(approx, True)
+                    area = cv2.contourArea(cnt)
+                    # calculate the possible tip
+                    box = np.int0(box)
+                    boxpts = self._get_points_on_cnt(box)
+                    pts_on_line2 = []
+                    for pt in boxpts:
+                        x, y = pt
+                        ly = int(np.interp(int(x), [0, cols - 1], [lefty, righty]))
+                        if y < ly + 1 and y > ly - 1:
+                            pts_on_line2.append(pt)
+                    mdist2 = None
+                    mpt2 = None
+                    for pt in pts_on_line2:
+                        p = np.array(pt)
+                        dist = np.linalg.norm(self.centroid - p)
+                        if mdist2 is None or dist > mdist2:
+                            mdist2 = dist
+                            mpt2 = p
+                    # print "Possible tips2 %s" % (mpt2)
+
+                    box2 = np.int0(approx)
+                    approxpts2 = self._get_points_on_cnt(box2)
+                    diff = np.array([np.array(x) for x in approxpts2 if x in boxpts])
+                    def centeroidnp(arr):
+                        length = arr.shape[0]
+                        sum_x = np.sum(arr[:, 0])
+                        sum_y = np.sum(arr[:, 1])
+                        return [sum_x / length, sum_y / length]
+
+
+                    diff2 = []
+                    for pt in diff:
+                        if np.linalg.norm(pt - mpt) < 50:
+                            diff2.append(pt)
+                    if len(diff2) > 0:
+
+                        self.tip2 = centeroidnp(np.array(diff2))
+                        # print "Possible tip2: %s "%self.tip2
+                    else:
+                        self.tip2 = self.tip
+                    # print "Possible tips %s" % (self.tip2)
+        self.contours = ncontours
 
 class ContourStorage:
     size = 200

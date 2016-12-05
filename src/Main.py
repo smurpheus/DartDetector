@@ -9,10 +9,14 @@ from utils import Camera, Board, projectReverse, ContourStorage
 import time
 from numpy.linalg import lstsq
 from pygame import mixer
+from threading import Thread, Lock
+import copy
+import csv
+import os.path
 
 width = 1280
 height = 960
-# width = 640
+# width = 640Lock
 # height = 480
 history = 500
 open_close_mask = 5
@@ -197,7 +201,7 @@ class BlobDetector(object):
         cv2.destroyAllWindows()
 
 
-class BackgroundSubtractor(object):
+class BackgroundSubtractor(Thread):
     ###Default ######
     history = 500
     shad_tresh = 0.5
@@ -210,7 +214,12 @@ class BackgroundSubtractor(object):
     var_tresh = 10
     var_max = 75
     var_min = 1
+    arrows = []
     fgbg = None
+    threadLock = None
+    storage = None
+    image = None
+    stopped = False
     def _initialize_substractor(self):
         self.fgbg = cv2.createBackgroundSubtractorMOG2()
         self.fgbg.setHistory(self.history)
@@ -220,24 +229,63 @@ class BackgroundSubtractor(object):
         self.fgbg.setVarMin(self.var_min)
         return self.fgbg
 
-    def __init__(self, c1):
-        print("BackgroundSubstractor called with capture %s" % c1)
-        self.camera = Camera(device=c1)
-        # c1.release()re('test.avi')
-        background,reseted = self.camera.get_image()
-        cv2.namedWindow("Current", cv2.WINDOW_NORMAL)
-        cv2.namedWindow("Original", cv2.WINDOW_NORMAL)
-        cv2.namedWindow("FG Substraction", cv2.WINDOW_NORMAL)
-        cv2.createTrackbar("History", "Current", self.history, 1000, self._set_history)
-        cv2.createTrackbar("Shadow Treshold", "Current", int(self.shad_tresh*100), 100, self._set_shad_tresh)
-        cv2.createTrackbar("VarThreshold", "Current", self.var_tresh, 100, self._set_var_tresh)
-        cv2.createTrackbar("VarMax", "Current", self.var_max, 100, self._set_var_max)
-        cv2.createTrackbar("VarMin", "Current", self.var_min, 100, self._set_var_min)
-        storage = ContourStorage()
+    def get_image(self):
+        self.threadLock.acquire()
+        img = copy.copy(self.image)
+        self.threadLock.release()
+        return img
 
+    def set_image(self, img):
+        self.threadLock.acquire()
+        self.image = img
+        self.threadLock.release()
+
+    def get_substracted(self):
+        self.threadLock.acquire()
+        img = copy.copy(self.substracted)
+        self.threadLock.release()
+        return img
+
+    def set_substracted(self, img):
+        self.threadLock.acquire()
+        self.substracted = img
+        self.threadLock.release()
+
+    def _set_arrow(self, arrow):
+        self.threadLock.acquire()
+        self.arrows.append(arrow)
+        self.threadLock.release()
+
+    def clear_arrows(self):
+        self.threadLock.acquire()
+        self.arrows = []
+        self.threadLock.release()
+
+    def get_arrows(self):
+        self.threadLock.acquire()
+        return_list = list(self.arrows)
+        self.threadLock.release()
+        return return_list
+
+    def __init__(self, c1=0, camera=None):
+        Thread.__init__(self)
+        self.threadLock = Lock()
+        print("BackgroundSubstractor called with capture %s" % c1)
+        if not isinstance(camera, Camera):
+            self.camera = Camera(device=c1)
+        else:
+            self.camera = camera
+        # c1.release()re('test.avi')
+
+        self.storage = ContourStorage()
         self._initialize_substractor()
-        arrows = []
-        while (True):
+
+    def run(self):
+        self.run_substraction()
+
+    def run_substraction(self):
+
+        while not self.stopped:
             f1,reseted = self.camera.get_image()
             if reseted:
                 self._initialize_substractor()
@@ -249,38 +297,44 @@ class BackgroundSubtractor(object):
             opened = cv2.morphologyEx(fgmask1, cv2.MORPH_OPEN, kernel)
             kernel = np.ones((20, 20), np.uint8)
             closed = cv2.morphologyEx(opened, cv2.MORPH_CLOSE, kernel)
+            self.set_substracted(closed)
             closed2 = np.array(closed)
             im2, contours, hierarchy = cv2.findContours(closed2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             colored = cv2.cvtColor(closed2, cv2.COLOR_GRAY2BGR)
-            storage.add_to_storage(contours, f1)
-            arrow = storage.get_arrow(self.history)
-            if len(arrow) > 0:
-                arrows += arrow
-            print str("Arrows: %s"%arrows)
+            self.storage.add_to_storage(contours, f1)
+            arrow = self.storage.get_arrow(self.history)
+            for a in arrow:
+                self._set_arrow(a)
+            # print str("Arrows: %s"%self.get_arrows())
             stdout.flush()
-            for arrow in arrows:
+            for arrow in self.get_arrows():
                 cv2.drawContours(f1, arrow.contours, -1, (0, 255, 0), -1)
                 cv2.drawContours(f1, [arrow.aproximated], 0, (255, 255, 0), 2)
-                cv2.circle(f1, (arrow.tip[0], arrow.tip[1]), 3, [255, 0, 0], 2)
-                f1[arrow.tip[1], arrow.tip[0]] = [0, 0, 255]
+
+                cv2.circle(f1, (arrow.tip[0], arrow.tip[1]), 3, [150, 255, 0], 2)
+                f1[arrow.tip[1], arrow.tip[0]] = [150, 255, 0]
+
                 cv2.circle(f1, (arrow.tip2[0], arrow.tip2[1]), 3, [255, 0, 0], 2)
                 f1[arrow.tip2[1], arrow.tip2[0]] = [0, 0, 255]
+
                 rows, cols = f1.shape[:2]
                 cv2.line(f1, (cols - 1, arrow.line[1]), (0, arrow.line[0]), (255, 255, 0), 1)
                 cv2.drawContours(f1, [np.int0(arrow.bbox)], 0, (0, 0, 255), 2)
 
-            cv2.imshow("Current", closed)
-            cv2.imshow("FG Substraction", colored)
-            cv2.imshow("Original", f1)
-
-            k = cv2.waitKey(1) & 0xFF
-            if k == ord('f') or len(arrows) >= 3:
-                arrows = []
-            if k == 27:
-                break
-            if k == 119:
-                cv2.waitKey(-1)
-        cv2.destroyAllWindows()
+            self.set_image(f1)
+        #
+        #     cv2.imshow("Current", closed)
+        #     cv2.imshow("FG Substraction", colored)
+        #     cv2.imshow("Original", f1)
+        #
+        #     k = cv2.waitKey(1) & 0xFF
+        #     if k == ord('f') or len(arrows) >= 3:
+        #         arrows = []
+        #     if k == 27:
+        #         break
+        #     if k == 119:
+        #         cv2.waitKey(-1)
+        # cv2.destroyAllWindows()
     def _set_history(self, val):
         self.history = val
         self.fgbg.setHistory(self.history)
@@ -302,14 +356,107 @@ class BackgroundSubtractor(object):
         self.var_max = val
         self.fgbg.setVarMax(self.var_max)
 
+class MainApplikacation(object):
+    detected = []
+    real = []
+    was_covert = []
+    Calibrated = None
+    Substractor = None
+    input = None
+    camera = None
+    def write_data(self):
+        i = 0
+        fname = "data%s.csv"
+        while os.path.isfile(fname%i):
+            i += 1
 
+        with open(fname%i, 'wb') as csvfile:
+            spamwriter = csv.writer(csvfile, delimiter=',',dialect='excel',
+                                    quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            datas = zip(self.detected, self.real, self.was_covert)
+            spamwriter.writerow(['Detected', 'Reality', 'Was Covert'])
+            for each in datas:
+                spamwriter.writerow(each)
+
+    @profile
+    def __init__(self, inp):
+        self.camera = Camera(device=inp)
+        self.Calibrated = BoardCalibrator(camera=self.camera)
+        self.Substractor = BackgroundSubtractor(c1=inp,camera=self.camera)
+        cv2.namedWindow("Current", cv2.WINDOW_NORMAL)
+        cv2.namedWindow("Original", cv2.WINDOW_NORMAL)
+        # cv2.namedWindow("FG Substraction", cv2.WINDOW_NORMAL)
+        # cv2.createTrackbar("History", "Current", self.history, 1000, self._set_history)
+        # cv2.createTrackbar("Shadow Treshold", "Current", int(self.shad_tresh * 100), 100, self._set_shad_tresh)
+        # cv2.createTrackbar("VarThreshold", "Current", self.var_tresh, 100, self._set_var_tresh)
+        # cv2.createTrackbar("VarMax", "Current", self.var_max, 100, self._set_var_max)
+        # cv2.createTrackbar("VarMin", "Current", self.var_min, 100, self._set_var_min)
+
+        self.Substractor.start()
+        added = 0
+        while True:
+            img = self.Substractor.get_image()
+            if img is not None:
+                self.frame = self.camera.undistort_image(img)
+                for i in self.Calibrated.imp:
+                    try:
+                        img[i[0][1], i[0][0]] = [0,0,255]
+                    except IndexError:
+                        pass
+                cv2.imshow("Original", img)
+                cv2.imshow("Current", self.Substractor.get_substracted())
+                k = cv2.waitKey(1) & 0xFF
+                if k == ord('a'):
+                    self.add_dart()
+                if k == ord('s'):
+                    self.write_data()
+                if k == ord('w'):
+                    pass
+                if k == ord('f'):
+                    added = 0
+                    self.Substractor.clear_arrows()
+                if k == 27:
+                    self.Substractor.stopped = True
+                    break
+                if k == 119:
+                    cv2.waitKey(-1)
+            arrows = self.Substractor.get_arrows()
+            i = 1
+            for each in arrows:
+                tip = each.tip
+                points = self.Calibrated.calculate_points(tip)
+                if i > added:
+                    print points
+                    self.add_dart(detected=points)
+                    added += 1
+                i += 1
+
+
+    def add_dart(self, detected="N/D"):
+        mixer.init()
+        mixer.music.load('beep.mp3')
+        mixer.music.play()
+        print("Adding an arrow:")
+        inp = raw_input("What were the real Points? Type 'n' if the dart is not at the board: ")
+        covert = raw_input("Was the arrow covert by another one? 'n' for no, 'y' for yes: ")
+        if inp == 'n':
+            self.real.append('N/D')
+        else:
+            self.real.append(inp)
+        self.detected.append(detected)
+        if covert == 'y':
+            self.was_covert.append(True)
+        else:
+            self.was_covert.append(False)
 class BoardCalibrator(object):
     imgpoints = []
 
-    def __init__(self, input):
-        camera = Camera(device=input)
+    def __init__(self, input=0, camera=None):
+        if not isinstance(camera, Camera):
+            camera = Camera(device=input)
         camera.do_calibration(img=True)
-        self.frame,reseted  = camera.get_image()
+        self.camera = camera
+        self.frame,reseted  = self.camera.get_image()
         cv2.namedWindow("Calibration Window", cv2.WINDOW_NORMAL)
         cv2.namedWindow("Calibration Hint", cv2.WINDOW_NORMAL)
         cv2.imshow("Calibration Window", self.frame)
@@ -337,11 +484,13 @@ class BoardCalibrator(object):
         print("Imagepoints %s" % self.imgpoints)
 
         print("Objp %s" % nobj)
+        print(self.camera.config['dist'])
+        print(np.array(self.camera.config['mtx']))
         _, rvec, tvec = cv2.solvePnP(nobj,
-                                     np.array(self.imgpoints, np.float64), np.array(camera.config['mtx']),
-                                     np.array(camera.config['dist']), None,None, False, cv2.SOLVEPNP_ITERATIVE)
+                                     np.array(self.imgpoints, np.float64), np.array(self.camera.config['mtx']),
+                                     np.array(self.camera.config['dist']), None,None, False, cv2.SOLVEPNP_ITERATIVE)
         mean_error = 0
-        imgpoints2, _ = cv2.projectPoints(nobj, rvec, tvec, camera.cameramatrix, camera.config['dist'])
+        imgpoints2, _ = cv2.projectPoints(nobj, rvec, tvec, self.camera.cameramatrix, self.camera.config['dist'])
         impoints = np.array([[x] for x in self.imgpoints], np.float64)
         error = cv2.norm(impoints, imgpoints2, cv2.NORM_L2) / len(imgpoints2)
         mean_error += error
@@ -361,38 +510,40 @@ class BoardCalibrator(object):
                 points.append([[i], [-y], [0]])
         points = np.array(points)
         # points = np.array([[[0],[0],[0]], [[outer],[0],[0]]])
-        print points
-        imp, jac = cv2.projectPoints(points, rvec,tvec, np.array(camera.config['mtx']), np.array(camera.config['dist']))
-        print imp
-        print("NEWRVEC: %s" % rvec)
-        print("NEWTVEC: %s" % tvec)
+        imp, jac = cv2.projectPoints(points, rvec,tvec, np.array(self.camera.config['mtx']), np.array(self.camera.config['dist']))
         rot, _ = cv2.Rodrigues(rvec)
-        rev = projectReverse(self.imgpoints,rot, tvec, camera.config['mtx'])
+        rev = projectReverse(self.imgpoints,rot, tvec, self.camera.config['mtx'])
         self.rot = rot
         self.tvec = tvec
-        self.camera = camera
         # b.draw_board_to_frame(frame2)
         print("Imagepoints %s" % self.imgpoints)
         print("Objecpoints %s" % rev)
+        cv2.destroyWindow("Calibration Window")
+        cv2.destroyWindow("Calibration Hint")
+        self.imp = imp
+        # cv2.setMouseCallback("Calibration Window", self._calcObj)
+        # while True:
+        #     self.frame,reseted  = self.camera.get_image()
+        #     self.frame = self.camera.undistort_image(self.frame)
+        #     for i in imp:
+        #         try:
+        #             self.frame[i[0][1], i[0][0]] = [0,0,255]
+        #         except IndexError:
+        #             pass
+        #     # self.frame = cv2.circle(self.frame,(int(np.round(imp[0][0][0])), int(np.round(imp[0][0][1]))),int(np.round(dist)),[0,0,255],1)
+        #     cv2.imshow("Calibration Window", self.frame)
+        #     k = cv2.waitKey(1) & 0xFF
+        #     if k == 27:
+        #         break
+        #
+        # k = cv2.waitKey(-1) & 0xFF
 
-        cv2.setMouseCallback("Calibration Window", self.calcObj)
-        while True:
-            self.frame,reseted  = camera.get_image()
-            self.frame = camera.undistort_image(self.frame)
-            for i in imp:
-                try:
-                    self.frame[i[0][1], i[0][0]] = [0,0,255]
-                except IndexError:
-                    pass
-            # self.frame = cv2.circle(self.frame,(int(np.round(imp[0][0][0])), int(np.round(imp[0][0][1]))),int(np.round(dist)),[0,0,255],1)
-            cv2.imshow("Calibration Window", self.frame)
-            k = cv2.waitKey(1) & 0xFF
-            if k == 27:
-                break
+    def calculate_points(self, point):
+        x,y = point
+        objp = projectReverse(np.array([[[x],[y]]]), self.rot, self.tvec,self.camera.config['mtx'])
+        return  Board().calculate_field(objp[0][:2])
 
-        k = cv2.waitKey(-1) & 0xFF
-
-    def calcObj(self, event, x, y, flags, param):
+    def _calcObj(self, event, x, y, flags, param):
         if event == cv2.EVENT_LBUTTONDOWN:
             print("Clicked %s: %s" % (x, y))
 
@@ -474,9 +625,12 @@ def main(argv):
             # hsv = cv2.cvtColor(f1, cv2.COLOR_BGR2HSV)
             # print(able_to_read)
             # cc = CountourDetector(c1)
-            bs = BackgroundSubtractor(inputfile)
-            # bd = BlobDetector(c1)
+            ma = MainApplikacation(inputfile)
+            # camera = Camera(inputfile)
             # bc = BoardCalibrator(inputfile)
+            # bs = BackgroundSubtractor(inputfile)
+            # bd = BlobDetector(c1)
+
         elif opt in ("-d", "--device"):
             if arg == "":
                 device = 0
@@ -490,7 +644,10 @@ def main(argv):
             # hsv = cv2.cvtColor(f1, cv2.COLOR_BGR2HSV)
             # print(able_to_read)
             # cc = CountourDetector(c1)
-            bs = BackgroundSubtractor(device)
+            ma = MainApplikacation(device)
+            # camera = Camera(inputfile)
+            # bc = BoardCalibrator(device)
+            # bs = BackgroundSubtractor(device)
             # bd = BlobDetector(c1)
             # bc = BoardCalibrator(device)
     print ('Output file is "', inputfile)
