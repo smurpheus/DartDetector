@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from collections import deque
 import timeit
 from matplotlib import pyplot as plt
+import os
 
 chess_w = 9
 chess_h = 6
@@ -572,6 +573,8 @@ class ContourStorage:
 
 class Camera:
     chessboard_size = 26
+    read_frame_no = 1
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
 
     def __init__(self, width=1280, heigth=960, device=None):
         self.cameramatrix = None
@@ -581,6 +584,11 @@ class Camera:
         self.config = []
         self.was_configured = False
         self.device = device
+        i = 0
+        fname = "data%s.avi"
+        while os.path.isfile(fname % i):
+            i += 1
+        self.out = cv2.VideoWriter(fname % i, self.fourcc, 30, (width, heigth))
         if isinstance(self.device, int):
             self.from_file = False
             self.capture = cv2.VideoCapture(self.device)
@@ -602,18 +610,25 @@ class Camera:
     def get_image(self):
         able_to_read, f1 = self.capture.read()
         if able_to_read:
+            self.read_frame_no += 1
+            self.out.write(f1)
             return f1, False
         else:
             if self.from_file:
+                self.read_frame_no = 1
                 self.capture.set(1, 0)
             able_to_read, f1 = self.capture.read()
             print "Reading Frame: ", self.capture.get(1)
             if able_to_read:
+                self.out.write(f1)
+                self.read_frame_no += 1
                 return f1, True
             else:
                 time.sleep(2)
                 able_to_read, f1 = self.capture.read()
                 if able_to_read:
+                    self.out.write(f1)
+                    self.read_frame_no += 1
                     return f1, True
                 else:
                     False, False
@@ -645,22 +660,34 @@ class Camera:
         try:
             with open(filename, "r") as f:
                 lines = f.read()
-                print(lines)
                 config = json.loads(lines)
         except:
             return False
-        newcameramtx, roi = cv2.getOptimalNewCameraMatrix(np.array(config['mtx']), np.array(config['dist']),
+        nconfig = {}
+        nconfig['mtx'] = np.resize(np.array(json.loads(config['mtx'])), (3,3))
+        nconfig['dist'] = np.array(json.loads(config['dist']))
+        nconfig['tvecs'] = np.array(json.loads(config['tvecs']))
+        nconfig['rvecs'] = np.array(json.loads(config['rvecs']))
+        print nconfig['mtx'], nconfig['dist'], (self.width, self.height), 1, (self.width, self.height)
+        newcameramtx, roi = cv2.getOptimalNewCameraMatrix(nconfig['mtx'], nconfig['dist'],
                                                           (self.width, self.height), 1, (self.width, self.height))
         self.cameramatrix = newcameramtx
         self.roi = roi
-        self.config = config
+        self.config = nconfig
         self.was_configured = True
         return config
 
     def save_config(self, filename="camera_config.json"):
         if self.was_configured:
+            config = {}
+            for k, v in self.config.iteritems():
+                try:
+                    config[k] = json.dumps(v)
+                except:
+                    print k
+                    config[k] = json.dumps(v.tolist())
             with open(filename, "w") as f:
-                f.write(json.dumps(self.config))
+                f.write(json.dumps(config))
 
     def do_calibration(self, img=None):
         width = self.width
@@ -769,6 +796,7 @@ class Camera:
             self.config = config
             # newcameramtx, roi = cv2.getOptimalNewCameraMatrix(np.array(config['mtx']), np.array(config['dist']),
             # (self.width, self.height))
+            print "COOOOFNIG", np.array(config['mtx']), np.array(config['dist']), (self.width, self.height), 0, (self.width, self.height)
             newcameramtx, roi = cv2.getOptimalNewCameraMatrix(np.array(config['mtx']), np.array(config['dist']),
                                                               (self.width, self.height), 0, (self.width, self.height))
             self.cameramatrix = newcameramtx

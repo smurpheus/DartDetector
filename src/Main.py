@@ -13,6 +13,7 @@ from threading import Thread, Lock
 import copy
 import csv
 import os.path
+import json
 
 width = 1280
 height = 960
@@ -220,6 +221,7 @@ class BackgroundSubtractor(Thread):
     storage = None
     image = None
     stopped = False
+    paused = False
     def _initialize_substractor(self):
         self.fgbg = cv2.createBackgroundSubtractorMOG2()
         self.fgbg.setHistory(self.history)
@@ -286,48 +288,51 @@ class BackgroundSubtractor(Thread):
     def run_substraction(self):
 
         while not self.stopped:
-            f1,reseted = self.camera.get_image()
-            if reseted:
-                self._initialize_substractor()
+            if not self.paused:
+                f1,reseted = self.camera.get_image()
+                if reseted:
+                    self._initialize_substractor()
 
 
-            fgmask1 = self.fgbg.apply(f1)
-            fgmask1 = cv2.inRange(fgmask1, 250, 255)
-            kernel = np.ones((3,3), np.uint8)
-            opened = cv2.morphologyEx(fgmask1, cv2.MORPH_OPEN, kernel)
-            kernel = np.ones((20, 20), np.uint8)
-            closed = cv2.morphologyEx(opened, cv2.MORPH_CLOSE, kernel)
-            self.set_substracted(closed)
-            closed2 = np.array(closed)
-            im2, contours, hierarchy = cv2.findContours(closed2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            colored = cv2.cvtColor(closed2, cv2.COLOR_GRAY2BGR)
-            self.storage.add_to_storage(contours, f1)
-            arrow = self.storage.get_arrow(self.history)
-            for a in arrow:
-                self._set_arrow(a)
-            # print str("Arrows: %s"%self.get_arrows())
-            stdout.flush()
-            for arrow in self.get_arrows():
-                cv2.drawContours(f1, arrow.contours, -1, (0, 255, 0), -1)
-                cv2.drawContours(f1, [arrow.aproximated], 0, (255, 255, 0), 2)
+                fgmask1 = self.fgbg.apply(f1)
+                fgmask1 = cv2.inRange(fgmask1, 250, 255)
+                kernel = np.ones((3,3), np.uint8)
+                opened = cv2.morphologyEx(fgmask1, cv2.MORPH_OPEN, kernel)
+                kernel = np.ones((20, 20), np.uint8)
+                closed = cv2.morphologyEx(opened, cv2.MORPH_CLOSE, kernel)
+                self.set_substracted(closed)
+                closed2 = np.array(closed)
+                im2, contours, hierarchy = cv2.findContours(closed2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                colored = cv2.cvtColor(closed2, cv2.COLOR_GRAY2BGR)
+                self.storage.add_to_storage(contours, f1)
+                arrow = self.storage.get_arrow(self.history)
+                for a in arrow:
+                    self._set_arrow(a)
+                # print str("Arrows: %s"%self.get_arrows())
+                stdout.flush()
+                for arrow in self.get_arrows():
+                    cv2.drawContours(f1, arrow.contours, -1, (0, 255, 0), -1)
+                    cv2.drawContours(f1, [arrow.aproximated], 0, (255, 255, 0), 2)
 
-                cv2.circle(f1, (arrow.tip[0], arrow.tip[1]), 3, [255, 0, 0], 2)
-                f1[arrow.tip[1], arrow.tip[0]] = [255, 0, 0]
+                    cv2.circle(f1, (arrow.tip[0], arrow.tip[1]), 3, [255, 0, 0], 2)
+                    f1[arrow.tip[1], arrow.tip[0]] = [255, 0, 0]
 
-                cv2.circle(f1, (arrow.tip2[0], arrow.tip2[1]), 3, [101,8,108], 2)
-                f1[arrow.tip2[1], arrow.tip2[0]] = [101,8,108]
+                    cv2.circle(f1, (arrow.tip2[0], arrow.tip2[1]), 3, [101,8,108], 2)
+                    f1[arrow.tip2[1], arrow.tip2[0]] = [101,8,108]
 
-                cv2.circle(f1, (arrow.tip3[0], arrow.tip3[1]), 3, [225,97,53], 2)
-                f1[arrow.tip2[1], arrow.tip2[0]] = [225,97,53]
+                    cv2.circle(f1, (arrow.tip3[0], arrow.tip3[1]), 3, [225,97,53], 2)
+                    f1[arrow.tip2[1], arrow.tip2[0]] = [225,97,53]
 
-                cv2.circle(f1, (arrow.tip4[0], arrow.tip4[1]), 3, [81,106,37], 2)
-                f1[arrow.tip2[1], arrow.tip2[0]] = [81,106,37]
+                    cv2.circle(f1, (arrow.tip4[0], arrow.tip4[1]), 3, [81,106,37], 2)
+                    f1[arrow.tip2[1], arrow.tip2[0]] = [81,106,37]
 
-                rows, cols = f1.shape[:2]
-                cv2.line(f1, (cols - 1, arrow.line[1]), (0, arrow.line[0]), (255, 255, 0), 1)
-                cv2.drawContours(f1, [np.int0(arrow.bbox)], 0, (0, 0, 255), 2)
+                    rows, cols = f1.shape[:2]
+                    cv2.line(f1, (cols - 1, arrow.line[1]), (0, arrow.line[0]), (255, 255, 0), 1)
+                    cv2.drawContours(f1, [np.int0(arrow.bbox)], 0, (0, 0, 255), 2)
 
-            self.set_image(f1)
+                self.set_image(f1)
+            else:
+                cv2.waitKey(500)
         #
         #     cv2.imshow("Current", closed)
         #     cv2.imshow("FG Substraction", colored)
@@ -366,10 +371,12 @@ class MainApplikacation(object):
     detected = []
     real = []
     was_covert = []
+    frame_no = []
     Calibrated = None
     Substractor = None
     input = None
     camera = None
+    board_config_load = True
     def write_data(self):
         i = 0
         fname = "data%s.csv"
@@ -389,10 +396,25 @@ class MainApplikacation(object):
                     entry.append(False)
                 spamwriter.writerow(entry)
 
-    @profile
     def __init__(self, inp):
         self.camera = Camera(device=inp)
-        self.Calibrated = BoardCalibrator(camera=self.camera)
+        camconf = "camera_config.json"
+        baord_conf = "boardconfig.json"
+        if os.path.isfile(camconf):
+            self.camera.load_config(filename=camconf)
+        else:
+            self.camera.do_calibration(img=True)
+            self.camera.save_config(camconf)
+        if self.board_config_load and os.path.isfile(baord_conf):
+            with open(baord_conf, 'r') as bc:
+                imgps = json.loads(bc.readline())
+
+            self.Calibrated = BoardCalibrator(camera=self.camera, imgpts=imgps)
+        else:
+            self.Calibrated = BoardCalibrator(camera=self.camera)
+            with open("boardconfig.json", 'w') as bc:
+                imgps = self.Calibrated.imgpoints
+                bc.write(json.dumps(imgps))
         self.Substractor = BackgroundSubtractor(c1=inp,camera=self.camera)
         cv2.namedWindow("Current", cv2.WINDOW_NORMAL)
         cv2.namedWindow("Original", cv2.WINDOW_NORMAL)
@@ -416,7 +438,7 @@ class MainApplikacation(object):
                         pass
                 cv2.imshow("Original", img)
                 cv2.imshow("Current", self.Substractor.get_substracted())
-                k = cv2.waitKey(1) & 0xFF
+                k = cv2.waitKey(1)
                 if k == ord('a'):
                     self.add_dart()
                 if k == ord('s'):
@@ -430,6 +452,7 @@ class MainApplikacation(object):
                     self.Substractor.stopped = True
                     break
                 if k == 119:
+                    print "Pressed w Key so Waiting"
                     cv2.waitKey(-1)
             arrows = self.Substractor.get_arrows()
             i = 1
@@ -444,6 +467,7 @@ class MainApplikacation(object):
 
 
     def add_dart(self, detected="N/D"):
+        self.Substractor.paused = True
         mixer.init()
         mixer.music.load('beep.mp3')
         mixer.music.play()
@@ -459,42 +483,46 @@ class MainApplikacation(object):
             self.was_covert.append(True)
         else:
             self.was_covert.append(False)
+        self.Substractor.paused = False
 class BoardCalibrator(object):
     imgpoints = []
 
-    def __init__(self, input=0, camera=None):
+    def __init__(self, input=0, camera=None, imgpts=None):
         if not isinstance(camera, Camera):
             camera = Camera(device=input)
-        camera.do_calibration(img=True)
+
         self.camera = camera
         self.frame,reseted  = self.camera.get_image()
         cv2.namedWindow("Calibration Window", cv2.WINDOW_NORMAL)
         cv2.namedWindow("Calibration Hint", cv2.WINDOW_NORMAL)
         cv2.imshow("Calibration Window", self.frame)
         cv2.waitKey(1)
-
         allobj = Board()._get_configs()
         [i.append(0) for i in allobj]
         nobj = np.array(allobj, np.float64)
-        config_points = nobj
-        cv2.setMouseCallback("Calibration Window", self.click)
-        pos = 0
-        for i in config_points:
-            print ("Select field %s please. Accept with any key." % str(i))
-            hintim = Board().get_config_hint(pos)
-            cv2.imshow("Calibration Hint", hintim)
-            k = cv2.waitKey(-1) & 0xFF
-            self.imgpoints.append(self.imgpoint)
-            if k == 27:
-                print("Escaped and closing.")
-                break
-            else:
-                print("Thank you")
-                pos += 1
+        if imgpts is None:
+            config_points = nobj
+            cv2.setMouseCallback("Calibration Window", self.click)
+            pos = 0
+            for i in config_points:
+                print ("Select field %s please. Accept with any key." % str(i))
+                hintim = Board().get_config_hint(pos)
+                cv2.imshow("Calibration Hint", hintim)
+                k = cv2.waitKey(-1) & 0xFF
+                self.imgpoints.append(self.imgpoint)
+                if k == 27:
+                    print("Escaped and closing.")
+                    break
+                else:
+                    print("Thank you")
+                    pos += 1
+
+        else:
+            self.imgpoints = imgpts
 
         print("Imagepoints %s" % self.imgpoints)
-
         print("Objp %s" % nobj)
+
         print(self.camera.config['dist'])
         print(np.array(self.camera.config['mtx']))
         _, rvec, tvec = cv2.solvePnP(nobj,
