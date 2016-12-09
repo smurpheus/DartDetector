@@ -290,6 +290,7 @@ class BackgroundSubtractor(Thread):
         while not self.stopped:
             if not self.paused:
                 f1,reseted = self.camera.get_image()
+                no_of_frame = self.camera.read_frame_no
                 if reseted:
                     self._initialize_substractor()
 
@@ -304,7 +305,7 @@ class BackgroundSubtractor(Thread):
                 closed2 = np.array(closed)
                 im2, contours, hierarchy = cv2.findContours(closed2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                 colored = cv2.cvtColor(closed2, cv2.COLOR_GRAY2BGR)
-                self.storage.add_to_storage(contours, f1)
+                self.storage.add_to_storage(contours, f1, no_of_frame)
                 arrow = self.storage.get_arrow(self.history)
                 for a in arrow:
                     self._set_arrow(a)
@@ -386,8 +387,8 @@ class MainApplikacation(object):
         with open(fname%i, 'wb') as csvfile:
             spamwriter = csv.writer(csvfile, delimiter=',',dialect='excel',
                                     quotechar='|', quoting=csv.QUOTE_MINIMAL)
-            datas = zip(self.detected, self.real, self.was_covert)
-            spamwriter.writerow(['Detected', 'Reality', 'Was Covert', 'Diff'])
+            datas = zip(self.detected, self.real, self.was_covert, self.frame_no)
+            spamwriter.writerow(['Detected', 'Reality', 'Was Covert', 'Frameno', 'Diff'])
             for each in datas:
                 entry = list(each)
                 if each[0] == each[1]:
@@ -440,7 +441,7 @@ class MainApplikacation(object):
                 cv2.imshow("Current", self.Substractor.get_substracted())
                 k = cv2.waitKey(1)
                 if k == ord('a'):
-                    self.add_dart()
+                    self.add_dart(frame_no=self.camera.read_frame_no)
                 if k == ord('s'):
                     self.write_data()
                 if k == ord('w'):
@@ -458,20 +459,22 @@ class MainApplikacation(object):
             i = 1
             for each in arrows:
                 tip = each.tip
+                frame_no = each.frame_no
                 points = self.Calibrated.calculate_points(tip)
                 if i > added:
                     print points
-                    self.add_dart(detected=points)
+                    self.add_dart(detected=points, frame_no=frame_no)
                     added += 1
                 i += 1
 
 
-    def add_dart(self, detected="N/D"):
+    def add_dart(self, detected="N/D", frame_no=0):
         self.Substractor.paused = True
         mixer.init()
         mixer.music.load('beep.mp3')
         mixer.music.play()
         print("Adding an arrow:")
+        self.frame_no.append(frame_no)
         inp = raw_input("What were the real Points? Type 'n' if the dart is not at the board: ")
         covert = raw_input("Was the arrow covert by another one? 'n' for no, 'y' for yes: ")
         if inp == 'n':

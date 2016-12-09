@@ -254,10 +254,11 @@ class Arrow:
     max_ratio = 3.5
     success = False
 
-    def __init__(self, contours, img):
+    def __init__(self, contours, img, fno):
         self.contours = [x for x in contours if cv2.contourArea(x) > self.min_cnt_size]
         self.img = img
         self.detect_arrow()
+        self.frame_no = fno
 
     def __repr__(self):
         output = ""
@@ -408,7 +409,7 @@ class ContourStorage:
             # self.plt5 = self.figure.add_subplot(414)
             # self.line5, = self.plt5.plot(range(self.size), [0] * self.size, 'r.-')
 
-    def add_to_storage(self, contours, image):
+    def add_to_storage(self, contours, image, frame_no):
         # if len(self.storage) + 1 > self.size:
         #     self.storage.remove(self.storage[0])
         cnts = []
@@ -429,7 +430,7 @@ class ContourStorage:
             xcnt = 0
             if len(cnts) > 0:
                 xcnt = max(cnts)
-            self.storage.append([image, acnts, xcnt])
+            self.storage.append([image, acnts, xcnt, frame_no])
             if self.plotting:
                 self.plot_data()
         else:
@@ -443,8 +444,8 @@ class ContourStorage:
         positions = self._find_best_contour(blobs)
         result = []
         for pos in positions:
-            img, cnt, _ = self.storage[pos]
-            arrow = Arrow(cnt, img)
+            img, cnt, _, fno = self.storage[pos]
+            arrow = Arrow(cnt, img, fno)
             if arrow.success:
                 result.append(arrow)
         for s, e in blobs:
@@ -530,7 +531,7 @@ class ContourStorage:
         return result
 
     def plot_data(self):
-        im, c, m = self.get_biggest_contour_image()
+        im, c, m, fno = self.get_biggest_contour_image()
         y = [x[2] for x in self.storage]
         y2 = [len(x[1]) for x in self.storage]
         # y4 = []
