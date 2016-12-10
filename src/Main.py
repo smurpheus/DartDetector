@@ -635,7 +635,7 @@ class BoardCalibrator(object):
     def calculate_points(self, point):
         x,y = point
         objp = projectReverse(np.array([[[x],[y]]]), self.rot, self.tvec,self.camera.config['mtx'])
-        return  Board().calculate_field(objp[0][:2])
+        return Board().calculate_field(objp[0][:2])
 
     def _calcObj(self, event, x, y, flags, param):
         if event == cv2.EVENT_LBUTTONDOWN:

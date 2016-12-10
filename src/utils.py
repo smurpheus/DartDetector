@@ -23,37 +23,6 @@ class Board:
     angles = [i * 18 + 9 for i in range(20)]
     fields_in_order = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5]
 
-    def get_config_hint(self, cur_point=-1):
-        img = np.zeros((512, 512, 3), np.uint8)
-        mid = int(512 / 2.)
-        rad = mid * 0.9
-        for c in self.circles:
-            cv2.circle(img, (mid, mid), int(c * rad), (0, 0, 255), 1)
-        corners = [
-            [np.sin(np.radians(i)) * rad + mid, np.cos(np.radians(i)) * rad + mid]
-            for i in self.angles]
-        corners2 = [
-            [np.sin(np.radians(i)) * (rad * self.circles[-2]) + mid,
-             np.cos(np.radians(i)) * (rad * self.circles[-2]) + mid]
-            for i in self.angles]
-        for corner in corners:
-            x, y = corner
-            x2, y2 = corners2[corners.index(corner)]
-            cv2.line(img, (int(x2), int(y2)), (int(x), int(y)), (0, 0, 255), 1)
-        if cur_point == -1:
-            for x, y in self._get_configs(custum_rad=rad):
-                x += mid
-                y = (y * (-1)) + mid
-                img[int(y), int(x)] = (255, 0, 0)
-                cv2.circle(img, (int(x), int(y)), 10, (0, 255, 0), 1)
-        else:
-            x, y = self._get_configs(custum_rad=rad)[cur_point]
-            x += mid
-            y = (y * (-1)) + mid
-            img[int(y), int(x)] = (255, 0, 0)
-            cv2.circle(img, (int(x), int(y)), 10, (0, 255, 0), 1)
-        return img
-
     def __init__(self, radius=170, center=(0, 0)):
         self.radius = radius
         self.center = center
@@ -154,7 +123,7 @@ class Board:
                 angle = 180 + abs(angle)
         indexof = 1
         for i in angles:
-            if angle > i and angle < angles[angles.index(i) + 1]:
+            if angle >= i and angle < angles[angles.index(i) + 1]:
                 indexof = angles.index(i)
                 break
 
@@ -164,7 +133,7 @@ class Board:
             mult = False
         else:
             for i in multiplier:
-                if dist_from_mid < radiuses[multiplier.index(i)] and dist_from_mid > radiuses[multiplier.index(i) + 1]:
+                if dist_from_mid <= radiuses[multiplier.index(i)] and dist_from_mid > radiuses[multiplier.index(i) + 1]:
                     mult = i
                     break
         if isinstance(mult, str):
@@ -172,6 +141,46 @@ class Board:
         else:
             return abs(mult) * fields_in_order[indexof]
 
+
+    def get_config_hint(self, cur_point=-1):
+        size = 800
+        img = np.zeros((size, size, 3), np.uint8)
+        mid = int(size / 2.)
+        rad = mid * 0.9
+        for c in self.circles:
+            cv2.circle(img, (mid, mid), int(c * rad), (0, 0, 255), 1)
+        corners = [
+            [np.sin(np.radians(i)) * rad + mid, np.cos(np.radians(i)) * rad + mid]
+            for i in self.angles]
+        corners2 = [
+            [np.sin(np.radians(i)) * (rad * self.circles[-2]) + mid,
+             np.cos(np.radians(i)) * (rad * self.circles[-2]) + mid]
+            for i in self.angles]
+        for corner in corners:
+            x, y = corner
+            x2, y2 = corners2[corners.index(corner)]
+            cv2.line(img, (int(x2), int(y2)), (int(x), int(y)), (0, 0, 255), 1)
+        for i in self.angles:
+            an = np.radians(i - 9)
+            hyp = rad * 1.08
+            f_name = str(self.fields_in_order[self.angles.index(i)])
+            x = int(np.sin(an) * hyp) + int(mid * 0.98)
+            y = int(mid * 1.02) - int(np.cos(an) * hyp)
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            cv2.putText(img, f_name, (x, y), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
+        if cur_point == -1:
+            for x, y in self._get_configs(custum_rad=rad):
+                x += mid
+                y = (y * (-1)) + mid
+                img[int(y), int(x)] = (255, 0, 0)
+                cv2.circle(img, (int(x), int(y)), 10, (0, 255, 0), 1)
+        else:
+            x, y = self._get_configs(custum_rad=rad)[cur_point]
+            x += mid
+            y = (y * (-1)) + mid
+            img[int(y), int(x)] = (255, 0, 0)
+            cv2.circle(img, (int(x), int(y)), 10, (0, 255, 0), 1)
+        return img
 
 def save_vid(fname="Deafaultoutput", size=(640, 480), device=0):
     fname += '.avi'
@@ -249,8 +258,8 @@ class Arrow:
     ratio = None
     bbox = None
     min_cnt_size = 3000
-    min_ratio = 1.5
-    max_ratio = 4
+    min_ratio = 1.25
+    max_ratio = 4.3
     success = False
 
     def __init__(self, contours, img, fno):
