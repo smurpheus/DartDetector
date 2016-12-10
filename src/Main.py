@@ -14,6 +14,8 @@ import copy
 import csv
 import os.path
 import json
+from matplotlib import pyplot as plt
+from datetime import datetime
 
 width = 1280
 height = 960
@@ -211,7 +213,7 @@ class BackgroundSubtractor(Thread):
     var_min = 4
     #################
     history = 500
-    shad_tresh = 0.3
+    shad_tresh = 0.24
     var_tresh = 10
     var_max = 75
     var_min = 1
@@ -269,6 +271,17 @@ class BackgroundSubtractor(Thread):
         self.threadLock.release()
         return return_list
 
+    def get_storage(self):
+        self.threadLock.acquire()
+        return_list = list(self.storage.storage)
+        self.threadLock.release()
+        return return_list
+
+    def _add_to_storage(self, contours, f1, no_of_frame):
+        self.threadLock.acquire()
+        self.storage.add_to_storage(contours, f1, no_of_frame)
+        self.threadLock.release()
+
     def __init__(self, c1=0, camera=None):
         Thread.__init__(self)
         self.threadLock = Lock()
@@ -305,7 +318,7 @@ class BackgroundSubtractor(Thread):
                 closed2 = np.array(closed)
                 im2, contours, hierarchy = cv2.findContours(closed2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                 colored = cv2.cvtColor(closed2, cv2.COLOR_GRAY2BGR)
-                self.storage.add_to_storage(contours, f1, no_of_frame)
+                self._add_to_storage(contours, f1, no_of_frame)
                 arrow = self.storage.get_arrow(self.history)
                 for a in arrow:
                     self._set_arrow(a)
@@ -333,7 +346,7 @@ class BackgroundSubtractor(Thread):
 
                 self.set_image(f1)
             else:
-                cv2.waitKey(500)
+                time.sleep(1)
         #
         #     cv2.imshow("Current", closed)
         #     cv2.imshow("FG Substraction", colored)
@@ -370,6 +383,10 @@ class BackgroundSubtractor(Thread):
 
 class MainApplikacation(object):
     detected = []
+    detected2 = []
+    detected3 = []
+    detected4 = []
+    detected5 = []
     real = []
     was_covert = []
     frame_no = []
@@ -378,17 +395,19 @@ class MainApplikacation(object):
     input = None
     camera = None
     board_config_load = True
+    date = datetime.now().strftime("%Y-%m-%d-%H-%M")
+    fname = "data%s"%date
     def write_data(self):
         i = 0
-        fname = "data%s.csv"
-        while os.path.isfile(fname%i):
-            i += 1
-
-        with open(fname%i, 'wb') as csvfile:
+        fname = self.fname
+        # while os.path.isfile(fname%i):
+        #     i += 1
+        fname+=".csv"
+        with open(fname, 'wb') as csvfile:
             spamwriter = csv.writer(csvfile, delimiter=',',dialect='excel',
                                     quotechar='|', quoting=csv.QUOTE_MINIMAL)
-            datas = zip(self.detected, self.real, self.was_covert, self.frame_no)
-            spamwriter.writerow(['Detected', 'Reality', 'Was Covert', 'Frameno', 'Diff'])
+            datas = zip(self.detected,self.detected2,self.detected3,self.detected4,self.detected5, self.real, self.was_covert, self.frame_no)
+            spamwriter.writerow(['Detected','Detected2','Detected3','Detected4','Detected5', 'Reality', 'Was Covert', 'Frameno', 'Diff'])
             for each in datas:
                 entry = list(each)
                 if each[0] == each[1]:
@@ -398,7 +417,7 @@ class MainApplikacation(object):
                 spamwriter.writerow(entry)
 
     def __init__(self, inp):
-        self.camera = Camera(device=inp)
+        self.camera = Camera(device=inp, output=self.fname)
         camconf = "camera_config.json"
         baord_conf = "boardconfig.json"
         if os.path.isfile(camconf):
@@ -417,6 +436,11 @@ class MainApplikacation(object):
                 imgps = self.Calibrated.imgpoints
                 bc.write(json.dumps(imgps))
         self.Substractor = BackgroundSubtractor(c1=inp,camera=self.camera)
+        plt.ion()
+        self.figure = plt.figure()
+        self.plt1 = self.figure.add_subplot(111)
+        self.line1, = self.plt1.plot(range(200), [0] * 200, 'r.-')
+        self.plt1.axis([0, 200, 0, 10000])
         cv2.namedWindow("Current", cv2.WINDOW_NORMAL)
         cv2.namedWindow("Original", cv2.WINDOW_NORMAL)
         # cv2.namedWindow("FG Substraction", cv2.WINDOW_NORMAL)
@@ -439,6 +463,10 @@ class MainApplikacation(object):
                         pass
                 cv2.imshow("Original", img)
                 cv2.imshow("Current", self.Substractor.get_substracted())
+                storage = self.Substractor.get_storage()
+                y = [x[2] for x in storage]
+                self.line1.set_xdata(range(len(y)))
+                self.line1.set_ydata(y)
                 k = cv2.waitKey(1)
                 if k == ord('a'):
                     self.add_dart(frame_no=self.camera.read_frame_no)
@@ -462,13 +490,16 @@ class MainApplikacation(object):
                 frame_no = each.frame_no
                 points = self.Calibrated.calculate_points(tip)
                 if i > added:
-                    print points
-                    self.add_dart(detected=points, frame_no=frame_no)
+                    self.add_dart(arrow=each, detected=points, frame_no=frame_no)
                     added += 1
                 i += 1
+            if added >= 3:
+                added = 0
+                self.Substractor.clear_arrows()
+        self.write_data()
 
 
-    def add_dart(self, detected="N/D", frame_no=0):
+    def add_dart(self, arrow=None, detected="N/D", frame_no=0):
         self.Substractor.paused = True
         mixer.init()
         mixer.music.load('beep.mp3')
@@ -481,7 +512,28 @@ class MainApplikacation(object):
             self.real.append('N/D')
         else:
             self.real.append(inp)
-        self.detected.append(detected)
+        if arrow is not None:
+            points = self.Calibrated.calculate_points(arrow.tip)
+            print points
+            self.detected.append(points)
+            points = self.Calibrated.calculate_points(arrow.tip2)
+            print points
+            self.detected2.append(points)
+            points = self.Calibrated.calculate_points(arrow.tip3)
+            print points
+            self.detected3.append(points)
+            points = self.Calibrated.calculate_points(arrow.tip4)
+            print points
+            self.detected4.append(points)
+            points = self.Calibrated.calculate_points(arrow.tip5)
+            print points
+            self.detected5.append(points)
+        else:
+            self.detected.append("N/D")
+            self.detected2.append("N/D")
+            self.detected3.append("N/D")
+            self.detected4.append("N/D")
+            self.detected5.append("N/D")
         if covert == 'y':
             self.was_covert.append(True)
         else:

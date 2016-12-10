@@ -7,7 +7,6 @@ from pygame import mixer
 import glob
 from operator import itemgetter
 import time
-import matplotlib.pyplot as plt
 from collections import deque
 import timeit
 from matplotlib import pyplot as plt
@@ -250,8 +249,8 @@ class Arrow:
     ratio = None
     bbox = None
     min_cnt_size = 3000
-    min_ratio = 2
-    max_ratio = 3.5
+    min_ratio = 1.5
+    max_ratio = 4
     success = False
 
     def __init__(self, contours, img, fno):
@@ -379,7 +378,13 @@ class Arrow:
                         self.tip4 = centeroidnp(np.array(diff3))
                     else:
                         self.tip4 = self.tip
+                    tips = [self.tip, self.tip2, self.tip3, self.tip4]
+                    self.tip5 = centeroidnp(np.array(tips))
                     # print "Possible tips %s" % (self.tip2)
+                else:
+                    print "Ratio of Contours does not fit %s"%ratio
+            else:
+                print "Contour was too small to be an arrow %s"%cv2.contourArea(cnt)
         self.contours = ncontours
 
 class ContourStorage:
@@ -393,7 +398,7 @@ class ContourStorage:
     plotting = True
     paused = False
 
-    def __init__(self, plotting=True):
+    def __init__(self, plotting=False):
         self.plotting = plotting
         if plotting:
             plt.ion()
@@ -518,6 +523,8 @@ class ContourStorage:
             if blob[1] - blob[0] > self.history * self.percentage_of_history:
                 nblobs.append(blob)
             else:
+                s = blob[1] - blob[0]
+                print "BLOB as discovered but it was to small %s"%s
                 for i in range(blob[0], blob[1]):
                     self.storage[i][2] = mean
         return nblobs
@@ -577,7 +584,7 @@ class Camera:
     read_frame_no = 1
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
 
-    def __init__(self, width=1280, heigth=960, device=None):
+    def __init__(self, width=1280, heigth=960, device=None,output="output.avi"):
         self.cameramatrix = None
         self.width = width
         self.height = heigth
@@ -585,11 +592,8 @@ class Camera:
         self.config = []
         self.was_configured = False
         self.device = device
-        i = 0
-        fname = "data%s.avi"
-        while os.path.isfile(fname % i):
-            i += 1
-        self.out = cv2.VideoWriter(fname % i, self.fourcc, 30, (width, heigth))
+        output+=".avi"
+        self.out = cv2.VideoWriter(output, self.fourcc, 30, (width, heigth))
         if isinstance(self.device, int):
             self.from_file = False
             self.capture = cv2.VideoCapture(self.device)
