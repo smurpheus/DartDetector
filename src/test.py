@@ -12,7 +12,6 @@ import cv2
 size = 800
 rad = size/2 * 0.9
 b = utils.Board(radius=rad)
-@profile
 def print_all(b):
     im = b.get_config_hint()
     width, height = im.shape[:2]
@@ -37,5 +36,5 @@ def print_all(b):
             im[p[1],p[0]] = [255,255,0]
         print each
         cv2.imshow("asd",im)
-        cv2.waitKey(1)
+        cv2.waitKey(1000)
 print_all(b)
