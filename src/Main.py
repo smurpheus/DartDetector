@@ -397,7 +397,10 @@ class MainApplikacation(object):
     board_config_load = True
     date = datetime.now().strftime("%Y-%m-%d-%H-%M")
     fname = "data%s"%date
+    imgpoint = None
+    boardpoint = None
     def write_data(self):
+        print "Writing data to file"
         i = 0
         fname = self.fname
         # while os.path.isfile(fname%i):
@@ -416,8 +419,10 @@ class MainApplikacation(object):
                     entry.append(False)
                 spamwriter.writerow(entry)
 
+    
     def __init__(self, inp):
         self.camera = Camera(device=inp, output=self.fname)
+        self.board = Board()
         camconf = "camera_config.json"
         baord_conf = "boardconfig.json"
         if os.path.isfile(camconf):
@@ -429,7 +434,7 @@ class MainApplikacation(object):
             with open(baord_conf, 'r') as bc:
                 imgps = json.loads(bc.readline())
 
-            self.Calibrated = BoardCalibrator(camera=self.camera, imgpts=imgps)
+            self.Calibrated = BoardCalibrator(camera=self.camera, imgpts=imgps, board=self.board)
         else:
             self.Calibrated = BoardCalibrator(camera=self.camera)
             with open("boardconfig.json", 'w') as bc:
@@ -443,6 +448,10 @@ class MainApplikacation(object):
         self.plt1.axis([0, 200, 0, 10000])
         cv2.namedWindow("Current", cv2.WINDOW_NORMAL)
         cv2.namedWindow("Original", cv2.WINDOW_NORMAL)
+        cv2.namedWindow("Points", cv2.WINDOW_NORMAL)
+        cv2.setMouseCallback("Points", self._click)
+        mixer.init()
+        mixer.music.load('beep.mp3')
         # cv2.namedWindow("FG Substraction", cv2.WINDOW_NORMAL)
         # cv2.createTrackbar("History", "Current", self.history, 1000, self._set_history)
         # cv2.createTrackbar("Shadow Treshold", "Current", int(self.shad_tresh * 100), 100, self._set_shad_tresh)
@@ -455,13 +464,14 @@ class MainApplikacation(object):
         while True:
             img = self.Substractor.get_image()
             if img is not None:
-                self.frame = self.camera.undistort_image(img)
-                for i in self.Calibrated.imp:
-                    try:
-                        img[i[0][1], i[0][0]] = [0,0,255]
-                    except IndexError:
-                        pass
+                # self.frame = self.camera.undistort_image(img)
+                # for i in self.Calibrated.imp:
+                #     try:
+                #         img[i[0][1], i[0][0]] = [0,0,255]
+                #     except IndexError:
+                #         pass
                 cv2.imshow("Original", img)
+                cv2.imshow("Points", self.board.draw_board())
                 cv2.imshow("Current", self.Substractor.get_substracted())
                 storage = self.Substractor.get_storage()
                 y = [x[2] for x in storage]
@@ -498,20 +508,38 @@ class MainApplikacation(object):
                 self.Substractor.clear_arrows()
         self.write_data()
 
+    def _click(self, event, x, y, flags, param):
+
+        if event == cv2.EVENT_LBUTTONDOWN:
+            nx = x - self.board.size / 2
+            ny = self.board.size / 2 - y
+            print("Clicked %s " % self.board.calculate_field([[nx],[ny]]))
+            self.imgpoint = [x, y]
+            self.boardpoint = [[nx],[ny]]
+            # self.imgpoints.append([x, y])
 
     def add_dart(self, arrow=None, detected="N/D", frame_no=0):
         self.Substractor.paused = True
-        mixer.init()
-        mixer.music.load('beep.mp3')
-        mixer.music.play()
-        print("Adding an arrow:")
+        # mixer.music.play()
+        if arrow is not None:
+            points = self.Calibrated.calculate_points(arrow.tip)
+            pimg = self.board.draw_field(points)
+            cv2.imshow("Points", pimg)
+            k = cv2.waitKey(-1)
+            self.real.append(self.board.calculate_field(self.boardpoint))
+            if k == 13:
+                print "Enter"
+                self.was_covert.append(False)
+            if k == 32:
+                self.was_covert.append(True)
+        # print("Adding an arrow:")
         self.frame_no.append(frame_no)
-        inp = raw_input("What were the real Points? Type 'n' if the dart is not at the board: ")
-        covert = raw_input("Was the arrow covert by another one? 'n' for no, 'y' for yes: ")
-        if inp == 'n':
-            self.real.append('N/D')
-        else:
-            self.real.append(inp)
+        # inp = raw_input("What were the real Points? Type 'n' if the dart is not at the board: ")
+        # covert = raw_input("Was the arrow covert by another one? 'n' for no, 'y' for yes: ")
+        # if inp == 'n':
+        #     self.real.append('N/D')
+        # else:
+        #     self.real.append(inp)
         if arrow is not None:
             points = self.Calibrated.calculate_points(arrow.tip)
             print points
@@ -534,34 +562,39 @@ class MainApplikacation(object):
             self.detected3.append("N/D")
             self.detected4.append("N/D")
             self.detected5.append("N/D")
-        if covert == 'y':
-            self.was_covert.append(True)
-        else:
-            self.was_covert.append(False)
+        # if covert == 'y':
+        #     self.was_covert.append(True)
+        # else:
+        #     self.was_covert.append(False)
         self.Substractor.paused = False
 class BoardCalibrator(object):
     imgpoints = []
 
-    def __init__(self, input=0, camera=None, imgpts=None):
+    def __init__(self, input=0, camera=None, imgpts=None, board=None):
         if not isinstance(camera, Camera):
             camera = Camera(device=input)
 
         self.camera = camera
         self.frame,reseted  = self.camera.get_image()
-        cv2.namedWindow("Calibration Window", cv2.WINDOW_NORMAL)
-        cv2.namedWindow("Calibration Hint", cv2.WINDOW_NORMAL)
-        cv2.imshow("Calibration Window", self.frame)
-        cv2.waitKey(1)
-        allobj = Board()._get_configs()
+
+        if board is None:
+            self.board = Board()
+        else:
+            self.board = board
+        allobj = self.board._get_configs()
         [i.append(0) for i in allobj]
         nobj = np.array(allobj, np.float64)
         if imgpts is None:
+            cv2.namedWindow("Calibration Window", cv2.WINDOW_NORMAL)
+            cv2.namedWindow("Calibration Hint", cv2.WINDOW_NORMAL)
+            cv2.imshow("Calibration Window", self.frame)
+            cv2.waitKey(1)
             config_points = nobj
             cv2.setMouseCallback("Calibration Window", self.click)
             pos = 0
             for i in config_points:
                 print ("Select field %s please. Accept with any key." % str(i))
-                hintim = Board().get_config_hint(pos)
+                hintim = self.board.get_config_hint(pos)
                 cv2.imshow("Calibration Hint", hintim)
                 k = cv2.waitKey(-1) & 0xFF
                 self.imgpoints.append(self.imgpoint)
@@ -590,7 +623,7 @@ class BoardCalibrator(object):
         mean_error += error
 
         print "total error: ", mean_error
-        outers = Board().get_radius()
+        outers = self.board.get_radius()
         def calcy(x,r):
             return np.sqrt(np.power(r,2)-np.power(x,2))
 
@@ -612,8 +645,7 @@ class BoardCalibrator(object):
         # b.draw_board_to_frame(frame2)
         print("Imagepoints %s" % self.imgpoints)
         print("Objecpoints %s" % rev)
-        cv2.destroyWindow("Calibration Window")
-        cv2.destroyWindow("Calibration Hint")
+        cv2.destroyAllWindows()
         self.imp = imp
         # cv2.setMouseCallback("Calibration Window", self._calcObj)
         # while True:
@@ -631,11 +663,10 @@ class BoardCalibrator(object):
         #         break
         #
         # k = cv2.waitKey(-1) & 0xFF
-
     def calculate_points(self, point):
         x,y = point
         objp = projectReverse(np.array([[[x],[y]]]), self.rot, self.tvec,self.camera.config['mtx'])
-        return Board().calculate_field(objp[0][:2])
+        return self.board.calculate_field(objp[0][:2])
 
     def _calcObj(self, event, x, y, flags, param):
         if event == cv2.EVENT_LBUTTONDOWN:
@@ -643,7 +674,7 @@ class BoardCalibrator(object):
 
             objp = projectReverse(np.array([[[x],[y]]]), self.rot, self.tvec, self.camera.config['mtx'])
             print "Object Point %s"%objp
-            print "Field: %s" %Board().calculate_field(objp[0][:2])
+            print "Field: %s" %self.board.calculate_field(objp[0][:2])
 
 
     def click(self, event, x, y, flags, param):

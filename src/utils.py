@@ -22,10 +22,24 @@ class Board:
     circles = [170. / 170., 160. / 170., 107. / 170., 97. / 170., 15.9 / 170., 6 / 170.]
     angles = [i * 18 + 9 for i in range(20)]
     fields_in_order = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5]
-
+    size = 800
+    pixel_map = {}
     def __init__(self, radius=170, center=(0, 0)):
-        self.radius = radius
+        self.radius = self.size/2 * 0.9
+        self.draw_radius = self.size/2 * 0.9
         self.center = center
+
+        for x in range(self.size):
+            nx = x - self.size / 2
+            for y in range(self.size):
+                ny = self.size / 2 - y
+                # dist_from_mid = np.sqrt(np.power(x, 2) + np.power(y, 2))
+                # if dist_from_mid <= rad:
+                field = self.calculate_field([[nx], [ny]])
+                if field in self.pixel_map.keys():
+                    self.pixel_map[field].append([x, y])
+                else:
+                    self.pixel_map[field] = [[x, y]]
 
     def get_radius(self):
         return [i * self.radius for i in self.circles]
@@ -104,6 +118,39 @@ class Board:
         # Display the image
         return frame
 
+    def draw_field(self, field):
+        img = self.draw_board()
+        for p in self.pixel_map[field]:
+            img[p[1], p[0]] = [128, 128, 0]
+        return img
+
+    def draw_board(self):
+        img = np.zeros((self.size, self.size, 3), np.uint8)
+        mid = int(self.size / 2.)
+        rad = self.draw_radius
+        for c in self.circles:
+            cv2.circle(img, (mid, mid), int(c * rad), (0, 0, 255), 1)
+        corners = [
+            [np.sin(np.radians(i)) * rad + mid, np.cos(np.radians(i)) * rad + mid]
+            for i in self.angles]
+        corners2 = [
+            [np.sin(np.radians(i)) * (rad * self.circles[-2]) + mid,
+             np.cos(np.radians(i)) * (rad * self.circles[-2]) + mid]
+            for i in self.angles]
+        for corner in corners:
+            x, y = corner
+            x2, y2 = corners2[corners.index(corner)]
+            cv2.line(img, (int(x2), int(y2)), (int(x), int(y)), (0, 0, 255), 1)
+        for i in self.angles:
+            an = np.radians(i - 9)
+            hyp = rad * 1.08
+            f_name = str(self.fields_in_order[self.angles.index(i)])
+            x = int(np.sin(an) * hyp) + int(mid * 0.98)
+            y = int(mid * 1.02) - int(np.cos(an) * hyp)
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            cv2.putText(img, f_name, (x, y), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
+        return img
+
     def calculate_field(self, point):
         fields_in_order = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5, 20]
         angles = [0] + [i * 18 + 9 for i in range(21)]
@@ -146,31 +193,10 @@ class Board:
 
 
     def get_config_hint(self, cur_point=-1):
-        size = 800
-        img = np.zeros((size, size, 3), np.uint8)
-        mid = int(size / 2.)
-        rad = mid * 0.9
-        for c in self.circles:
-            cv2.circle(img, (mid, mid), int(c * rad), (0, 0, 255), 1)
-        corners = [
-            [np.sin(np.radians(i)) * rad + mid, np.cos(np.radians(i)) * rad + mid]
-            for i in self.angles]
-        corners2 = [
-            [np.sin(np.radians(i)) * (rad * self.circles[-2]) + mid,
-             np.cos(np.radians(i)) * (rad * self.circles[-2]) + mid]
-            for i in self.angles]
-        for corner in corners:
-            x, y = corner
-            x2, y2 = corners2[corners.index(corner)]
-            cv2.line(img, (int(x2), int(y2)), (int(x), int(y)), (0, 0, 255), 1)
-        for i in self.angles:
-            an = np.radians(i - 9)
-            hyp = rad * 1.08
-            f_name = str(self.fields_in_order[self.angles.index(i)])
-            x = int(np.sin(an) * hyp) + int(mid * 0.98)
-            y = int(mid * 1.02) - int(np.cos(an) * hyp)
-            font = cv2.FONT_HERSHEY_SIMPLEX
-            cv2.putText(img, f_name, (x, y), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
+        img = self.draw_board()
+        mid = int(self.size / 2.)
+        rad = self.draw_radius
+
         if cur_point == -1:
             for x, y in self._get_configs(custum_rad=rad):
                 x += mid
@@ -282,9 +308,9 @@ class Arrow:
         cv2.drawContours(cimg, [cnt], 0, color=255, thickness=-1)
         # Access the image pixels and create a 1D numpy array then add to list
         pts = np.where(cimg == 255)
-        pts = zip(pts[1], pts[0])
-        return pts
-
+        result = np.array((pts[1], pts[0])).reshape(2,pts[0].size).swapaxes(0,1)
+        # pts = zip(pts[1], pts[0])
+        return result
 
     def detect_arrow(self):
         ncontours = []
@@ -364,18 +390,38 @@ class Arrow:
 
                     box2 = np.int0(approx)
                     approxpts2 = self._get_points_on_cnt(box2)
-                    diff = np.array([np.array(x) for x in approxpts2 if x in boxpts])
+                    a = approxpts2
+
+                    b = boxpts
+
+                    def multidim_intersect(ar1, ar2):
+                        arr1 = ar1.copy()
+                        arr2 = ar2.copy()
+                        arr1_view = arr1.view([('', arr1.dtype)] * arr1.shape[1])
+                        arr2_view = arr2.view([('', arr2.dtype)] * arr2.shape[1])
+                        intersected = np.intersect1d(arr1_view, arr2_view)
+                        return intersected.view(arr1.dtype).reshape(-1, arr1.shape[1])
+
+                    # diff = array_row_intersection(a,b)
+                    diff = multidim_intersect(a, b)
+                    # diff = np.array([np.array(x) for x in approxpts2 if x in boxpts])
                     def centeroidnp(arr):
                         length = arr.shape[0]
                         sum_x = np.sum(arr[:, 0])
                         sum_y = np.sum(arr[:, 1])
                         return [sum_x / length, sum_y / length]
-                    diff2 = [pt for pt in diff if np.linalg.norm(pt - mpt2) < 30]
+                    def test(a):
+                        return np.linalg.norm(a - mpt2) < 30
+                    diff2 = diff[np.apply_along_axis(test, 1, diff)]
+                    # diff2 = [pt for pt in diff if np.linalg.norm(pt - mpt2) < 30]
 
                     box3 = np.int0(cnt)
                     approxpts3 = self._get_points_on_cnt(box3)
-                    diff = np.array([np.array(x) for x in approxpts3 if x in boxpts])
-                    diff3 = [pt for pt in diff if np.linalg.norm(pt - mpt2) < 30]
+                    # diff = array_row_intersection(approxpts3, boxpts)
+                    diff = multidim_intersect(approxpts3, boxpts)
+                    # diff = np.array([np.array(x) for x in approxpts3 if x in boxpts])
+                    diff3 = diff[np.apply_along_axis(test, 1, diff)]
+                    # diff3 = [pt for pt in diff if np.linalg.norm(pt - mpt2) < 30]
                     # diff2 = []
                     # for pt in diff:
                     #     if np.linalg.norm(pt - mpt) < 50:
@@ -433,12 +479,12 @@ class ContourStorage:
         acnts = []
         if not self.paused:
             for cnt in contours:
-                area = cv2.contourArea(cnt)
                 rect = cv2.minAreaRect(cnt)
                 box = cv2.boxPoints(rect)
                 box = np.int0(box)
                 barea = cv2.contourArea(box)
                 if barea < 0.08 * image.size:
+                    area = cv2.contourArea(cnt)
                     cnts.append(area)
                     acnts.append(cnt)
                 else:
