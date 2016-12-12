@@ -212,9 +212,9 @@ class BackgroundSubtractor(Thread):
     var_max = 75
     var_min = 4
     #################
-    history = 500
-    shad_tresh = 0.24
-    var_tresh = 10
+    history = 200
+    shad_tresh = 0.5
+    var_tresh = 16
     var_max = 75
     var_min = 1
     arrows = []
@@ -225,12 +225,12 @@ class BackgroundSubtractor(Thread):
     stopped = False
     paused = False
     def _initialize_substractor(self):
-        self.fgbg = cv2.createBackgroundSubtractorMOG2()
+        self.fgbg = cv2.createBackgroundSubtractorMOG2(detectShadows=True)
         self.fgbg.setHistory(self.history)
         self.fgbg.setShadowThreshold(self.shad_tresh)
         self.fgbg.setVarThreshold(self.var_tresh)
-        self.fgbg.setVarMax(self.var_max)
-        self.fgbg.setVarMin(self.var_min)
+        # self.fgbg.setVarMax(self.var_max)
+        # self.fgbg.setVarMin(self.var_min)
         return self.fgbg
 
     def get_image(self):
@@ -310,12 +310,12 @@ class BackgroundSubtractor(Thread):
 
                 fgmask1 = self.fgbg.apply(f1)
                 fgmask1 = cv2.inRange(fgmask1, 250, 255)
-                kernel = np.ones((3,3), np.uint8)
-                opened = cv2.morphologyEx(fgmask1, cv2.MORPH_OPEN, kernel)
-                kernel = np.ones((20, 20), np.uint8)
-                closed = cv2.morphologyEx(opened, cv2.MORPH_CLOSE, kernel)
-                self.set_substracted(closed)
-                closed2 = np.array(closed)
+                kernel = np.ones((5, 5), np.uint8)
+                closed = cv2.morphologyEx(fgmask1, cv2.MORPH_CLOSE, kernel)
+                kernel = np.ones((3, 3), np.uint8)
+                opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel)
+                closed2 = np.array(opened)
+                self.set_substracted(opened)
                 im2, contours, hierarchy = cv2.findContours(closed2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                 colored = cv2.cvtColor(closed2, cv2.COLOR_GRAY2BGR)
                 self._add_to_storage(contours, f1, no_of_frame)
@@ -522,6 +522,7 @@ class MainApplikacation(object):
         self.Substractor.paused = True
         # mixer.music.play()
         if arrow is not None:
+            print "Ratio is %s"%arrow.ratio
             points = self.Calibrated.calculate_points(arrow.tip)
             pimg = self.board.draw_field(points)
             cv2.imshow("Points", pimg)

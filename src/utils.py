@@ -286,9 +286,9 @@ class Arrow:
     aproximated = None
     ratio = None
     bbox = None
-    min_cnt_size = 3000
-    min_ratio = 1.25
-    max_ratio = 4.3
+    min_cnt_size = 4000
+    min_ratio = 1.2
+    max_ratio = 5
     success = False
 
     def __init__(self, contours, img, fno):
@@ -323,10 +323,11 @@ class Arrow:
 
                 dist1 = np.linalg.norm(b[0] - b[1])
                 dist2 = np.linalg.norm(b[1] - b[2])
-                ratio = (dist1 / dist2)
+                a = sorted([dist1, dist2])
+                ratio = (a[1] / a[0])
                 if self.min_ratio < ratio < self.max_ratio:
                     self.bbox = box
-                    self.ratio = (dist1 / dist2)
+                    self.ratio = (a[1] / a[0])
                     self.success = True
                     ncontours.append(cnt)
                     # Calculate the Moments of the contour
@@ -452,7 +453,7 @@ class ContourStorage:
     deviations = deque([0] * size, size)
     tendecy = deque([0] * size, size)
     history = 0
-    percentage_of_history = 0.03
+    percentage_of_history = 0.05
     plotting = True
     paused = False
 
@@ -488,7 +489,7 @@ class ContourStorage:
                     cnts.append(area)
                     acnts.append(cnt)
                 else:
-                    self.paused = self.history * self.percentage_of_history
+                    self.paused = self.history * 0.5# * self.percentage_of_history
                     return
             xcnt = 0
             if len(cnts) > 0:
@@ -539,24 +540,60 @@ class ContourStorage:
         best = []
         for blob in blobs:
             blob_contours = y[blob[0]: blob[1]]
-            blob_mean = np.mean(blob_contours)
+            storage_in = list(self.storage)[blob[0]: blob[1]]
+            exclude = []
+            maxs = []
+            i = 0
+            for each in storage_in:
+                a = 0
+                area = None
+                for cnt in each[1]:
+                    cntarea = cv2.contourArea(cnt)
+                    if cntarea > Arrow.min_cnt_size:
+                        if a == 0:
+                            a += 1
+                            area = cntarea
+                        else:
+                            exclude.append(i)
+                            break
+                if area is not None:
+                    maxs.append(area)
+                i += 1
+            blob_mean = np.mean(maxs)
             diffs = []
             min_num = blob_mean
             blob_mean = blob_mean * corcection_factor
             index = 0
-            for blob_contour in blob_contours:
-                diff = abs(blob_contour - blob_mean)
-                if diff < min_num and abs(blob_contour - blob_mean) > 0:
-                    min_num = diff
-                    index = blob_contours.index(blob_contour)
-            best.append(index + blob[0])
+            bindex = 0
+            for blob_contour in maxs:
+                if index not in exclude:
+                    diff = abs(blob_contour - blob_mean)
+                    if diff < min_num and abs(blob_contour - blob_mean) > 0:
+                        min_num = diff
+                        bindex = index
+                index += 1
+            best.append(bindex + blob[0])
+
+
+
+            # blob_mean = np.mean(blob_contours)
+            # diffs = []
+            # min_num = blob_mean
+            # blob_mean = blob_mean * corcection_factor
+            # index = 0
+            # for blob_contour in blob_contours:
+            #     diff = abs(blob_contour - blob_mean)
+            #     if diff < min_num and abs(blob_contour - blob_mean) > 0:
+            #         min_num = diff
+            #         index = blob_contours.index(blob_contour)
+            # best.append(index + blob[0])
 
         return best
 
     def _find_blob(self, history=500):
         self.history = history
         y = [x[2] for x in self.storage]
-        mean = np.mean(y)
+        mean = Arrow.min_cnt_size#np.mean(y)
         blobs = []
         start = False
         y3 = []
@@ -588,7 +625,7 @@ class ContourStorage:
         return nblobs
 
     def get_best_contours(self, history=500):
-        blobs = self._find_blob(history=500)
+        blobs = self._find_blob(history)
         positions = self._find_best_contour(blobs)
         result = []
         for pos in positions:
