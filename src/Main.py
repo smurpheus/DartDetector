@@ -403,9 +403,10 @@ class MainApplikacation(object):
         print "Writing data to file"
         i = 0
         fname = self.fname
-        # while os.path.isfile(fname%i):
-        #     i += 1
-        fname+=".csv"
+        fname += ".csv"
+        while os.path.isfile(fname):
+            i += 1
+            fname = self.fname + '-' + str(i)+".csv"
         with open(fname, 'wb') as csvfile:
             spamwriter = csv.writer(csvfile, delimiter=',',dialect='excel',
                                     quotechar='|', quoting=csv.QUOTE_MINIMAL)
@@ -421,6 +422,8 @@ class MainApplikacation(object):
 
     
     def __init__(self, inp):
+        if isinstance(inp,str):
+            self.fname = inp.split('.')[0]
         self.camera = Camera(device=inp, output=self.fname)
         self.board = Board()
         camconf = "camera_config.json"
@@ -461,16 +464,21 @@ class MainApplikacation(object):
         # cv2.createTrackbar("VarMin", "Current", self.var_min, 100, self._set_var_min)
 
         self.Substractor.start()
+
+        realboard = np.zeros((self.camera.height, self.camera.width, 3), np.uint8)
+        # self.frame = self.camera.undistort_image(img)
+        for i in self.Calibrated.imp:
+            try:
+                realboard[i[0][1], i[0][0]] = [0,0,255]
+            except IndexError:
+                pass
+
         added = 0
         while True:
             img = self.Substractor.get_image()
             if img is not None:
-                # self.frame = self.camera.undistort_image(img)
-                # for i in self.Calibrated.imp:
-                #     try:
-                #         img[i[0][1], i[0][0]] = [0,0,255]
-                #     except IndexError:
-                #         pass
+
+                img = cv2.add(realboard,img)
                 cv2.imshow("Original", img)
                 cv2.imshow("Points", self.board.draw_board())
                 cv2.imshow("Current", self.Substractor.get_substracted())

@@ -19,7 +19,7 @@ board = [170. / 170., 162. / 170., 107. / 170., 99. / 170., 15.9 / 170., 6.35 / 
 
 class Board:
     circles = [170. / 170., 162. / 170., 107. / 170., 99. / 170., 15.9 / 170., 6.35 / 170.]
-    circles = [170. / 170., 160. / 170., 107. / 170., 97. / 170., 15.9 / 170., 6 / 170.]
+    circles = [170. / 170., 160. / 170., 107. / 170., 96. / 170., 15.9 / 170., 6 / 170.]
     angles = [i * 18 + 9 for i in range(20)]
     fields_in_order = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5]
     size = 800
@@ -455,7 +455,7 @@ class ContourStorage:
     percentage_of_history = 0.05
     plotting = True
     paused = False
-
+    ready = False
     def __init__(self, plotting=False):
         self.plotting = plotting
         if plotting:
@@ -475,54 +475,56 @@ class ContourStorage:
     def add_to_storage(self, contours, image, frame_no):
         # if len(self.storage) + 1 > self.size:
         #     self.storage.remove(self.storage[0])
-        cnts = []
-        acnts = []
-        if not self.paused:
-            for cnt in contours:
-                rect = cv2.minAreaRect(cnt)
-                box = cv2.boxPoints(rect)
-                box = np.int0(box)
-                barea = cv2.contourArea(box)
-                if barea < 0.08 * image.size:
-                    area = cv2.contourArea(cnt)
-                    cnts.append(area)
-                    acnts.append(cnt)
-                else:
-                    self.paused = self.history * 0.5# * self.percentage_of_history
-                    return
-            xcnt = 0
-            if len(cnts) > 0:
-                xcnt = max(cnts)
-            self.storage.append([image, acnts, xcnt, frame_no])
-            if self.plotting:
-                self.plot_data()
-        else:
-            print("Execution was paused because of a blob that was to big.")
-            if self.paused <= 0:
-                self.paused = False
-            self.paused -= 1
+        if frame_no > self.size:
+            self.ready = True
+        if self.ready:
+            cnts = []
+            acnts = []
+            if not self.paused:
+                for cnt in contours:
+                    rect = cv2.minAreaRect(cnt)
+                    box = cv2.boxPoints(rect)
+                    box = np.int0(box)
+                    barea = cv2.contourArea(box)
+                    if barea < 0.08 * image.size:
+                        area = cv2.contourArea(cnt)
+                        cnts.append(area)
+                        acnts.append(cnt)
+                    else:
+                        self.paused = self.history * 0.5# * self.percentage_of_history
+                        return
+                xcnt = 0
+                if len(cnts) > 0:
+                    xcnt = max(cnts)
+                self.storage.append([image, acnts, xcnt, frame_no])
+                if self.plotting:
+                    self.plot_data()
+            else:
+                print("Execution was paused because of a blob that was to big.")
+                if self.paused <= 0:
+                    self.paused = False
+                self.paused -= 1
 
     def get_arrow(self, history=500):
-        blobs = self._find_blob(history)
-        # positions = self._find_best_contour(blobs)
-        blobimgs = self._build_blob_contour(blobs)
-
-
         result = []
-        i = 0
-        for blob_img in blobimgs:
-            # img, cnt, _, fno = self.storage[pos]
+        if self.ready:
+            blobs = self._find_blob(history)
+            # positions = self._find_best_contour(blobs)
+            blobimgs = self._build_blob_contour(blobs)
+            i = 0
+            for blob_img in blobimgs:
+                # img, cnt, _, fno = self.storage[pos]
 
-            ret, thresh1 = cv2.threshold(blobimgs[i], 200, 255, cv2.THRESH_BINARY)
-            im2, contours, hierarchy = cv2.findContours(thresh1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            cv2.drawContours(thresh1, contours, -1, color=255, thickness=2)
-            arrow = Arrow(contours, blob_img, blobs[i][1]-blobs[i][0]/2+blobs[i][0])
-            if arrow.success:
-                result.append(arrow)
-            i += 1
-        for s, e in blobs:
-            for each in range(s, e):
-                self.storage[each][2] = 0
+                ret, thresh1 = cv2.threshold(blobimgs[i], 150, 255, cv2.THRESH_BINARY)
+                im2, contours, hierarchy = cv2.findContours(thresh1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                cv2.drawContours(thresh1, contours, -1, color=255, thickness=2)
+                arrow = Arrow(contours, blob_img, blobs[i][1]-blobs[i][0]/2+blobs[i][0])
+                if arrow.success:
+                    result.append(arrow)
+                i += 1
+            for s, e in blobs:
+                for each in range(s, e):
+                    self.storage[each][2] = 0
         return result
 
     def get_biggest_contour_image(self):
@@ -719,8 +721,8 @@ class Camera:
         self.was_configured = False
         self.device = device
         output+=".avi"
-        self.out = cv2.VideoWriter(output, self.fourcc, 30, (width, heigth))
         if isinstance(self.device, int):
+            self.out = cv2.VideoWriter(output, self.fourcc, 30, (width, heigth))
             self.from_file = False
             self.capture = cv2.VideoCapture(self.device)
             while self.capture.isOpened() == False:
@@ -742,7 +744,8 @@ class Camera:
         able_to_read, f1 = self.capture.read()
         if able_to_read:
             self.read_frame_no += 1
-            self.out.write(f1)
+            if not self.from_file:
+                self.out.write(f1)
             return f1, False
         else:
             if self.from_file:
@@ -751,14 +754,16 @@ class Camera:
             able_to_read, f1 = self.capture.read()
             print "Reading Frame: ", self.capture.get(1)
             if able_to_read:
-                self.out.write(f1)
+                if not self.from_file:
+                    self.out.write(f1)
                 self.read_frame_no += 1
                 return f1, True
             else:
                 time.sleep(2)
                 able_to_read, f1 = self.capture.read()
                 if able_to_read:
-                    self.out.write(f1)
+                    if not self.from_file:
+                        self.out.write(f1)
                     self.read_frame_no += 1
                     return f1, True
                 else:
