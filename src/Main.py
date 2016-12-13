@@ -314,8 +314,8 @@ class BackgroundSubtractor(Thread):
                 closed = cv2.morphologyEx(fgmask1, cv2.MORPH_CLOSE, kernel)
                 kernel = np.ones((3, 3), np.uint8)
                 opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel)
-                closed2 = np.array(opened)
-                self.set_substracted(opened)
+                closed2 = np.array(closed)
+                self.set_substracted(closed)
                 im2, contours, hierarchy = cv2.findContours(closed2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                 colored = cv2.cvtColor(closed2, cv2.COLOR_GRAY2BGR)
                 self._add_to_storage(contours, f1, no_of_frame)
@@ -449,6 +449,7 @@ class MainApplikacation(object):
         cv2.namedWindow("Current", cv2.WINDOW_NORMAL)
         cv2.namedWindow("Original", cv2.WINDOW_NORMAL)
         cv2.namedWindow("Points", cv2.WINDOW_NORMAL)
+        cv2.namedWindow("Blobimg", cv2.WINDOW_NORMAL)
         cv2.setMouseCallback("Points", self._click)
         mixer.init()
         mixer.music.load('beep.mp3')
@@ -523,11 +524,15 @@ class MainApplikacation(object):
         # mixer.music.play()
         if arrow is not None:
             print "Ratio is %s"%arrow.ratio
+            print [cv2.contourArea(x) for x in arrow.contours]
             points = self.Calibrated.calculate_points(arrow.tip)
             pimg = self.board.draw_field(points)
             cv2.imshow("Points", pimg)
-            k = cv2.waitKey(-1)
+            cv2.imshow("Blobimg", arrow.img)
+            while self.boardpoint is None:
+                k = cv2.waitKey(-1)
             self.real.append(self.board.calculate_field(self.boardpoint))
+            self.boardpoint = None
             if k == 13:
                 print "Enter"
                 self.was_covert.append(False)

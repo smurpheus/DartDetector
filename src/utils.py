@@ -276,6 +276,15 @@ def draw_circles():
     cv2.waitKey(0)
 
 
+def _get_points_on_cnt(img, cnt):
+    cimg = np.zeros_like(img)
+    cv2.drawContours(cimg, [cnt], 0, color=255, thickness=-1)
+    # Access the image pixels and create a 1D numpy array then add to list
+    pts = np.where(cimg == 255)
+    result = np.array((pts[1], pts[0])).reshape(2, pts[0].size).swapaxes(0, 1)
+    # pts = zip(pts[1], pts[0])
+    return result
+
 class Arrow:
     centroid = None
     tip = None
@@ -286,7 +295,7 @@ class Arrow:
     aproximated = None
     ratio = None
     bbox = None
-    min_cnt_size = 4000
+    min_cnt_size = 3500
     min_ratio = 1.2
     max_ratio = 5
     success = False
@@ -303,14 +312,7 @@ class Arrow:
         self.centroid, self.tip, len(self.contours), [cv2.contourArea(x) for x in self.contours], self.ratio,self.success)
         return output
 
-    def _get_points_on_cnt(self, cnt):
-        cimg = np.zeros_like(self.img)
-        cv2.drawContours(cimg, [cnt], 0, color=255, thickness=-1)
-        # Access the image pixels and create a 1D numpy array then add to list
-        pts = np.where(cimg == 255)
-        result = np.array((pts[1], pts[0])).reshape(2,pts[0].size).swapaxes(0,1)
-        # pts = zip(pts[1], pts[0])
-        return result
+
 
     def detect_arrow(self):
         ncontours = []
@@ -347,7 +349,7 @@ class Arrow:
 
                     ##############################################
                     ###### Standard Tip ##########################
-                    pts = self._get_points_on_cnt(cnt)
+                    pts = _get_points_on_cnt(self.img, cnt)
                     pts_on_line = []
                     for pt in pts:
                         x, y = pt
@@ -370,7 +372,7 @@ class Arrow:
                     area = cv2.contourArea(cnt)
                     # calculate the possible tip
                     box = np.int0(box)
-                    boxpts = self._get_points_on_cnt(box)
+                    boxpts = _get_points_on_cnt(self.img, box)
                     pts_on_line2 = []
                     for pt in boxpts:
                         x, y = pt
@@ -390,7 +392,7 @@ class Arrow:
                     # print "Possible tips2 %s" % (mpt2)
 
                     box2 = np.int0(approx)
-                    approxpts2 = self._get_points_on_cnt(box2)
+                    approxpts2 = _get_points_on_cnt(self.img, box2)
                     a = approxpts2
 
                     b = boxpts
@@ -417,7 +419,7 @@ class Arrow:
                     # diff2 = [pt for pt in diff if np.linalg.norm(pt - mpt2) < 30]
 
                     box3 = np.int0(cnt)
-                    approxpts3 = self._get_points_on_cnt(box3)
+                    approxpts3 = _get_points_on_cnt(self.img, box3)
                     # diff = array_row_intersection(approxpts3, boxpts)
                     diff = multidim_intersect(approxpts3, boxpts)
                     # diff = np.array([np.array(x) for x in approxpts3 if x in boxpts])
@@ -505,13 +507,22 @@ class ContourStorage:
 
     def get_arrow(self, history=500):
         blobs = self._find_blob(history)
-        positions = self._find_best_contour(blobs)
+        # positions = self._find_best_contour(blobs)
+        blobimgs = self._build_blob_contour(blobs)
+
+
         result = []
-        for pos in positions:
-            img, cnt, _, fno = self.storage[pos]
-            arrow = Arrow(cnt, img, fno)
+        i = 0
+        for blob_img in blobimgs:
+            # img, cnt, _, fno = self.storage[pos]
+
+            ret, thresh1 = cv2.threshold(blobimgs[i], 200, 255, cv2.THRESH_BINARY)
+            im2, contours, hierarchy = cv2.findContours(thresh1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            cv2.drawContours(thresh1, contours, -1, color=255, thickness=2)
+            arrow = Arrow(contours, blob_img, blobs[i][1]-blobs[i][0]/2+blobs[i][0])
             if arrow.success:
                 result.append(arrow)
+            i += 1
         for s, e in blobs:
             for each in range(s, e):
                 self.storage[each][2] = 0
@@ -589,6 +600,29 @@ class ContourStorage:
             # best.append(index + blob[0])
 
         return best
+
+    def _build_blob_contour(self, blobs):
+        blob_imgs = []
+        if len(blobs) > 0:
+            img = cv2.cvtColor(self.storage[0][0], cv2.COLOR_BGR2GRAY)
+            help_img = np.zeros_like(img)
+            for blob in blobs:
+                blob_contours = []
+                blob_img = np.zeros_like(img)
+                blob_storage = list(self.storage)[blob[0]: blob[1]]
+                for each in blob_storage:
+                    blob_contours += each[1]
+
+                for contour in blob_contours:
+                    if contour.size > 10:
+                        # points_on_cnt = _get_points_on_cnt(img, contour)
+                        help_img = np.zeros_like(img)
+
+                        cv2.drawContours(help_img, [contour], 0, color=10, thickness=-1)
+
+                        blob_img = cv2.add(blob_img, help_img)
+                blob_imgs.append(blob_img)
+        return blob_imgs
 
     def _find_blob(self, history=500):
         self.history = history
