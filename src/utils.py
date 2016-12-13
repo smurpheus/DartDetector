@@ -211,6 +211,22 @@ class Board:
             cv2.circle(img, (int(x), int(y)), 10, (0, 255, 0), 1)
         return img
 
+
+def multidim_intersect(ar1, ar2):
+    arr1 = ar1.copy()
+    arr2 = ar2.copy()
+    arr1_view = arr1.view([('', arr1.dtype)] * arr1.shape[1])
+    arr2_view = arr2.view([('', arr2.dtype)] * arr2.shape[1])
+    intersected = np.intersect1d(arr1_view, arr2_view)
+    return intersected.view(arr1.dtype).reshape(-1, arr1.shape[1])
+
+
+def centeroidnp(arr):
+    length = arr.shape[0]
+    sum_x = np.sum(arr[:, 0])
+    sum_y = np.sum(arr[:, 1])
+    return [sum_x / length, sum_y / length]
+
 def save_vid(fname="Deafaultoutput", size=(640, 480), device=0):
     fname += '.avi'
     width = size[0]
@@ -368,9 +384,7 @@ class Arrow:
                     self.tip = mpt
                     # Approximate a contour
 
-                    approx_len = cv2.arcLength(approx, True)
-                    area = cv2.contourArea(cnt)
-                    # calculate the possible tip
+
                     box = np.int0(box)
                     boxpts = _get_points_on_cnt(self.img, box)
                     pts_on_line2 = []
@@ -387,61 +401,44 @@ class Arrow:
                         if mdist2 is None or dist > mdist2:
                             mdist2 = dist
                             mpt2 = p
+                    #######################################################
                     # tip2 is the point where the line crosses the bounding box
                     self.tip2 = mpt2
-                    # print "Possible tips2 %s" % (mpt2)
 
-                    box2 = np.int0(approx)
-                    approxpts2 = _get_points_on_cnt(self.img, box2)
+
+                    #######################################################
+                    # Point where approx contour cuts outline Box
+                    #######################################################
+
+                    approx_pts = np.int0(approx)
+                    approxpts2 = _get_points_on_cnt(self.img, approx_pts)
                     a = approxpts2
-
                     b = boxpts
-
-                    def multidim_intersect(ar1, ar2):
-                        arr1 = ar1.copy()
-                        arr2 = ar2.copy()
-                        arr1_view = arr1.view([('', arr1.dtype)] * arr1.shape[1])
-                        arr2_view = arr2.view([('', arr2.dtype)] * arr2.shape[1])
-                        intersected = np.intersect1d(arr1_view, arr2_view)
-                        return intersected.view(arr1.dtype).reshape(-1, arr1.shape[1])
-
-                    # diff = array_row_intersection(a,b)
                     diff = multidim_intersect(a, b)
-                    # diff = np.array([np.array(x) for x in approxpts2 if x in boxpts])
-                    def centeroidnp(arr):
-                        length = arr.shape[0]
-                        sum_x = np.sum(arr[:, 0])
-                        sum_y = np.sum(arr[:, 1])
-                        return [sum_x / length, sum_y / length]
-                    def test(a):
-                        return np.linalg.norm(a - mpt2) < 30
-                    diff2 = diff[np.apply_along_axis(test, 1, diff)]
-                    # diff2 = [pt for pt in diff if np.linalg.norm(pt - mpt2) < 30]
-
-                    box3 = np.int0(cnt)
-                    approxpts3 = _get_points_on_cnt(self.img, box3)
-                    # diff = array_row_intersection(approxpts3, boxpts)
-                    diff = multidim_intersect(approxpts3, boxpts)
-                    # diff = np.array([np.array(x) for x in approxpts3 if x in boxpts])
-                    diff3 = diff[np.apply_along_axis(test, 1, diff)]
-                    # diff3 = [pt for pt in diff if np.linalg.norm(pt - mpt2) < 30]
-                    # diff2 = []
-                    # for pt in diff:
-                    #     if np.linalg.norm(pt - mpt) < 50:
-                    #         diff2.append(pt)
-                    # tip3 is the point where approximated point and box cut eachother
-                    if len(diff2) > 0:
-                        self.tip3 = centeroidnp(np.array(diff2))
+                    diff_with_dist = [(np.linalg.norm(self.centroid - x), x) for x in diff]
+                    diff = sorted(diff_with_dist, key=itemgetter(0), reverse=True)[:5]
+                    diff = [x[1] for x in diff]
+                    if len(diff) > 0:
+                        self.tip3 = centeroidnp(np.array(diff))
                     else:
                         self.tip3 = self.tip
-                    # tip4 is the point where the contour cuts the bounding box
-                    if len(diff3) > 0:
-                        self.tip4 = centeroidnp(np.array(diff3))
+
+
+                    #######################################################
+                    # Point where
+                    #######################################################
+                    contour_points = np.int0(cnt)
+                    contour_points = _get_points_on_cnt(self.img, contour_points)
+                    diff = multidim_intersect(contour_points, boxpts)
+                    diff_with_dist = [(np.linalg.norm(self.centroid - x), x) for x in diff]
+                    diff = sorted(diff_with_dist, key=itemgetter(0), reverse=True)[:5]
+                    diff = [x[1] for x in diff]
+                    if len(diff) > 0:
+                        self.tip4 = centeroidnp(np.array(diff))
                     else:
                         self.tip4 = self.tip
                     tips = [self.tip, self.tip2, self.tip3, self.tip4]
                     self.tip5 = centeroidnp(np.array(tips))
-                    # print "Possible tips %s" % (self.tip2)
                 else:
                     print "Ratio of Contours does not fit %s"%ratio
             else:
