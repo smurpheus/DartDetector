@@ -410,14 +410,36 @@ class MainApplikacation(object):
         with open(fname, 'wb') as csvfile:
             spamwriter = csv.writer(csvfile, delimiter=',',dialect='excel',
                                     quotechar='|', quoting=csv.QUOTE_MINIMAL)
-            datas = zip(self.detected,self.detected2,self.detected3,self.detected4,self.detected5, self.real, self.was_covert, self.frame_no)
-            spamwriter.writerow(['Detected','Detected2','Detected3','Detected4','Detected5', 'Reality', 'Was Covert', 'Frameno', 'Diff'])
+            spamwriter.writerow(['Detected','Detected2','Detected3','Detected4','Detected5', 'Reality', 'Was Covert', 'Frameno', 'Diff', 'Diff2', 'Diff3', 'Diff4', 'Diff5'])
+            def calc_diff(a,b):
+                i = 0
+                diff = []
+                for each in a:
+                    if each == b[i]:
+                        diff.append(True)
+                    else:
+                        diff.append(False)
+                    i += 1
+                percentage = float(len([x for x in diff if x is True])) / float(len(diff))
+                return diff, percentage
+            diff, percentage = calc_diff(self.detected, self.real)
+            print "Tip Version 1 was %s Percent correct."%(percentage * 100)
+            diff2, percentage = calc_diff(self.detected2, self.real)
+            print "Tip Version 2 was %s Percent correct." % (percentage * 100)
+            diff3, percentage = calc_diff(self.detected3, self.real)
+            print "Tip Version 3 was %s Percent correct." % (percentage * 100)
+            diff4, percentage = calc_diff(self.detected4, self.real)
+            print "Tip Version 4 was %s Percent correct." % (percentage * 100)
+            diff5, percentage = calc_diff(self.detected5, self.real)
+            print "Tip Version 5 was %s Percent correct." % (percentage * 100)
+            datas = zip(self.detected, self.detected2, self.detected3, self.detected4, self.detected5, self.real,
+                        self.was_covert, self.frame_no, diff,diff2, diff3, diff4, diff5)
             for each in datas:
                 entry = list(each)
-                if each[0] == each[1]:
-                    entry.append(True)
-                else:
-                    entry.append(False)
+                # if each[0] == each[1]:
+                #     entry.append(True)
+                # else:
+                #     entry.append(False)
                 spamwriter.writerow(entry)
 
     
