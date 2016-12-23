@@ -214,7 +214,7 @@ class BackgroundSubtractor(Thread):
     #################
     history = 200
     shad_tresh = 0.5
-    var_tresh = 16
+    var_tresh = 14
     var_max = 75
     var_min = 1
     arrows = []
@@ -415,10 +415,13 @@ class MainApplikacation(object):
                 i = 0
                 diff = []
                 for each in a:
-                    if each == b[i]:
-                        diff.append(True)
-                    else:
-                        diff.append(False)
+                    try:
+                        if each == b[i]:
+                            diff.append(True)
+                        else:
+                            diff.append(False)
+                    except:
+                        print "For some Reasion there was an error in diff calc"
                     i += 1
                 percentage = float(len([x for x in diff if x is True])) / float(len(diff))
                 return diff, percentage
@@ -559,15 +562,19 @@ class MainApplikacation(object):
             pimg = self.board.draw_field(points)
             cv2.imshow("Points", pimg)
             cv2.imshow("Blobimg", arrow.img)
+            k = cv2.waitKey(-1)
             while self.boardpoint is None:
                 k = cv2.waitKey(-1)
             self.real.append(self.board.calculate_field(self.boardpoint))
             self.boardpoint = None
             if k == 13:
                 print "Enter"
+                print len(self.detected)
                 self.was_covert.append(False)
             if k == 32:
                 self.was_covert.append(True)
+            else:
+                self.was_covert.append(False)
         # print("Adding an arrow:")
         self.frame_no.append(frame_no)
         # inp = raw_input("What were the real Points? Type 'n' if the dart is not at the board: ")

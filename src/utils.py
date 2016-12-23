@@ -338,11 +338,16 @@ class Arrow:
                 rect = cv2.minAreaRect(cnt)
                 box = cv2.boxPoints(rect)
                 b = box
+                barea = cv2.contourArea(box)
 
                 dist1 = np.linalg.norm(b[0] - b[1])
                 dist2 = np.linalg.norm(b[1] - b[2])
                 a = sorted([dist1, dist2])
                 ratio = (a[1] / a[0])
+                if barea > 0.1 * self.img.size:
+                    self.success = False
+                    return
+
                 if self.min_ratio < ratio < self.max_ratio:
                     self.bbox = box
                     self.ratio = (a[1] / a[0])
@@ -438,7 +443,10 @@ class Arrow:
                     else:
                         self.tip4 = self.tip
                     tips = [self.tip, self.tip2, self.tip3, self.tip4]
-                    self.tip5 = centeroidnp(np.array(tips))
+                    try:
+                        self.tip5 = centeroidnp(np.array(tips))
+                    except:
+                        pass
                 else:
                     print "Ratio of Contours does not fit %s"%ratio
             else:
@@ -455,6 +463,7 @@ class ContourStorage:
     percentage_of_history = 0.05
     plotting = True
     paused = False
+    pausetime = 0
     ready = False
     def __init__(self, plotting=False):
         self.plotting = plotting
@@ -486,24 +495,27 @@ class ContourStorage:
                     box = cv2.boxPoints(rect)
                     box = np.int0(box)
                     barea = cv2.contourArea(box)
-                    if barea < 0.08 * image.size:
+                    if barea < 0.1 * image.size:
                         area = cv2.contourArea(cnt)
                         cnts.append(area)
                         acnts.append(cnt)
                     else:
-                        self.paused = self.history * 0.5# * self.percentage_of_history
-                        return
+                        self.paused = True
+                        self.pausetime = self.history * 0.75# * self.percentage_of_history
                 xcnt = 0
                 if len(cnts) > 0:
                     xcnt = max(cnts)
-                self.storage.append([image, acnts, xcnt, frame_no])
+                if not self.paused:
+                    self.storage.append([image, acnts, xcnt, frame_no])
                 if self.plotting:
                     self.plot_data()
+                if self.pausetime > -10:
+                    self.pausetime -= 1
             else:
-                print("Execution was paused because of a blob that was to big.")
-                if self.paused <= 0:
+                print("Execution was paused because of a blob that was to big. %s"%self.pausetime)
+                if self.pausetime <= 0:
                     self.paused = False
-                self.paused -= 1
+                self.pausetime -= 1
 
     def get_arrow(self, history=500):
         result = []
@@ -515,11 +527,14 @@ class ContourStorage:
             for blob_img in blobimgs:
                 # img, cnt, _, fno = self.storage[pos]
 
-                ret, thresh1 = cv2.threshold(blobimgs[i], 150, 255, cv2.THRESH_BINARY)
-                im2, contours, hierarchy = cv2.findContours(thresh1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                cv2.drawContours(thresh1, contours, -1, color=255, thickness=2)
+                ret, thresh1 = cv2.threshold(blobimgs[i], 90, 255, cv2.THRESH_BINARY)
+                open_close_mask = 5
+                kernel = np.ones((open_close_mask, open_close_mask), np.uint8)
+                closed = cv2.morphologyEx(thresh1, cv2.MORPH_CLOSE, kernel)
+                im2, contours, hierarchy = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                cv2.drawContours(closed, contours, -1, color=255, thickness=2)
                 arrow = Arrow(contours, blob_img, blobs[i][1]-blobs[i][0]/2+blobs[i][0])
-                if arrow.success:
+                if arrow.success and arrow is not None:
                     result.append(arrow)
                 i += 1
             for s, e in blobs:
@@ -617,7 +632,7 @@ class ContourStorage:
                         # points_on_cnt = _get_points_on_cnt(img, contour)
                         help_img = np.zeros_like(img)
 
-                        cv2.drawContours(help_img, [contour], 0, color=10, thickness=-1)
+                        cv2.drawContours(help_img, [contour], 0, color=15, thickness=-1)
 
                         blob_img = cv2.add(blob_img, help_img)
                 blob_imgs.append(blob_img)
@@ -647,14 +662,15 @@ class ContourStorage:
         #         start = False
         # blobs = [x for x in blobs if x[1]-x[0] > self.history * self.percentage_of_history]
         nblobs = []
-        for blob in blobs:
-            if blob[1] - blob[0] > self.history * self.percentage_of_history:
-                nblobs.append(blob)
-            else:
-                s = blob[1] - blob[0]
-                print "BLOB as discovered but it was to small %s"%s
-                for i in range(blob[0], blob[1]):
-                    self.storage[i][2] = mean
+        if self.pausetime <= -10:
+            for blob in blobs:
+                if blob[1] - blob[0] > self.history * self.percentage_of_history:
+                    nblobs.append(blob)
+                else:
+                    s = blob[1] - blob[0]
+                    print "BLOB as discovered but it was to small %s"%s
+                    for i in range(blob[0], blob[1]):
+                        self.storage[i][2] = mean
         return nblobs
 
     def get_best_contours(self, history=500):
