@@ -214,7 +214,7 @@ class BackgroundSubtractor(Thread):
     #################
     history = 200
     shad_tresh = 0.5
-    var_tresh = 16
+    var_tresh = 14
     var_max = 75
     var_min = 1
     arrows = []
@@ -314,8 +314,8 @@ class BackgroundSubtractor(Thread):
                 closed = cv2.morphologyEx(fgmask1, cv2.MORPH_CLOSE, kernel)
                 kernel = np.ones((3, 3), np.uint8)
                 opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel)
-                closed2 = np.array(opened)
-                self.set_substracted(opened)
+                closed2 = np.array(closed)
+                self.set_substracted(closed)
                 im2, contours, hierarchy = cv2.findContours(closed2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                 colored = cv2.cvtColor(closed2, cv2.COLOR_GRAY2BGR)
                 self._add_to_storage(contours, f1, no_of_frame)
@@ -403,24 +403,52 @@ class MainApplikacation(object):
         print "Writing data to file"
         i = 0
         fname = self.fname
-        # while os.path.isfile(fname%i):
-        #     i += 1
-        fname+=".csv"
+        fname += ".csv"
+        while os.path.isfile(fname):
+            i += 1
+            fname = self.fname + '-' + str(i)+".csv"
         with open(fname, 'wb') as csvfile:
             spamwriter = csv.writer(csvfile, delimiter=',',dialect='excel',
                                     quotechar='|', quoting=csv.QUOTE_MINIMAL)
-            datas = zip(self.detected,self.detected2,self.detected3,self.detected4,self.detected5, self.real, self.was_covert, self.frame_no)
-            spamwriter.writerow(['Detected','Detected2','Detected3','Detected4','Detected5', 'Reality', 'Was Covert', 'Frameno', 'Diff'])
+            spamwriter.writerow(['Detected','Detected2','Detected3','Detected4','Detected5', 'Reality', 'Was Covert', 'Frameno', 'Diff', 'Diff2', 'Diff3', 'Diff4', 'Diff5'])
+            def calc_diff(a,b):
+                i = 0
+                diff = []
+                for each in a:
+                    try:
+                        if each == b[i]:
+                            diff.append(True)
+                        else:
+                            diff.append(False)
+                    except:
+                        print "For some Reasion there was an error in diff calc"
+                    i += 1
+                percentage = float(len([x for x in diff if x is True])) / float(len(diff))
+                return diff, percentage
+            diff, percentage = calc_diff(self.detected, self.real)
+            print "Tip Version 1 was %s Percent correct."%(percentage * 100)
+            diff2, percentage = calc_diff(self.detected2, self.real)
+            print "Tip Version 2 was %s Percent correct." % (percentage * 100)
+            diff3, percentage = calc_diff(self.detected3, self.real)
+            print "Tip Version 3 was %s Percent correct." % (percentage * 100)
+            diff4, percentage = calc_diff(self.detected4, self.real)
+            print "Tip Version 4 was %s Percent correct." % (percentage * 100)
+            diff5, percentage = calc_diff(self.detected5, self.real)
+            print "Tip Version 5 was %s Percent correct." % (percentage * 100)
+            datas = zip(self.detected, self.detected2, self.detected3, self.detected4, self.detected5, self.real,
+                        self.was_covert, self.frame_no, diff,diff2, diff3, diff4, diff5)
             for each in datas:
                 entry = list(each)
-                if each[0] == each[1]:
-                    entry.append(True)
-                else:
-                    entry.append(False)
+                # if each[0] == each[1]:
+                #     entry.append(True)
+                # else:
+                #     entry.append(False)
                 spamwriter.writerow(entry)
 
     
     def __init__(self, inp):
+        if isinstance(inp,str):
+            self.fname = inp.split('.')[0]
         self.camera = Camera(device=inp, output=self.fname)
         self.board = Board()
         camconf = "camera_config.json"
@@ -449,6 +477,7 @@ class MainApplikacation(object):
         cv2.namedWindow("Current", cv2.WINDOW_NORMAL)
         cv2.namedWindow("Original", cv2.WINDOW_NORMAL)
         cv2.namedWindow("Points", cv2.WINDOW_NORMAL)
+        cv2.namedWindow("Blobimg", cv2.WINDOW_NORMAL)
         cv2.setMouseCallback("Points", self._click)
         mixer.init()
         mixer.music.load('beep.mp3')
@@ -460,16 +489,21 @@ class MainApplikacation(object):
         # cv2.createTrackbar("VarMin", "Current", self.var_min, 100, self._set_var_min)
 
         self.Substractor.start()
+
+        realboard = np.zeros((self.camera.height, self.camera.width, 3), np.uint8)
+        # self.frame = self.camera.undistort_image(img)
+        for i in self.Calibrated.imp:
+            try:
+                realboard[i[0][1], i[0][0]] = [0,0,255]
+            except IndexError:
+                pass
+
         added = 0
         while True:
             img = self.Substractor.get_image()
             if img is not None:
-                # self.frame = self.camera.undistort_image(img)
-                # for i in self.Calibrated.imp:
-                #     try:
-                #         img[i[0][1], i[0][0]] = [0,0,255]
-                #     except IndexError:
-                #         pass
+
+                img = cv2.add(realboard,img)
                 cv2.imshow("Original", img)
                 cv2.imshow("Points", self.board.draw_board())
                 cv2.imshow("Current", self.Substractor.get_substracted())
@@ -523,16 +557,24 @@ class MainApplikacation(object):
         # mixer.music.play()
         if arrow is not None:
             print "Ratio is %s"%arrow.ratio
+            print [cv2.contourArea(x) for x in arrow.contours]
             points = self.Calibrated.calculate_points(arrow.tip)
             pimg = self.board.draw_field(points)
             cv2.imshow("Points", pimg)
+            cv2.imshow("Blobimg", arrow.img)
             k = cv2.waitKey(-1)
+            while self.boardpoint is None:
+                k = cv2.waitKey(-1)
             self.real.append(self.board.calculate_field(self.boardpoint))
+            self.boardpoint = None
             if k == 13:
                 print "Enter"
+                print len(self.detected)
                 self.was_covert.append(False)
             if k == 32:
                 self.was_covert.append(True)
+            else:
+                self.was_covert.append(False)
         # print("Adding an arrow:")
         self.frame_no.append(frame_no)
         # inp = raw_input("What were the real Points? Type 'n' if the dart is not at the board: ")

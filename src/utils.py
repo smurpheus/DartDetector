@@ -19,7 +19,7 @@ board = [170. / 170., 162. / 170., 107. / 170., 99. / 170., 15.9 / 170., 6.35 / 
 
 class Board:
     circles = [170. / 170., 162. / 170., 107. / 170., 99. / 170., 15.9 / 170., 6.35 / 170.]
-    circles = [170. / 170., 160. / 170., 107. / 170., 97. / 170., 15.9 / 170., 6 / 170.]
+    circles = [170. / 170., 160. / 170., 107. / 170., 96. / 170., 15.9 / 170., 6 / 170.]
     angles = [i * 18 + 9 for i in range(20)]
     fields_in_order = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5]
     size = 800
@@ -211,6 +211,22 @@ class Board:
             cv2.circle(img, (int(x), int(y)), 10, (0, 255, 0), 1)
         return img
 
+
+def multidim_intersect(ar1, ar2):
+    arr1 = ar1.copy()
+    arr2 = ar2.copy()
+    arr1_view = arr1.view([('', arr1.dtype)] * arr1.shape[1])
+    arr2_view = arr2.view([('', arr2.dtype)] * arr2.shape[1])
+    intersected = np.intersect1d(arr1_view, arr2_view)
+    return intersected.view(arr1.dtype).reshape(-1, arr1.shape[1])
+
+
+def centeroidnp(arr):
+    length = arr.shape[0]
+    sum_x = np.sum(arr[:, 0])
+    sum_y = np.sum(arr[:, 1])
+    return [sum_x / length, sum_y / length]
+
 def save_vid(fname="Deafaultoutput", size=(640, 480), device=0):
     fname += '.avi'
     width = size[0]
@@ -276,6 +292,15 @@ def draw_circles():
     cv2.waitKey(0)
 
 
+def _get_points_on_cnt(img, cnt):
+    cimg = np.zeros_like(img)
+    cv2.drawContours(cimg, [cnt], 0, color=255, thickness=-1)
+    # Access the image pixels and create a 1D numpy array then add to list
+    pts = np.where(cimg == 255)
+    result = np.array((pts[1], pts[0])).reshape(2, pts[0].size).swapaxes(0, 1)
+    # pts = zip(pts[1], pts[0])
+    return result
+
 class Arrow:
     centroid = None
     tip = None
@@ -286,7 +311,7 @@ class Arrow:
     aproximated = None
     ratio = None
     bbox = None
-    min_cnt_size = 4000
+    min_cnt_size = 3500
     min_ratio = 1.2
     max_ratio = 5
     success = False
@@ -303,14 +328,7 @@ class Arrow:
         self.centroid, self.tip, len(self.contours), [cv2.contourArea(x) for x in self.contours], self.ratio,self.success)
         return output
 
-    def _get_points_on_cnt(self, cnt):
-        cimg = np.zeros_like(self.img)
-        cv2.drawContours(cimg, [cnt], 0, color=255, thickness=-1)
-        # Access the image pixels and create a 1D numpy array then add to list
-        pts = np.where(cimg == 255)
-        result = np.array((pts[1], pts[0])).reshape(2,pts[0].size).swapaxes(0,1)
-        # pts = zip(pts[1], pts[0])
-        return result
+
 
     def detect_arrow(self):
         ncontours = []
@@ -320,11 +338,16 @@ class Arrow:
                 rect = cv2.minAreaRect(cnt)
                 box = cv2.boxPoints(rect)
                 b = box
+                barea = cv2.contourArea(box)
 
                 dist1 = np.linalg.norm(b[0] - b[1])
                 dist2 = np.linalg.norm(b[1] - b[2])
                 a = sorted([dist1, dist2])
                 ratio = (a[1] / a[0])
+                if barea > 0.1 * self.img.size:
+                    self.success = False
+                    return
+
                 if self.min_ratio < ratio < self.max_ratio:
                     self.bbox = box
                     self.ratio = (a[1] / a[0])
@@ -347,7 +370,7 @@ class Arrow:
 
                     ##############################################
                     ###### Standard Tip ##########################
-                    pts = self._get_points_on_cnt(cnt)
+                    pts = _get_points_on_cnt(self.img, cnt)
                     pts_on_line = []
                     for pt in pts:
                         x, y = pt
@@ -366,11 +389,9 @@ class Arrow:
                     self.tip = mpt
                     # Approximate a contour
 
-                    approx_len = cv2.arcLength(approx, True)
-                    area = cv2.contourArea(cnt)
-                    # calculate the possible tip
+
                     box = np.int0(box)
-                    boxpts = self._get_points_on_cnt(box)
+                    boxpts = _get_points_on_cnt(self.img, box)
                     pts_on_line2 = []
                     for pt in boxpts:
                         x, y = pt
@@ -385,61 +406,47 @@ class Arrow:
                         if mdist2 is None or dist > mdist2:
                             mdist2 = dist
                             mpt2 = p
+                    #######################################################
                     # tip2 is the point where the line crosses the bounding box
                     self.tip2 = mpt2
-                    # print "Possible tips2 %s" % (mpt2)
 
-                    box2 = np.int0(approx)
-                    approxpts2 = self._get_points_on_cnt(box2)
+
+                    #######################################################
+                    # Point where approx contour cuts outline Box
+                    #######################################################
+
+                    approx_pts = np.int0(approx)
+                    approxpts2 = _get_points_on_cnt(self.img, approx_pts)
                     a = approxpts2
-
                     b = boxpts
-
-                    def multidim_intersect(ar1, ar2):
-                        arr1 = ar1.copy()
-                        arr2 = ar2.copy()
-                        arr1_view = arr1.view([('', arr1.dtype)] * arr1.shape[1])
-                        arr2_view = arr2.view([('', arr2.dtype)] * arr2.shape[1])
-                        intersected = np.intersect1d(arr1_view, arr2_view)
-                        return intersected.view(arr1.dtype).reshape(-1, arr1.shape[1])
-
-                    # diff = array_row_intersection(a,b)
                     diff = multidim_intersect(a, b)
-                    # diff = np.array([np.array(x) for x in approxpts2 if x in boxpts])
-                    def centeroidnp(arr):
-                        length = arr.shape[0]
-                        sum_x = np.sum(arr[:, 0])
-                        sum_y = np.sum(arr[:, 1])
-                        return [sum_x / length, sum_y / length]
-                    def test(a):
-                        return np.linalg.norm(a - mpt2) < 30
-                    diff2 = diff[np.apply_along_axis(test, 1, diff)]
-                    # diff2 = [pt for pt in diff if np.linalg.norm(pt - mpt2) < 30]
-
-                    box3 = np.int0(cnt)
-                    approxpts3 = self._get_points_on_cnt(box3)
-                    # diff = array_row_intersection(approxpts3, boxpts)
-                    diff = multidim_intersect(approxpts3, boxpts)
-                    # diff = np.array([np.array(x) for x in approxpts3 if x in boxpts])
-                    diff3 = diff[np.apply_along_axis(test, 1, diff)]
-                    # diff3 = [pt for pt in diff if np.linalg.norm(pt - mpt2) < 30]
-                    # diff2 = []
-                    # for pt in diff:
-                    #     if np.linalg.norm(pt - mpt) < 50:
-                    #         diff2.append(pt)
-                    # tip3 is the point where approximated point and box cut eachother
-                    if len(diff2) > 0:
-                        self.tip3 = centeroidnp(np.array(diff2))
+                    diff_with_dist = [(np.linalg.norm(self.centroid - x), x) for x in diff]
+                    diff = sorted(diff_with_dist, key=itemgetter(0), reverse=True)[:5]
+                    diff = [x[1] for x in diff]
+                    if len(diff) > 0:
+                        self.tip3 = centeroidnp(np.array(diff))
                     else:
                         self.tip3 = self.tip
-                    # tip4 is the point where the contour cuts the bounding box
-                    if len(diff3) > 0:
-                        self.tip4 = centeroidnp(np.array(diff3))
+
+
+                    #######################################################
+                    # Point where
+                    #######################################################
+                    contour_points = np.int0(cnt)
+                    contour_points = _get_points_on_cnt(self.img, contour_points)
+                    diff = multidim_intersect(contour_points, boxpts)
+                    diff_with_dist = [(np.linalg.norm(self.centroid - x), x) for x in diff]
+                    diff = sorted(diff_with_dist, key=itemgetter(0), reverse=True)[:5]
+                    diff = [x[1] for x in diff]
+                    if len(diff) > 0:
+                        self.tip4 = centeroidnp(np.array(diff))
                     else:
                         self.tip4 = self.tip
                     tips = [self.tip, self.tip2, self.tip3, self.tip4]
-                    self.tip5 = centeroidnp(np.array(tips))
-                    # print "Possible tips %s" % (self.tip2)
+                    try:
+                        self.tip5 = centeroidnp(np.array(tips))
+                    except:
+                        pass
                 else:
                     print "Ratio of Contours does not fit %s"%ratio
             else:
@@ -456,7 +463,8 @@ class ContourStorage:
     percentage_of_history = 0.05
     plotting = True
     paused = False
-
+    pausetime = 0
+    ready = False
     def __init__(self, plotting=False):
         self.plotting = plotting
         if plotting:
@@ -476,45 +484,62 @@ class ContourStorage:
     def add_to_storage(self, contours, image, frame_no):
         # if len(self.storage) + 1 > self.size:
         #     self.storage.remove(self.storage[0])
-        cnts = []
-        acnts = []
-        if not self.paused:
-            for cnt in contours:
-                rect = cv2.minAreaRect(cnt)
-                box = cv2.boxPoints(rect)
-                box = np.int0(box)
-                barea = cv2.contourArea(box)
-                if barea < 0.08 * image.size:
-                    area = cv2.contourArea(cnt)
-                    cnts.append(area)
-                    acnts.append(cnt)
-                else:
-                    self.paused = self.history * 0.5# * self.percentage_of_history
-                    return
-            xcnt = 0
-            if len(cnts) > 0:
-                xcnt = max(cnts)
-            self.storage.append([image, acnts, xcnt, frame_no])
-            if self.plotting:
-                self.plot_data()
-        else:
-            print("Execution was paused because of a blob that was to big.")
-            if self.paused <= 0:
-                self.paused = False
-            self.paused -= 1
+        if frame_no > self.size:
+            self.ready = True
+        if self.ready:
+            cnts = []
+            acnts = []
+            if not self.paused:
+                for cnt in contours:
+                    rect = cv2.minAreaRect(cnt)
+                    box = cv2.boxPoints(rect)
+                    box = np.int0(box)
+                    barea = cv2.contourArea(box)
+                    if barea < 0.1 * image.size:
+                        area = cv2.contourArea(cnt)
+                        cnts.append(area)
+                        acnts.append(cnt)
+                    else:
+                        self.paused = True
+                        self.pausetime = self.history * 0.75# * self.percentage_of_history
+                xcnt = 0
+                if len(cnts) > 0:
+                    xcnt = max(cnts)
+                if not self.paused:
+                    self.storage.append([image, acnts, xcnt, frame_no])
+                if self.plotting:
+                    self.plot_data()
+                if self.pausetime > -10:
+                    self.pausetime -= 1
+            else:
+                print("Execution was paused because of a blob that was to big. %s"%self.pausetime)
+                if self.pausetime <= 0:
+                    self.paused = False
+                self.pausetime -= 1
 
     def get_arrow(self, history=500):
-        blobs = self._find_blob(history)
-        positions = self._find_best_contour(blobs)
         result = []
-        for pos in positions:
-            img, cnt, _, fno = self.storage[pos]
-            arrow = Arrow(cnt, img, fno)
-            if arrow.success:
-                result.append(arrow)
-        for s, e in blobs:
-            for each in range(s, e):
-                self.storage[each][2] = 0
+        if self.ready:
+            blobs = self._find_blob(history)
+            # positions = self._find_best_contour(blobs)
+            blobimgs = self._build_blob_contour(blobs)
+            i = 0
+            for blob_img in blobimgs:
+                # img, cnt, _, fno = self.storage[pos]
+
+                ret, thresh1 = cv2.threshold(blobimgs[i], 90, 255, cv2.THRESH_BINARY)
+                open_close_mask = 5
+                kernel = np.ones((open_close_mask, open_close_mask), np.uint8)
+                closed = cv2.morphologyEx(thresh1, cv2.MORPH_CLOSE, kernel)
+                im2, contours, hierarchy = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                cv2.drawContours(closed, contours, -1, color=255, thickness=2)
+                arrow = Arrow(contours, blob_img, blobs[i][1]-blobs[i][0]/2+blobs[i][0])
+                if arrow.success and arrow is not None:
+                    result.append(arrow)
+                i += 1
+            for s, e in blobs:
+                for each in range(s, e):
+                    self.storage[each][2] = 0
         return result
 
     def get_biggest_contour_image(self):
@@ -590,6 +615,29 @@ class ContourStorage:
 
         return best
 
+    def _build_blob_contour(self, blobs):
+        blob_imgs = []
+        if len(blobs) > 0:
+            img = cv2.cvtColor(self.storage[0][0], cv2.COLOR_BGR2GRAY)
+            help_img = np.zeros_like(img)
+            for blob in blobs:
+                blob_contours = []
+                blob_img = np.zeros_like(img)
+                blob_storage = list(self.storage)[blob[0]: blob[1]]
+                for each in blob_storage:
+                    blob_contours += each[1]
+
+                for contour in blob_contours:
+                    if contour.size > 10:
+                        # points_on_cnt = _get_points_on_cnt(img, contour)
+                        help_img = np.zeros_like(img)
+
+                        cv2.drawContours(help_img, [contour], 0, color=15, thickness=-1)
+
+                        blob_img = cv2.add(blob_img, help_img)
+                blob_imgs.append(blob_img)
+        return blob_imgs
+
     def _find_blob(self, history=500):
         self.history = history
         y = [x[2] for x in self.storage]
@@ -614,14 +662,15 @@ class ContourStorage:
         #         start = False
         # blobs = [x for x in blobs if x[1]-x[0] > self.history * self.percentage_of_history]
         nblobs = []
-        for blob in blobs:
-            if blob[1] - blob[0] > self.history * self.percentage_of_history:
-                nblobs.append(blob)
-            else:
-                s = blob[1] - blob[0]
-                print "BLOB as discovered but it was to small %s"%s
-                for i in range(blob[0], blob[1]):
-                    self.storage[i][2] = mean
+        if self.pausetime <= -10:
+            for blob in blobs:
+                if blob[1] - blob[0] > self.history * self.percentage_of_history:
+                    nblobs.append(blob)
+                else:
+                    s = blob[1] - blob[0]
+                    print "BLOB as discovered but it was to small %s"%s
+                    for i in range(blob[0], blob[1]):
+                        self.storage[i][2] = mean
         return nblobs
 
     def get_best_contours(self, history=500):
@@ -688,8 +737,8 @@ class Camera:
         self.was_configured = False
         self.device = device
         output+=".avi"
-        self.out = cv2.VideoWriter(output, self.fourcc, 30, (width, heigth))
         if isinstance(self.device, int):
+            self.out = cv2.VideoWriter(output, self.fourcc, 30, (width, heigth))
             self.from_file = False
             self.capture = cv2.VideoCapture(self.device)
             while self.capture.isOpened() == False:
@@ -711,7 +760,8 @@ class Camera:
         able_to_read, f1 = self.capture.read()
         if able_to_read:
             self.read_frame_no += 1
-            self.out.write(f1)
+            if not self.from_file:
+                self.out.write(f1)
             return f1, False
         else:
             if self.from_file:
@@ -720,14 +770,16 @@ class Camera:
             able_to_read, f1 = self.capture.read()
             print "Reading Frame: ", self.capture.get(1)
             if able_to_read:
-                self.out.write(f1)
+                if not self.from_file:
+                    self.out.write(f1)
                 self.read_frame_no += 1
                 return f1, True
             else:
                 time.sleep(2)
                 able_to_read, f1 = self.capture.read()
                 if able_to_read:
-                    self.out.write(f1)
+                    if not self.from_file:
+                        self.out.write(f1)
                     self.read_frame_no += 1
                     return f1, True
                 else:
