@@ -1,0 +1,116 @@
+\documentclass[
+  ,a4paper
+  ,ngerman
+  ,twoside
+  ,openright
+  ,11pt
+  ,bibliography=totoc
+  ,index=totoc
+  ,listof=totoc
+  ,titlepage=true
+  ,headlines=2
+  ,footlines=2
+  ,svgnames
+  ,BCOR=5mm
+  ,numbers=noendperiod
+  ]{scrreprt}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{todonotes}
+\usepackage[ngerman]{babel}
+\usepackage{csquotes}
+\usepackage{graphicx}
+\usepackage{amssymb,amsmath,amsthm}
+\usepackage{tikz}
+\usepackage[backend=biber,style=alphabetic,sortlocale=de_DE,url=false,doi=true,eprint=false]{biblatex}
+\usepackage{booktabs,longtable,array}
+\usepackage[section]{placeins}
+\usepackage{prettyref,varioref}
+\usepackage[automark,headsepline]{scrlayer-scrpage}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{microtype}
+\usepackage{tocbasic}
+\usepackage{hyperref}
+
+
+\input{pre_options.tex}
+
+\hypersetup{
+	pdftitle = {Visuelle Analyse zur Erkennung eines Dartspieles},
+	pdfsubject = {Bachelorarbeit},
+	pdfauthor = {Maximilian Hertzer},
+	pdfkeywords = {Dart, Bildverarbeitung}
+}
+
+\addbibresource{references.bib}
+
+\author{Maximilian Hertzer}
+\subject{Bachelorarbeit}
+\title{Visuelle Analyse zur Erkennung eines Dartspieles}
+\subtitle{}
+\extratitle{}
+\date{\today}
+
+\begin{document}
+\thispagestyle{empty}
+
+\makeatletter
+\begin{titlepage}
+	\centering
+	\rule[0.5ex]{\linewidth}{2pt}\vspace*{-\baselineskip}\vspace*{3.2pt}
+	\rule[0.5ex]{\linewidth}{1pt}\\[\baselineskip]
+	{\Huge \@title }\\[4mm]
+	{\Large \textit{\@subject}}\\
+	\rule[0.5ex]{\linewidth}{1pt}\vspace*{-\baselineskip}\vspace{3.2pt}
+	\rule[0.5ex]{\linewidth}{2pt}\\
+	\vspace{6.5mm}
+	{\large von}\\
+	\vspace{6.5mm}
+	{\LARGE \textsc{\@author}}
+	
+	\vspace{11mm}
+	\includegraphics[width=6cm]{media/uni-bremen}\\
+	\vspace{3mm}
+	{\large Fachbereich 3: Mathematik und Informatik}
+	
+	Bibliothekstraße 1 \\
+	28359 Bremen
+	
+	\vspace{9mm}
+	{\large\textsc{\@date}}
+	\vfill
+    \todo{Gutachter einsetzen.}
+    \begin{tabular}{ll}
+        
+        Erstgutachter:  & Dr. Tim Laue\\
+        Zweitgutachter: & EINSETZEN\\
+    \end{tabular}
+	\vspace{12mm}
+\end{titlepage}
+\makeatother
+\cleardoublepage
+\listoftodos
+% Inhaltsverzeichnis
+\tableofcontents
+
+\listoffigures
+\begingroup
+\let\cleardoublepage\relax
+\listoftables
+\endgroup
+
+% ab hier kommt der Inhalt
+\input{sections/10_introduction.tex}
+\input{sections/20_fundamentals.tex}
+\input{sections/30_complexity.tex}
+\input{sections/40_coding.tex}
+\input{sections/50_evaluations.tex}
+\input{sections/60_prospect.tex}
+
+\printbibliography
+
+\appendix
+\input{sections/90_benchmarks.tex}
+\end{document}

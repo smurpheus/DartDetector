@@ -1,0 +1,93 @@
+%!TEX root = ../thesis.tex
+
+% TikZ
+\usetikzlibrary{matrix,shapes,positioning,calc,fit}
+
+% Captions
+\captionsetup[table]{position=top}
+
+% Umgebungen
+\newtheorem{example}{Beispiel}[chapter]
+\newtheorem{definition}{Definition}[chapter]
+
+% Format für Referenzen
+\newrefformat{chap}{Kapitel~\ref{#1}} 
+\newrefformat{sec}{Abschnitt~\ref{#1}} 
+\newrefformat{subsec}{Abschnitt~\ref{#1}}
+\newrefformat{app}{Anhang~\ref{#1}}
+\newrefformat{fig}{Abbildung~\ref{#1}}
+\newrefformat{tbl}{Tabelle~\ref{#1}}
+\newrefformat{lst}{Listing~\ref{#1}}
+\newrefformat{eql}{Ausdruck~\ref{#1}}
+\newrefformat{algo}{Algorithmus~\ref{#1}}
+\newrefformat{ex}{Beispiel~\ref{#1}}
+\newrefformat{def}{Definition~\ref{#1}}
+\newrefformat{lemma}{Lemma~\ref{#1}}
+
+% Kopf- und Fußzeile
+%i - innen, c - mitte, o - außen; head - Kopfzeile, foot - Fußzeile
+\ihead{}
+\chead{}
+\ohead{\leftmark}
+\ifoot{}
+\cfoot{}
+\ofoot{\pagemark}
+\pagestyle{scrheadings} %eigenen Stil für alle Seiten setzen
+
+\renewcommand{\sectionmark}[1]{\markboth{\thesection\ #1}{}}
+\renewcommand{\subsectionmark}[1]{\markright{#1}}
+\newcommand{\BVAnd}{\mathbin{\sqcap}}
+
+% Symbole und Variablen
+\makeatletter
+\newcommand{\diamonds}{\ensuremath{\diamondsuit}}
+\newcommand{\hearts}{\ensuremath{\heartsuit}}
+\newcommand{\spades}{\ensuremath{\spadesuit}}
+\newcommand{\clubs}{\ensuremath{\clubsuit}}
+\newcommand{\cp}{\@ifstar{cp}{cards\_player}}
+\newcommand{\cs}{\@ifstar{cs}{cards\_skat}}
+\newcommand{\ac}{\@ifstar{ac}{available\_cards}}
+\newcommand{\tp}{\@ifstar{tp}{turn\_player}}
+\newcommand{\trumpd}{trump\_diamonds}
+\newcommand{\trumph}{trump\_hearts}
+\newcommand{\trumps}{trump\_spades}
+\newcommand{\trumpc}{trump\_clubs}
+\newcommand{\trumpg}{trump\_grand}
+\newcommand{\mf}{\@ifstar{mf}{\mathit{must\_follow}}}
+\newcommand{\trick}{\@ifstar{t}{trick}}
+\newcommand{\points}{points}
+\newcommand{\tpoints}{trick\_points}
+\newcommand{\pdec}{\mathit{total\_points\_declarer}}
+\newcommand{\pdef}{\mathit{total\_points\_defenders}}
+\newcommand{\winning}{\mathit{winning}}
+\newcommand{\follow}{\mathit{following}}
+\newcommand{\wahr}{\mathit{wahr}}
+\newcommand{\falsch}{\mathit{falsch}}
+\makeatother
+
+% Abstände
+\renewcommand{\baselinestretch}{1.3} % Zeilenabstand
+\setlength{\parskip}{1.0ex} % Abstand zwischen Absaetzen
+\setlength{\parindent}{0ex} % keine Einrueckung am Anfang eines Absatzes
+
+% Nummerierung
+\setcounter{tocdepth}{2}
+\setcounter{secnumdepth}{3}
+
+% TikZ
+\tikzset{square matrix/.style={
+    matrix of nodes,
+    column sep=-\pgflinewidth, row sep=-\pgflinewidth,
+    nodes={draw,
+      text height=#1/2+0.75ex,
+      text depth=#1/2-0.75ex,
+      text width=#1,
+      align=center,
+      inner sep=0pt,
+      scale=0.8,
+    },
+  },
+  square matrix/.default=1cm,
+  index/.style={column 1/.style={nodes={draw=none}}},
+  vindex/.style={row 1/.style={nodes={draw=none}}},
+}
