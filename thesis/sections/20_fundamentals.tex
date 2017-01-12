@@ -65,11 +65,25 @@ Die weiteren Bestandteile sind optional und nicht zwingend notwendig für den Da
 
 \end{enumerate}
 
-Dart wird im Turniersport in zwei verschiedenen Modi gespielt, welche sich sehr ähneln. Zum einen 501 und zum anderen 301 mit "`Double Out"'.
-Hierbei hat zunächst jeder Spieler einen Pool von genannter Punktzahl. Dieser wird mit jedem erzielten Punkt verringert. Ziel ist es als erster Spieler eine Punktzahl von 0 zu erreichen. Hierbei ist zu beachten, dass genau auf 0 heruntergespielt werden muss. Es ist also nicht möglich bei 10 verbleibenen Punkten eine höhere Punktzahl zu erwerfen. Des weiteren gilt für das Beenden, das dies mit einem Doppel-Feld erzielt werden muss. Somit müsste bei 10 verbleibenen Punkten eine D5 erzielt werden. Zusätzlich ist es auch möglich "`Bull Out"' zu erzielen, also nicht mit einem Doppelfeld abzuschlißen, sondern mit demm "`Bullseye"'. \todo{Quellen einfügen und nachschauen, wann genau Bull möglich ist, und was bei 1 verbleibenen Punkt passiert, bzw. wenn überworfen wird.}
+Dart wird im Turniersport in zwei verschiedenen Modi gespielt, welche sich sehr ähneln. Zum einen gibt es 501 und zum anderen 301 im Modus "`Straight in"'  und  "`Double Out"'.
+
+Beginnend beim sogenannten "`Leg"', hierbei hat zunächst jeder Spieler einen Pool von genannter Punktzahl. Dieser wird mit jedem erzielten Punkt verringert. Ziel ist es als erster Spieler die Punktzahl auf 0 zu reduzieren. Hierbei ist zu beachten, dass genau auf 0 heruntergespielt werden muss. Des weiteren gilt für das Beenden, das dies mit einem Doppel-Feld erzielt werden muss. Zusätzlich ist es auch möglich "`Bull Out"' zu erzielen, also nicht mit einem Doppelfeld abzuschließen, sondern mit dem "`Bullseye"'. Wird die Punktzahl mit einem Wurf, ein Wurf besteht aus den 3 Darts, auf 1 oder in den negativen Bereich gebracht so gilt es als überworfen und wird als "`Bust"' bezeichnet. In diesem Fall wird die Punktzahl vor dem Wurf wiederhergestellt. \autocite[5]{DartsRegel2016} 
+
+Das Leg gewonnen hat der Spieler oder Team, der als erstes auf 0 herunter gespielt hat. Mehrere Legs werden zu einem "`Set"'  zusammengefasst. Der erste Spieler oder Team, der eine definierte Anzahl an Legs gewinnt, gewinnt ein Set. Sets fügen sich wiederum zu einem Match zusammen. Gewonnen ist ein Match von dem Spieler oder Team, das als erstes eine definierte Anzahl an Sets gewinnt.
+
+\begin{example}[Ein Spieler hat 10 Punkte verbleibend] 
+
+Es müsste eine D5 erzielt werden. Um mit dem ersten Dart abzuschließen. Im folgenden verschiedene Szenarien um die Regeln zu veranschaulichen.
+\begin{enumerate}
+	\item Es wird eine D5 geworfen, der Spieler gewinnt somit das Leg
+	\item Es wird eine 8 erzielt. Der zu tilgende Punktestand beträgt somit 2 und es müsste eine D1 erzielt werden, um das Leg zu beenden. Der Spieler trifft im Anschluss die D1 und entscheidet das Leg somit für sich. 
+	\item Es wird eine 8 erzielt. Der zu tilgende Punktestand beträgt somit 2. Statt der D1 wird eine einfach 1 erzielt und somit ist der Wurf ungültig und die Punktzahl wird auf 10 zurück gesetzt.
+\end{enumerate}
+\end{example}
+
 Rechnerisch ist es bei 501 also möglich, mit 9 Darts zu beenden (3xT20, 3xT20, 2xT20+Bullseye) , der sogenannte "`Neun Darter"'.
 
-Die bisher beschriebene Dart Variante ist wird als "`Steeldart"' bezeichnet, da die Darts in der Regel eine Stahlspitze besitzen und einen Metallshaft haben. Dem gegenüber gibt es noch das sogenannte "`Softdart"' \todo{Quelle einfügen}. Beim Softdart wird nicht mit Darts mit Stahlspitzen gespielt, sondern mit Kunststoffspitzen. Dem entsprechend
+Die bisher beschriebene Dart Variante ist wird als "`Steeldart"' bezeichnet, da die Darts in der Regel eine Stahlspitze besitzen und einen Metallshaft haben. Dem gegenüber gibt es noch das sogenannte "`Softdart"' \todo{Quelle einfügen}. Beim Softdart wird nicht mit Darts mit Stahlspitzen gespielt, sondern mit Kunststoffspitzen. Dem entsprechend ist auch das Board ein Kunststoffboard mit vorgefertigten Löchern, in die die Spitzen der Pfeile eindringen können. 
 
 
 
@@ -78,13 +92,28 @@ Die bisher beschriebene Dart Variante ist wird als "`Steeldart"' bezeichnet, da 
 
 \section{Grundlagen Bildverarbeitung}
 \label{sec:basics}
-Das Pinhole Camera Modell sieht wie folgt aus: \autocite{Zhang2000}.
+Im folgenden werden einige Grundlagen beschrieben, die nötig sind um die verwendeten Algorithmen und Vorgehen nachvollziehen zu können. 
+
+Beginnend bei der Entstehung der Verarbeiteten Bilder. Zur Vereinfachung wird vorerst von dem sogenannten "`Pinhole Camera Model"' ausgegangen. In Abbildung \prettyref{Fig:simple-pinhole} ist ein solches Modell zu sehen. 
+
+Mittig ist die Barriere zu sehen in derer sich ein Loch c befindet, durch das die Lichtstrahlen auf die Image Plane I treffen können. Daraus bildet sich ein auf dem Kopf stehendes Bild. c ist hierbei das Zentrum des Koordinatensystem.
+Die Distanz zwischen I und der Barriere (f) ist bei heutigen Kameras die Focal Length. Hierbei gilt es zu bemerken, dass heute Kamera natürlich nicht mehr nur ein Loch besitzen, sondern eine Linse eingesetzt ist, die die Lichtstrahlen auf die Image Plane bündeln. Das grundlegende Modell bleibt aber bestehen. Darauf, wie die Linse das Bild verändert wird später eingegangen. 
+
+Auf diese Weise entsteht eine Abbildung des Punktes P auf der zwei dimensionalen Fläche I. 
+
 \begin{figure}
-\includegraphics[scale =0.75]{media/pinhole_camera_model}\\
+\includegraphics[width=\textwidth]{media/simple-pinhole}\\
+\caption{\textbf{Einfache Darstellung, der Funktionsweise einer einfachen Loch Kamera}
+}
+\label{Fig:simple-pinhole}
+\includegraphics[width=\textwidth]{media/pinhole_camera_model}\\
 \caption{\textbf{Pinhole Camera Modell von.\autocite{OpencvCamera2016}}
 }
 \label{Fig:pinhole}
 \end{figure}
+
+
+
 
 
 \todo{pinhole Camera Modell erläutern}
