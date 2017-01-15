@@ -85,24 +85,21 @@ Rechnerisch ist es bei 501 also möglich, mit 9 Darts zu beenden (3xT20, 3xT20, 
 
 Die bisher beschriebene Dart Variante ist wird als "`Steeldart"' bezeichnet, da die Darts in der Regel eine Stahlspitze besitzen und einen Metallshaft haben. Dem gegenüber gibt es noch das sogenannte "`Softdart"' \todo{Quelle einfügen}. Beim Softdart wird nicht mit Darts mit Stahlspitzen gespielt, sondern mit Kunststoffspitzen. Dem entsprechend ist auch das Board ein Kunststoffboard mit vorgefertigten Löchern, in die die Spitzen der Pfeile eindringen können. 
 
-
-
-\section{Aufbau der Testumgebung}
-\label{sec:setup}
-
 \section{Grundlagen Bildverarbeitung}
 \label{sec:basics}
-Im folgenden werden einige Grundlagen beschrieben, die nötig sind um die verwendeten Algorithmen und Vorgehen nachvollziehen zu können. 
+Im folgenden werden einige Grundlagen beschrieben, die nötig sind um die verwendeten Algorithmen und Vorgehen nachvollziehen zu können. Es wird davon ausgegangen das grundlegende Kenntnisse zum Aufbau eines digitalisierten Bildes vorhanden sind. 
+\subsection{Bildentstehung}
+Beginnend bei der Entstehung der Verarbeiteten Bilder. 
 
-Beginnend bei der Entstehung der Verarbeiteten Bilder. Zur Vereinfachung wird vorerst von dem sogenannten "`Pinhole Camera Model"' ausgegangen. In Abbildung \prettyref{Fig:simple-pinhole} ist ein solches Modell zu sehen. 
+Zur Vereinfachung wird vorerst von dem sogenannten "`Pinhole Camera Model"' ausgegangen. In Abbildung \prettyref{Fig:simple-pinhole} ist ein solches Modell zu sehen. 
 
-Mittig ist die Barriere zu sehen in derer sich ein Loch c befindet, durch das die Lichtstrahlen auf die Image Plane I treffen können. Daraus bildet sich ein auf dem Kopf stehendes Bild. c ist hierbei das Zentrum des Koordinatensystem.
-Die Distanz zwischen I und der Barriere (f) ist bei heutigen Kameras die Focal Length. Hierbei gilt es zu bemerken, dass heute Kamera natürlich nicht mehr nur ein Loch besitzen, sondern eine Linse eingesetzt ist, die die Lichtstrahlen auf die Image Plane bündeln. Das grundlegende Modell bleibt aber bestehen. Darauf, wie die Linse das Bild verändert wird später eingegangen. 
+Mittig ist die Barriere zu sehen in derer sich ein Loch c befindet, durch das die Lichtstrahlen auf die Image Plane I treffen können. Daraus bildet sich ein auf dem Kopf stehendes Bild. $c$ ist hierbei das Zentrum des Koordinatensystem.
+Die Distanz zwischen I und der Barriere $(f)$ ist bei heutigen Kameras die Focal Length. Hierbei gilt es zu bemerken, dass heute Kamera natürlich nicht mehr nur ein Loch besitzen, sondern eine Linse eingesetzt ist, die die Lichtstrahlen brechen und auf die Image Plane lenken. Das grundlegende Modell bleibt aber auch bei heutigen Kameras bestehen. Wie die Linse das Bild verändert wird später eingegangen. 
 
-Auf diese Weise entsteht eine Abbildung des Punktes P auf der zwei dimensionalen Fläche I. 
+Auf diese Weise entsteht eine Abbildung des Punktes $P$ auf der zwei dimensionalen Fläche $I$. Sind alle Parameter bekannt lässt sich folglich bestimmten, wo der Punkt $P$ später im Bild zu sehen sein wird. 
 
 \begin{figure}
-\includegraphics[width=\textwidth]{media/simple-pinhole}\\
+\includegraphics[width=\textwidth]{media/simple-pinhole.png}\\
 \caption{\textbf{Einfache Darstellung, der Funktionsweise einer einfachen Loch Kamera}
 }
 \label{Fig:simple-pinhole}
@@ -112,11 +109,36 @@ Auf diese Weise entsteht eine Abbildung des Punktes P auf der zwei dimensionalen
 \label{Fig:pinhole}
 \end{figure}
 
+In Abbildung \prettyref{Fig:pinhole} ist eine andere Betrachtungsweise zu sehen. Hier wurde die Image Plane rotiert und vor den Koordinatenursprung verschoben. Zu sehen sind hier die Achsen u und v, welche X- und Y-Achse des entsprechen. Rot markiert ist zu sehen wie sich der Objekt- oder Welt-Punkt auf der Image Plan am Punkt $(u, v)$ abbildet. Auf der Image Plane befindet sich in heutigen Kameras in der Regel ein Rasterlichtsensor der die Analogen Lichtsignale zu einem Digitalen Bild umwandelt. 
+
+Entlang der Z-Achse des Kamera-Koordinatensystems ist die optische Achse. Der Punkt $(c_x,c_y)$, in dem die optische Achse die Image Plane schneidet ist der "`principal point"', oder das "`Centre"' \autocite[8]{Medioni:2004:ETC:993884}
+
+Nun gilt es eine mathematische Abbildung zu finden um den Objekt Punkt zu dem Bildpunkt zu transformieren. Folglich muss eine Rotation und eine Transformation vorgenommen werden.
+Die Rotationsmatrix mit dem Namen $R$ und die Transformationsmatrix $t$. Diese Bilden die extrinsischen Parameter der Kamera. Dies bestimmt, wo die Kamera sich im Raum im Verhältnis zu einem Objekt befindet. Anhand dieser Parameter kann ein  Objekt Punkt $P = \begin{bmatrix}X & Y& Z \\\end{bmatrix}^\intercal$ in das Kamera Koordinatensystem übertragen werden, in den Punkt $ k = \begin{bmatrix}x & y& z \\\end{bmatrix}^\intercal$. Damit gilt: 
+$k = R * P + t$ 
+
+Nun gilt es den Punkt im Kamera Koordinatensystem zum tatsächlichen Bildpunkt $m=(u,v)$ zu übertragen. Hierfür müssen die intrinsischen Parameter der Kamera. Diese bleibt bei einer spezifischen Kamera bestehen, vorausgesetzt die Linse ist starr und nicht fokussierbar, ansonsten müssen diese Parameter erneut bestimmt werden.
+Zu diesem Parameter zählen die bereits erwähnte focal length und das Centre der Kamera. Wie bereits vorher erwähnt wirkt sich die Linse der Kamera auf das Bild aus. Die Linse verursacht eine Verzerrung des Bildes. Zum einen eine radiale Verzerrung und zum anderen eine Verschiebung. 
+\todo{Bilder einfügen als Beispiel}
+Um nun den tatsächlichen Bildpunkt zu erhalten, müssen also noch diese Parameter berücksichtigt werden. Damit ergibt sich:
+$sk = A [R | t] * P 
+$
+wobei $A = \begin{bmatrix} f_x & \gamma & c_x \\
+                             0 &  f_y   & c_y \\
+                             0 &  0     &  1\end{bmatrix}$ und $s$ ein Skalierungsfaktor ist, abhängig von der Auflösung. $\gamma$ gibt an in welchem Winkel die Image Plane zum Kamera Koordinatensystem rotiert ist. Zuletzt wird nun der eigentliche Bildpunkt, bzw. Pixel errechnet, indem $m=(x/z, y/z)=(u,v)$.
 
 
 
+\subsection{Programmierung von Computer Vision}
+Damit all diese Zusammenhänge nicht manuell errechnet und implementiert werden müssen gibt es die open source Computer Vision Library (OpenCV). Dies ist eine größtenteils in C\# und C++  geschriebene Bibliothek, welche anfänglich von Intel entwickelt wurde. \textbf{\autocite[512--]{Medioni:2004:ETC:993884} }Einige Gründe hierfür waren der Wunsch der Forschungsgemeinschaft zu ermöglichen neue Anwendungen implementieren zu können ohne sich um die Basis kümmern zu müssen. Damit bietet OpenCV auch Möglichkeiten um eine Kamera mit einfachen Mitteln kalibrieren zu können. Auf das Vorgehen dabei wird in \prettyref{sec:camera} eingegangen.
 
-\todo{pinhole Camera Modell erläutern}
+Für OpenCV sind Kopplungen zu anderen Sprachen implementiert worden. So ist es möglich OpenCV in Java und Python zu nutzen. 
 \todo{opencv Benutzung erklären}
-OpenCV ist eine \autocite[512--]{Medioni:2004:ETC:993884}
+
+
+\section{Aufbau der Testumgebung}
+\label{sec:setup}
+Im folgenden ein kurzer Abriss über die Umgebung, die als Basis diente um die Entwicklung für diese Arbeit vorzunehmen. 
+
+
 
