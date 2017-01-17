@@ -7,12 +7,12 @@ In diesem Kapitel werden die Grundlagen erläutert, die für das Verständnis di
 
 Zum einen werden in \prettyref{sec:darts} die Grundlagen des Dartsportes erläutert, auf deren Wesen die Idee dieser Abhandlung fußt. Dabei wird vom Dartboard bis zu den Darts und den allgemeinen Turnierregeln ein Überblick gegeben, um den Nutzen und die Motivation verständlicher zu machen.
 
-Anschließend wird im \prettyref{sec:setup} das genutzte Testsetup dargestellt, welche für die praktische Implementierung genutzt wird.
-
 Weiterhin werden grundlegende Informationen der Bildverarbeitung vermittelt im \prettyref{sec:basics}. Es wird ebenfalls ein Überblick über die verwendeten Bibliotheken zur Implementierung gegeben.
+
+Anschließend wird im \prettyref{sec:setup} das genutzte Testsetup dargestellt, welche für die praktische Implementierung genutzt wird.
 \section{Dartsport}
 \label{sec:darts}
-Der Dartsport hat im Jahr 1920 eine erste Standardisierung erhalten. Die 1924 gegründete "`National Dart Association"' hat diesen zum Standard ihrer Liga erklärt \autocite[5]{guide2013}. Diese Standardisierung findet sich in vielen heutigen Regelwerken der verschiedenen Verbänden wieder. Auch in der Sport- und Wettkampfordnung des Deutschen
+Darts ist ein Spiel, das eine gute Geschicklichkeit und ein gutes Maß an Auge-Hand-Koordination erfordert. Dabei werden Pfeile,genannt Dart, mit der Hand auf eine Zielscheibe geworfen und Punkte erzielt. Damit es eine Regulierung über das Spielmaterial gibt hat der Dartsport im Jahr 1920 eine erste Standardisierung erhalten. Die 1924 gegründete "`National Dart Association"' hat diesen zum Standard ihrer Liga erklärt \autocite[5]{guide2013}. Diese Standardisierung findet sich in vielen heutigen Regelwerken der verschiedenen Verbänden wieder. Auch in der Sport- und Wettkampfordnung des Deutschen
 Dart-Verband (DDV) \autocite{DartsRegel2016}. Aus dieser sind die Folgenden Erklärungen und Reglungen entnommen. 
 
 Zunächst einmal zum Dartboard, das heutzutage genutzte Dartboard ist in Abbildung\prettyref{Fig:dartboard} zu sehen. In seiner heutigen Form wurde es zum Zeitpunkt der Standardisierung 1924 geschaffen. Die Größe des gesamten Boardes und der einzelnen Felder ist hierbei normiert und Standard. Wie in Abbildung \prettyref{Fig:dartboard} abzulesen. 
@@ -88,7 +88,7 @@ Die bisher beschriebene Dart Variante ist wird als "`Steeldart"' bezeichnet, da 
 \section{Grundlagen Bildverarbeitung}
 \label{sec:basics}
 Im folgenden werden einige Grundlagen beschrieben, die nötig sind um die verwendeten Algorithmen und Vorgehen nachvollziehen zu können. Es wird davon ausgegangen das grundlegende Kenntnisse zum Aufbau eines digitalisierten Bildes vorhanden sind. 
-\subsection{Bildentstehung}
+\subsection{Physik und Geometrie einer Kamera}
 Beginnend bei der Entstehung der Verarbeiteten Bilder. 
 
 Zur Vereinfachung wird vorerst von dem sogenannten "`Pinhole Camera Model"' ausgegangen. In Abbildung \prettyref{Fig:simple-pinhole} ist ein solches Modell zu sehen. 
@@ -118,8 +118,15 @@ Die Rotationsmatrix mit dem Namen $R$ und die Transformationsmatrix $t$. Diese B
 $k = R * P + t$ 
 
 Nun gilt es den Punkt im Kamera Koordinatensystem zum tatsächlichen Bildpunkt $m=(u,v)$ zu übertragen. Hierfür müssen die intrinsischen Parameter der Kamera. Diese bleibt bei einer spezifischen Kamera bestehen, vorausgesetzt die Linse ist starr und nicht fokussierbar, ansonsten müssen diese Parameter erneut bestimmt werden.
-Zu diesem Parameter zählen die bereits erwähnte focal length und das Centre der Kamera. Wie bereits vorher erwähnt wirkt sich die Linse der Kamera auf das Bild aus. Die Linse verursacht eine Verzerrung des Bildes. Zum einen eine radiale Verzerrung und zum anderen eine Verschiebung. 
-\todo{Bilder einfügen als Beispiel}
+Zu diesem Parameter zählen die bereits erwähnte focal length und das Centre der Kamera. Wie bereits vorher erwähnt wirkt sich die Linse der Kamera auf das Bild aus. Die Linse verursacht eine Verzerrung des Bildes. Zum einen eine radiale Verzerrung, ein Beispiel zur Verdeutlichung ist in Abbildung \prettyref{Fig:radialdistortion}. Radiale Verzerrung ist auch als "`Fish Eye"' bekannt. Zum anderen gibt es eine Verschiebung (tangential distortion). 
+
+\begin{figure}
+\includegraphics[width=\textwidth]{media/distortion_examples}\\
+\caption{\textbf{Radiale Verzerrung Beispiel \autocite{OpencvCamera2016}}
+}
+\label{Fig:radialdistortion}
+\end{figure}
+
 Um nun den tatsächlichen Bildpunkt zu erhalten, müssen also noch diese Parameter berücksichtigt werden. Damit ergibt sich:
 $sk = A [R | t] * P 
 $
@@ -130,9 +137,10 @@ wobei $A = \begin{bmatrix} f_x & \gamma & c_x \\
 
 
 \subsection{Programmierung von Computer Vision}
-Damit all diese Zusammenhänge nicht manuell errechnet und implementiert werden müssen gibt es die open source Computer Vision Library (OpenCV). Dies ist eine größtenteils in C\# und C++  geschriebene Bibliothek, welche anfänglich von Intel entwickelt wurde. \textbf{\autocite[512--]{Medioni:2004:ETC:993884} }Einige Gründe hierfür waren der Wunsch der Forschungsgemeinschaft zu ermöglichen neue Anwendungen implementieren zu können ohne sich um die Basis kümmern zu müssen. Damit bietet OpenCV auch Möglichkeiten um eine Kamera mit einfachen Mitteln kalibrieren zu können. Auf das Vorgehen dabei wird in \prettyref{sec:camera} eingegangen.
+Da es viele Basisprobleme und Anwendungen in der Computer Vision gibt wurde eine open source Library implementiert. Die geläufigste ist die Open Source Computer Vision Library, kurz OpenCV, sie wurde unter BSD Lizenz veröffentlicht, sodass sie nahezu ohne Einschränkungen genutzt werden kann. Die Bibliothek ist größtenteils in C\# und C++  geschrieben und wurd anfänglich von Intel entwickelt wurde. \textbf{\autocite[512--]{Medioni:2004:ETC:993884} }Einige Gründe hierfür waren der Wunsch der Forschungsgemeinschaft zu ermöglichen neue Anwendungen implementieren zu können ohne sich um die grundlegende Implementierung kümmern zu müssen. So bietet OpenCV auch Möglichkeiten um eine Kamera mit einfachen Mitteln kalibrieren zu können. Auf das Vorgehen dabei wird in \prettyref{sec:camera} eingegangen.
+Die Bibliothek ist auf allen Gängigen Betriebssystemen verfügbar, so gibt eine Windows, Linux/Mac Version. Zudem gibt es für mobile Applikationen noch eine Unterstützung von Android.
 
-Für OpenCV sind Kopplungen zu anderen Sprachen implementiert worden. So ist es möglich OpenCV in Java und Python zu nutzen. 
+Für OpenCV sind Interfaces zu anderen Sprachen implementiert worden. So ist es möglich OpenCV in Java und Python zu nutzen. \autocite{OpenCV2016} Insgesamt werden rund 2500 optimierte Algorithmen angeboten, hierzu zählen Algorithmen im Bereich Maschine Learning, 3D Objekt Erkennung, Gesichtserkennung und vielem mehr. Zudem befinden sich Interfaces zu nVIDIAS CUDA, eine Bibliothek zur Parallelen Berechnung \autocite{cuda2017}, und zu OpenCL aktuell in der aktiven Entwicklung.
 \todo{opencv Benutzung erklären}
 
 
