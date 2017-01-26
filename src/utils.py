@@ -915,6 +915,7 @@ class Camera:
                         corners2 = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
                         imgpoints.append(corners)
                         cv2.drawChessboardCorners(frame, (chess_w, chess_h), corners2, ret)
+                        cv2.imwrite('./drawncalib/%s'%fname.split('/')[-1], frame)
                         cv2.imshow("Calibration Window", frame)
                         cv2.waitKey(1)
             # print("Objpoints %s" % objpoints)

@@ -9,7 +9,7 @@ Anfänglich werden einmalige Vorbereitungsschritte aufgeschlüsselt, hierzu geh�
 
 Darauf folgt in \prettyref{sec:board} die Kalibrierung und die Erkennung der Felder des Dartboardes. Es werden verschiedene getestete Ansätze erörtert und ihre Vor- und Nachteile dargestellt.
 
-Des Weiteren werden die einzelnen Abschnitte der Pipeline näher beleuchtet und auf die Implementierung und das Vorgehen eingegangen. Dies umfasst von der Segmentierung der Dinge, die nicht zum Dartboard gehören in \prettyref{sec:segmentation}. Bis hin zur konkreten Bestimmung der erzielten Punktzahl in \prettyref{sec:score}. 
+Des Weiteren werden die einzelnen Abschnitte der Pipeline näher beleuchtet und auf die Implementierung und das Vorgehen eingegangen. Dies umfasst von der Segmentierung der Dinge, die nicht zum Dartboard gehören in \prettyref{sec:substraction}. Bis hin zur konkreten Bestimmung der erzielten Punktzahl in \prettyref{sec:score}. 
 \todo{Umsetzung einteilen und implementieren}
        
 \section{Pipeline Überblick}
@@ -44,14 +44,15 @@ Es gibt mehrere verschiedene Möglichkeiten eine Kalibrierung der Kamera vorzune
 
 So muss für jede dieser Varianten bestimmte Features und deren Position bekannt sein. Dies ist bei einem 3D-Objekt schwieriger zu bestimmen, als bei einer Ebene. Daher wurde der Einfachheit halber auf die Ebene zurückgegriffen. 
 \begin{figure}
-\includegraphics[width=\textwidth]{media/calibraw1.jpg}\\
+\subfloat[Bild1]{\includegraphics[width=0.5\textwidth]{media/calibraw1.jpg}}\qquad
+\subfloat[Bild2]{\includegraphics[width=0.5\textwidth]{media/calibrated1.jpg}\\}
 \caption{\textbf{Eines der zur Kalibrierung genutzten Bilder}}
 \label{Fig:calibplane}
-\includegraphics[width=\textwidth]{media/calibraw1.jpg}\\
-\caption{\textbf{Erkannte Feature Punkte/Schnittpunkte}}
-\label{Fig:calibplanefeature}
+
+%\caption{\textbf{Erkannte Feature Punkte/Schnittpunkte}}
+%\label{Fig:calibplanefeature}
 \end{figure}
-In Abbildung \prettyref{Fig:calibplane} ist eines der Bilder zu sehen, mit denen die zum Test der Implementierung genutzten Kamera kalibriert wurde. Dies ist ein Muster von $9x6$ Schnittpunkten. In Abbildung \prettyref{Fig:calibplanefeature} \todo{korrektes Bild einfügen} sind die erkannten Feature-Punkte eingezeichnet. Für dieses Schachbrettmuster ist der Abstand der einzelnen Schnittpunkte durch ausmessen bekannt und mit $26mm$ Abstand entlang der Graden voneinander gegeben. 
+In Abbildung \prettyref{Fig:calibplane} ist eines der Bilder zu sehen, mit denen die zum Test der Implementierung genutzten Kamera kalibriert wurde. Dies ist ein Muster von $9x6$ Schnittpunkten. In Abbildung \prettyref{Fig:calibplane} \todo{korrektes Bild einfügen} sind die erkannten Feature-Punkte eingezeichnet. Für dieses Schachbrettmuster ist der Abstand der einzelnen Schnittpunkte durch ausmessen bekannt und mit $26mm$ Abstand entlang der Graden voneinander gegeben. 
 
 Wie bereits beschrieben wird OpenCV \prettyref{sec:opencv} zur Implementierung genutzt. OpenCV bietet einige Funktionen um die Kamera Kalibrierung durchzuführen. Die Dokumentation von OpenCV3 \autocite{Opencv3Camera2016} zeigt die dafür zur Verfügung gestellten Funktionen. 
 \begin{lstlisting}[frame=single]
