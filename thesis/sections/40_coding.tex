@@ -52,7 +52,7 @@ So muss für jede dieser Varianten bestimmte Features und deren Position bekannt
 %\caption{\textbf{Erkannte Feature Punkte/Schnittpunkte}}
 %\label{Fig:calibplanefeature}
 \end{figure}
-In Abbildung \prettyref{Fig:calibplane} ist eines der Bilder zu sehen, mit denen die zum Test der Implementierung genutzten Kamera kalibriert wurde. Dies ist ein Muster von $9x6$ Schnittpunkten. In Abbildung \prettyref{Fig:calibplane} \todo{korrektes Bild einfügen} sind die erkannten Feature-Punkte eingezeichnet. Für dieses Schachbrettmuster ist der Abstand der einzelnen Schnittpunkte durch ausmessen bekannt und mit $26mm$ Abstand entlang der Graden voneinander gegeben. 
+In Abbildung \prettyref{Fig:calibplane} ist auf der linken Seite eines der Bilder zu sehen, mit denen die zum Test der Implementierung genutzten Kamera kalibriert wurde. Dies ist ein Muster von $9x6$ Schnittpunkten. Auf der rechten Seite sind die erkannten Feature-Punkte eingezeichnet. Für dieses Schachbrettmuster ist der Abstand der einzelnen Schnittpunkte durch ausmessen bekannt und mit $26mm$ Abstand entlang der Graden voneinander gegeben. 
 
 Wie bereits beschrieben wird OpenCV \prettyref{sec:opencv} zur Implementierung genutzt. OpenCV bietet einige Funktionen um die Kamera Kalibrierung durchzuführen. Die Dokumentation von OpenCV3 \autocite{Opencv3Camera2016} zeigt die dafür zur Verfügung gestellten Funktionen. 
 \begin{lstlisting}[frame=single]
@@ -87,15 +87,33 @@ Damit der Kalibrierungsvorgang nicht zu jedem Start der Software durchgeführt w
 
 \section{Erkennung des Dartboards}
 \label{sec:board}
-Stage 1 Board finden:
-     mehrere Ansätze
-     Blobs des boardes erkennen
-     Felder Kanten erkennen
-     Board Kalibrieren als Erweiterung der Kamera Kalibrierung
+\begin{itemize}
+\item     mehrere Ansätze
+\item     Blobs des boardes erkennen
+\item     Felder Kanten erkennen
+\item     Board Kalibrieren als Erweiterung der Kamera Kalibrierung
         
-        Dartboard Koordinaten bestimmen im Verhältnis zur Kamera.
-       Eigentliche Kalibrierung via klicken,
-       wie viele Punkte sind nötig
+\item        Dartboard Koordinaten bestimmen im Verhältnis zur Kamera. Eigentliche Kalibrierung via klicken,
+\item       wie viele Punkte sind nötig
+
+\end{itemize}
+Im Laufe der Implementierung wurden verschiedene Ansätze getestet, um das Dartboard und die Felder zu erkennen. Einige der Ansätze wurden verworfen, da sie nicht  zum gewünschten Ergebnis führten. Dabei wurde bei allen Ansätzen grundsätzlich ein gemeinsames Vorgehen verfolgt. So wird kein vollautomatischer Ansatz verfolgt, sonder auf eine Kalibrierung durch den Nutzer zurückgegriffen. 
+
+Im ersten Ansatz war die Grundidee, den farblichen Unterschied der Felder zu nutzen. So sind die einfachen Felder, entweder schwarz oder weiß. Zudem haben Doppel- und Tripplefelder bei weißen Feldern eine grüne Farbe und bei schwarzen eine rote Farbe. 
+Jedes der Felder, des Dartboards hat also eine von 4 Farben. 
+
+Der Nutzer wird via GUI gebeten jeweils bestimmte Felder im Bild anzuklicken. So kann nicht nur der tatsächliche Farbwert ermittelt werden, sondern auch die Position bestimmter Felder im Bild. Anhand der Information und des Wissens über die Anordnung der Felder eines Dartboards kann dann also bestimmt werden welches Feld sich relativ zu den angeklickten befindet. 
+\begin{figure}[ht]
+\subfloat[Ausgangsbild]{\includegraphics[width=0.48\textwidth]{media/undetected.png}}\qquad
+\subfloat[grüne Felder]{\includegraphics[width=0.48\textwidth]{media/greendetected.png}}\\
+\subfloat[rote Felder]{\includegraphics[width=0.48\textwidth]{media/reddetected.png}}\qquad
+\subfloat[schwarze Felder]{\includegraphics[width=0.48\textwidth]{media/blackdetected.png}}
+\caption{\textbf{Ausgangsbild und verschiedene Farbfilter}}
+\label{Fig:dartblobs}
+\end{figure}
+In Abbildung \prettyref{Fig:dartblobs} ist ein Beispiel dafür zu sehen. Hier wurde im Ausgangsbild ein grünes, ein rotes und ein schwarzes Feld ausgewählt. Nun ist bereits im Bild \textbf{(d)} eines der aufgetretenen Probleme zu erkennen. Bei schwarzen und weißen Feldern kann es durch farbliche Nähe und den nicht komplett einfarbigen Feldern zu Unschärfe und Rauschen kommen. Zudem können Schatten und andere widrige Lichtverhältnisse ebenfalls sehr störend sein, da in diesem Fall die Farbwerte gleicher Felder stark abweichen können. 
+Zur Bestimmung wurde ein einfaches Tresholding auf dem Ausgangsbild gemacht. Also alle Pixel in einem bestimmten Farbbereich werden in ein neues Bild übertragen, in diesem Fall ein binär Bild.
+Aus diesem Grund wurde ein weiterer Ansatz getestet.
 
 
 \section{Extraktion des Vordergrundes}
