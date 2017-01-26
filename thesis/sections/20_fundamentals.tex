@@ -89,6 +89,7 @@ Die bisher beschriebene Dart Variante ist wird als "`Steeldart"' bezeichnet, da 
 \label{sec:basics}
 Im folgenden werden einige Grundlagen beschrieben, die nötig sind um die verwendeten Algorithmen und Vorgehen nachvollziehen zu können. Es wird davon ausgegangen das grundlegende Kenntnisse zum Aufbau eines digitalisierten Bildes vorhanden sind. 
 \subsection{Physik und Geometrie einer Kamera}
+\label{sec:camerageo}
 Beginnend bei der Entstehung der Verarbeiteten Bilder. 
 
 Zur Vereinfachung wird vorerst von dem sogenannten "`Pinhole Camera Model"' ausgegangen. In Abbildung \prettyref{Fig:simple-pinhole} ist ein solches Modell zu sehen. 
@@ -137,6 +138,7 @@ wobei $A = \begin{bmatrix} f_x & \gamma & c_x \\
 
 
 \subsection{Programmierung von Computer Vision}
+\label{sec:opencv}
 Da es viele Basisprobleme und Anwendungen in der Computer Vision gibt wurde eine open source Library implementiert. Die geläufigste ist die Open Source Computer Vision Library, kurz OpenCV, sie wurde unter BSD Lizenz veröffentlicht, sodass sie nahezu ohne Einschränkungen genutzt werden kann. Die Bibliothek ist größtenteils in C\# und C++  geschrieben und wurd anfänglich von Intel entwickelt wurde. \textbf{\autocite[512--]{Medioni:2004:ETC:993884} }Einige Gründe hierfür waren der Wunsch der Forschungsgemeinschaft zu ermöglichen neue Anwendungen implementieren zu können ohne sich um die grundlegende Implementierung kümmern zu müssen. So bietet OpenCV auch Möglichkeiten um eine Kamera mit einfachen Mitteln kalibrieren zu können. Auf das Vorgehen dabei wird in \prettyref{sec:camera} eingegangen.
 Die Bibliothek ist auf allen Gängigen Betriebssystemen verfügbar, so gibt eine Windows, Linux/Mac Version. Zudem gibt es für mobile Applikationen noch eine Unterstützung von Android.
 
