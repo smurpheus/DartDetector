@@ -112,8 +112,19 @@ Der Nutzer wird via GUI gebeten jeweils bestimmte Felder im Bild anzuklicken. So
 \label{Fig:dartblobs}
 \end{figure}
 In Abbildung \prettyref{Fig:dartblobs} ist ein Beispiel dafür zu sehen. Hier wurde im Ausgangsbild ein grünes, ein rotes und ein schwarzes Feld ausgewählt. Nun ist bereits im Bild \textbf{(d)} eines der aufgetretenen Probleme zu erkennen. Bei schwarzen und weißen Feldern kann es durch farbliche Nähe und den nicht komplett einfarbigen Feldern zu Unschärfe und Rauschen kommen. Zudem können Schatten und andere widrige Lichtverhältnisse ebenfalls sehr störend sein, da in diesem Fall die Farbwerte gleicher Felder stark abweichen können. 
-Zur Bestimmung wurde ein einfaches Tresholding auf dem Ausgangsbild gemacht. Also alle Pixel in einem bestimmten Farbbereich werden in ein neues Bild übertragen, in diesem Fall ein binär Bild.
-Aus diesem Grund wurde ein weiterer Ansatz getestet.
+Zur Bestimmung wurde ein einfaches Tresholding auf dem Ausgangsbild gemacht. Also alle Pixel in einem bestimmten Farbbereich werden in ein neues Bild übertragen, in diesem Fall ein binär Bild. Auf diesem können dann Kontur-Erkennung und andere Algorithmen genutzt werden, um die zu einem Feld gehörigen Pixel zuzuordnen.
+
+
+Aus dem Grund der Anfälligkeit und Ungenauigkeit wurde ein weiterer Ansatz getestet.
+In diesem Ansatz wurde ebenfalls auf eine Interaktion mit dem Nutzer zurückgegriffen.
+Hierbei wurde genutzt, dass die Ausmaße der Dartboards standardisiert sind. So kann ein Modell eines Dartboardes implementiert werden. Dies entspricht einer Ebene, auf der die Schnittpunkte zwischen den Ringen und der Feldabgrenzung. Abbildung \prettyref{Fig:dartmodel} \todo{korrektes Bild einfügen} wird dem Nutzer zur Kalibrierung angezeigt. Ausgegangen wird hier von einem Dartboard-Koordinatensystem, das den Ursprung in der Mitte des Boards hat.  
+\begin{figure}
+\includegraphics[width=\textwidth]{media/pipeline.png}\\
+\caption{\textbf{Modell des Dartboards}}
+\label{Fig:dartmodel}
+\end{figure}
+
+
 
 
 \section{Extraktion des Vordergrundes}
