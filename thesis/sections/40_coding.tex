@@ -87,16 +87,15 @@ Damit der Kalibrierungsvorgang nicht zu jedem Start der Software durchgeführt w
 
 \section{Erkennung des Dartboards}
 \label{sec:board}
-\begin{itemize}
-\item     mehrere Ansätze
-\item     Blobs des boardes erkennen
-\item     Felder Kanten erkennen
-\item     Board Kalibrieren als Erweiterung der Kamera Kalibrierung
-        
-\item        Dartboard Koordinaten bestimmen im Verhältnis zur Kamera. Eigentliche Kalibrierung via klicken,
-\item       wie viele Punkte sind nötig
-
-\end{itemize}
+%\begin{itemize}
+%\item     mehrere Ansätze
+%\item     Blobs des boardes erkennen
+%\item     Felder Kanten erkennen
+%\item     Board Kalibrieren als Erweiterung der Kamera Kalibrierung
+%        
+%\item        Dartboard Koordinaten bestimmen im Verhältnis zur Kamera. Eigentliche Kalibrierung via klicken,
+%\item       wie viele Punkte sind nötig
+%\end{itemize}
 Im Laufe der Implementierung wurden verschiedene Ansätze getestet, um das Dartboard und die Felder zu erkennen. Einige der Ansätze wurden verworfen, da sie nicht  zum gewünschten Ergebnis führten. Dabei wurde bei allen Ansätzen grundsätzlich ein gemeinsames Vorgehen verfolgt. So wird kein vollautomatischer Ansatz verfolgt, sonder auf eine Kalibrierung durch den Nutzer zurückgegriffen. 
 
 Im ersten Ansatz war die Grundidee, den farblichen Unterschied der Felder zu nutzen. So sind die einfachen Felder, entweder schwarz oder weiß. Zudem haben Doppel- und Tripplefelder bei weißen Feldern eine grüne Farbe und bei schwarzen eine rote Farbe. 
@@ -117,33 +116,157 @@ Zur Bestimmung wurde ein einfaches Tresholding auf dem Ausgangsbild gemacht. Als
 
 Aus dem Grund der Anfälligkeit und Ungenauigkeit wurde ein weiterer Ansatz getestet.
 In diesem Ansatz wurde ebenfalls auf eine Interaktion mit dem Nutzer zurückgegriffen.
-Hierbei wurde genutzt, dass die Ausmaße der Dartboards standardisiert sind. So kann ein Modell eines Dartboardes implementiert werden. Dies entspricht einer Ebene, auf der die Schnittpunkte zwischen den Ringen und der Feldabgrenzung. Abbildung \prettyref{Fig:dartmodel} \todo{korrektes Bild einfügen} wird dem Nutzer zur Kalibrierung angezeigt. Ausgegangen wird hier von einem Dartboard-Koordinatensystem, das den Ursprung in der Mitte des Boards hat.  
+Hierbei wurde genutzt, dass die Ausmaße der Dartboards standardisiert sind. So kann ein Modell eines Dartboards implementiert werden. Dies entspricht einer Ebene, auf der die Schnittpunkte zwischen den Ringen und der Feldabgrenzung liegen. Abbildung \prettyref{Fig:dartmodel} wird dem Nutzer zur Kalibrierung angezeigt. Ausgegangen wird hier von einem Dartboard-Koordinatensystem, das den Ursprung in der Mitte des Boards hat.  
 \begin{figure}
-\includegraphics[width=\textwidth]{media/pipeline.png}\\
+\centering
+\includegraphics[width=0.5\textwidth]{media/confighints.jpg}\\
 \caption{\textbf{Modell des Dartboards}}
 \label{Fig:dartmodel}
 \end{figure}
+Die in der Abbildung markierten Punkte sollen vom Nutzer im Kamerabild markiert werden. 
+Diese Punkte sind im Board-Koordinatensystem folgende:
+$P_1 = \begin{bmatrix}0& 0& 0 \\\end{bmatrix}^\intercal 
+P_2 = \begin{bmatrix}142.56& 72.64& 0 \\\end{bmatrix}^\intercal\\
+P_3 = \begin{bmatrix}25.03& -158.03& 0 \\\end{bmatrix}^\intercal
+P_4 = \begin{bmatrix}-113.14& 113.14& 0 \\\end{bmatrix}^\intercal$.
+Zum einen wurde das Zentrum $(P_1)$ gewählt und zum anderen Punkte $P_2,P_3,P_4$ auf dem Dartboard verteilt. Mit Hilfe des Nutzers wird so eine Zuordnung zwischen den Objektpunkten und Bildpunkten erstellt. Parallel zur in \prettyref{sec:camera} erläuterten Kamera-Kalibrierung kann nun aus aus diesen beiden zueinander gehörigen Punkten eine Translations- und eine Rotationsmatrix errechnet werden. Hierbei wird auf die bereits abgeschlossene Bestimmung der intrinsischen Parameter der Kamera zurückgegriffen. Die bereits bestimmten Parameter werden genutzt und in der Berechnung der resultierenden Matrizen berücksichtigt. Hierbei wird die in OpenCV implementierte Funktion \textit{solvePnP(objectPoints, imagePoints, cameraMatrix, distCoeffs)} genutzt. Diese ermöglicht die Berechnung der Matrizen aus bereits aufgezählten Parametern. Übergeben werden:
+\begin{itemize}
+\item \textbf{objectPoints:} Punkte $P_1$ bis $P_4$ im Boardkoordinatensystem
+\item \textbf{imagePoints:} Die Bildkoordinaten der vom Nutzer angeklickten Pixel
+\item \textbf{cameraMatrix:} Intrinsische Parameter, entsprechend Matrix $A$ aus \prettyref{sec:camera}
+\item \textbf{distCoeffs:} Verzerrungsparameter ebenfalls durch Kamerakalibrierung bestimmt 
+\end{itemize}
+Mithilfe dieser Matrizen, kann nun der zu einem Bildpunkt assoziierte Objektpunkt berechnet werden. Aus dem Objektpunkt kann dann Anhand des Modelles des Dartboards die Punktzahl ermittelt werden. 
 
-[[0, 0], [142.56104387013886, 72.638479958327494], [25.029514406436956, -158.03013449522203], [-113.13708498984764, 113.13708498984758]]
-
+Rückblickend auf die Kamera-Kalibrierung und in diesem Kapitel beschriebene Dartboard-Kalibrierung sind noch Optimierungen möglich. Aufgrund der bekannten Ausmaße des Dartboards könnte auch dessen Muster zur Bestimmung der intrinsischen Parameter der Kamera  genutzt werden. Dafür müssten im Idealfall alle Schnittpunkte zwischen Ringen und Feldlinien im Kamerabild erkannt und assoziiert werden können. Ein dabei aufgetretenes Problem ist, dass die Kanten nicht eindeutig erkannt werden können. Der Grund liegt in der Beschaffenheit des Dartboardes, so ist die Abgrenzung der Felder nicht scharf genug und besitzt eine gewisse Breite. Weiterführend wäre es also denkbar, dass die Schritte der Kamera- und Dartboard-Kalibrierung zusammengefasst würden. 
 
 
 
 \section{Extraktion des Vordergrundes}
 \label{sec:substraction}
-Stage 3 Vordergrund von Hintergrund trennen
-Foreground detection naiver Ansatz und Algorithmen
-Parameter Erklärung
-Vereinfachung und Annahmen
-Aufgetretene Problematik
+Nachdem der Hintergrund, also das Dartboard erkannt und einem Modell zugeordnet wurde müssen nun die Darts selbst erkannt werden. Das Dartboard bildet dabei den statischen Hintergrund, während die Darts den sich verändernden Vordergrund des Bildes darstellen. 
+In den bisherigen Abschnitten wurden einzelne Kamerabilder betrachtet. Im folgenden wird von einem Video, bzw. einem Live-Bild der Kamera ausgegangen.
+
+Background-Substraction Algorithmen basieren auf einer gemeinsamen Idee.
+Grundsätzlich werden dabei 3 Schritte angewandt:
+\begin{enumerate}
+\item Hintergrundmodell erstellen \textit{Abbildung (\prettyref{Fig:background} a)}
+\item Aktuelles Bilder mit dem Modell vergleichen, bzw. Hintergrund von dem Modell abziehen \textit{(Abbildung \prettyref{Fig:background} b)}
+\item Daten eventuell nachbearbeiten
+\item Vordergrund-Maske ausgeben \textit{(Abbildung \prettyref{Fig:background} c)}
+\item Schritt 2.
+\end{enumerate}
+Hierbei ist der 3. Schritt eine optionale Möglichkeit um das Ergebnis zu verbessern. 
+Der 5. Schritt soll dabei nur andeuten, dass sich das Vorgehen für jedes neue Bild, des Videos bzw. Live-Bilder wiederholt wird.
+\begin{figure}[ht]
+\subfloat[Hintergrund]{\includegraphics[width=0.48\textwidth]{media/undetected.png}}\qquad
+\subfloat[Aktuelles Bild]{\includegraphics[width=0.48\textwidth]{media/greendetected.png}}\\
+\begin{center}
+\subfloat[Vordergrund-Maske]{\includegraphics[width=0.48\textwidth]{media/greendetected.png}}
+\par\end{center}
+\caption{\textbf{Grundvorgehen Background-Substraction}}
+\label{Fig:background}
+\end{figure}
+\todo{Bilder für ein Modell raussuchen/machen}
+
+
+Ein naiver Ansatz wäre Beispielsweise ein Bild zu setzen, das als Hintergrund gewählt werden soll und in Schritt 2 eine einfache Differenz zwischen Hintergrund und Bild zu berechnen. Anschließen könnte man ein Thresholding betreiben und alle Pixel auswählen die eine Differenz aufweisen, die höher als der Schwellwert ist. \autocite[3]{foreground2003}
+Diese werden dann in das Binär Bild, der Maske übertragen. 
+
+Dieser naive Ansatz ist allerdings anfällig gegen Beispielsweise sich verändernde Lichtverhältnisse. Aus dem Grund der Anfälligkeit werden andere Modellierungen gewählt. Eine der beliebtesten und meist verbreitetsten ist ein Iterativer Ansatz, genauer Mixture of Gaussians (MoG). Hierbei wird das Modell regelmäßig aktualisiert, sodass langsame Veränderungen im Bild in es einfließen. \autocite[4]{foreground2003}
+
+In OpenCV sind verschiedene Varianten von Background-Substractoren implementiert. Unter anderen auch zwei Versionen des MoG \autocite{OpenCVBack2016}. Im folgenden ein kurzer Überblick, über genutzte Funktionen:
+\begin{lstlisting}[frame=single,language=Python]
+substractor = createBackgroundSubtractorMOG2()
+fgmask = substractor.apply(image)
+\end{lstlisting}
+Dabei initiiert die erste den Substractor.
+Mit \textit{apply(image)} wird der Substractor mit Bildern gespeist. Diese bilden dann intern das Hintergrundmodell. Ebenfalls wird mit dieser Funktion der Hintergrund subtrahiert und es wird die entsprechende Vordergrund-Maske zurückgegeben. 
+Der Substractor hat einige Parameter anhand derer man die Funktionalität abstimmen kann und auf das gegebene Szenario anpassen kann. Einige der wichtigsten sind:
+\begin{itemize}
+	\item \textbf{history:} Die Anzahl der Bilder, die in das Hintergrund-Modell einfließen
+	\item \textbf{detectShadows:} Gibt an ob Schatten erkannt werden sollen und als Graustufen in die Vordergrund-Maske einfließen
+	\item \textbf{varThreshold:} Der Threshold der die Masken-Bildung steuert
+	\item \textbf{shadowThreshold:} gibt den Treshold an bei dem ein Schatten erkannt werden soll
+\end{itemize}
+Dabei ist die Größe der History stark von den Frames per second (FPS) des eingehenden Bilder-Streams abhängig, zudem vom eigentlichen Szenario. In dem hier betrachteten Fall treffen die Darts auf dem Dartboard auf und verändern anschließend ihre Position nicht mehr. Hinzu kommt, dass die Darts in schneller Abfolge geworfen werden können und auf das Board auftreffen. Aus diesem Grund sollte als History ein Wert gewählt werden, der wenigen Sekunden entsprechend der Video-Stream FPS entsprechen. Wenn bei $30FPS$ das Hintergrund-Modell aus den letzten 4 Sekunden erstellt werden soll, so ergibt sich: $30FPS * 4 Sekunden = 120 Frames$.
+Zu den beiden prozentualen Threshold-Werten gibt es jeweils noch Maximum und Minimum Werte die gesetzt werden können, um das Ergebnis zu beeinflussen.
+
+Das Ergebnis dieser Vordergrund-Erkennung ist ein Binär-Bild, das die Regionen im Bild aufzeigt die potentiell zum Vordergrund gehören. Im folgenden muss entschieden werden, welche Regionen als Dart erkannt werden sollen. Dieses Binär-Bild wird dem Contour-Storage übergeben und weiter verarbeitet. Der beschriebene Vorgang ist in den grau hinterlegten Bereich in der Pipeline-Übersicht in Abbildung\prettyref{Fig:pipeline} einzuordnen und wird laufend für jedes eintreffende Bild wiederholt.
+
+
 
 \section{Blob Erfassung}
 \label{sec:blob}
 
+\begin{itemize}
+\item Bilder der Plots für Blob größe
+\item Beschreiben wie die neue Maske aus dem Blob aufgebaut wird
+\item Vorteile und Grund hierfür erläutern
+\item Resultat eine weitere Maske 
+\end{itemize}
+
+Werden die Binär-Bilder dem Storage hinzugefügt, werden einige Parameter bestimmt, die dem neuen Eintrag hinzugefügt werden.
+Einer dieser Einträge enthält dann Informationen:
+\begin{enumerate}
+	\item Das Binär-Bild der Vordergrund-Maske
+	\item Anzahl Blobs über einem Threshold
+	\item Größe des größten Blobs
+\end{enumerate}
+Dabei werden der zweite und dritte Parameter bestimmt, indem auf dem Binär-Bild Gruppen von zusammenhängenden Pixeln (Blobs) erkannt werden. 
+Grundlegend wird dabei die Nachbarschaft, der weißen Pixel betrachtet. Zusammenhängende werden einem Blob zugeordnet. Auch an dieser Stelle wird auf bereitgestellte OpenCV Funktionen zurückgegriffen. Dem Eintrag wird nun die Anzahl der Pixel, des größten zusammenhängenden Blobs hinzugefügt. Zudem werden alle Blobs ausgeschlossen, die eine bestimmte Größe unterschreiten. Dadurch wird verhindert, dass Rauschen in späteren Schritten eine weiter Verarbeitung auslöst und so unnötigen Overhead verursacht.
+\begin{figure}[ht]
+\centering
+\subfloat[]{\includegraphics[width=0.48\textwidth]{media/undetected.png}}\qquad
+\caption{\textbf{Plot des Storages}}
+\label{Fig:blobplot}
+\end{figure}
+\todo{Bilder vom Plot machen}
+
+Der Storage hat eine gewissen Größe und speichert die Bilder und Information. Der Storage ist als Queue entworfen. Wenn also Einträge entsprechend der Größe der Queue hinzugefügt wurden, werden die vorderen Einträge entfernt. In Abbildung \prettyref{Fig:blobplot} ist die Anzahl der Pixel des größten Blobs, den Einträgen im Verlauf gegenübergestellt.
+
+Nun soll im Storage ein Interessanter Bereich entdeckt werden, in dem ein Dart im Bild erkannt werden könnte. Die Grundidee ist, dass ein Dart mindestens eine gewissen Pixel-Anzahl im Bild einnimmt. Abhängig von der Background-Substraction kann Anzahl der Einträge in denen der Dart sichtbar ist variieren. So ist ein Bereich von Interesse, wenn die Anzahl an zusammenhängenden Pixeln größer ist als die vermutliche Anzahl die ein Dart einnimmt.
+
+Um einen Bereich zu bestimmen werden nun zusammenhängende Bereiche gesucht. Hierfür wird erst ein Startpunkt ermittelt und ausgehend von diesem der passende Endpunkt.
+Ab Eintrag X \todo{entsprechend des Plot Screenshots Wert einfügen} ein starker Anstieg zu erkennen. Steigen die Werte über einen gewissen Threshold wird der Start eines Abschnittes markiert. Das Ende eines Abschnittes wird markiert, wenn die Blob-Größe für eine gewisse Dauer unter dem Threshold liegt. Im abgebildeten Plot ist der Endpunkt an Eintrag Y \todo{Eintrag einfügen} erreicht. Somit ist der Bereich von X-Y von Interesse und wird für weitere Verarbeitung genutzt. 
+Wenn die Länge, der zusammenhängenden Bereiche unter einer Mindestlänge liegt werden diese ignoriert.
+
+An dieser Stelle wird noch eine weitere wichtige Funktion erfüllt. Es wird bereits eine erste Sondierung vorgenommen, welche Bilder und Storage-Bereiche nicht verwertbar sind. 
+Ein spezielles Beispiel ist dabei, dass die Darts wieder aus dem Dartboard entfernt werden müssen. Hierbei greift der Nutzer in Bildbereich und verursacht dadurch einen sehr großen Bereich in der Vordergrund-Maske dieser verursacht großen overhead und wird daher aus der Berechnung entfernt. Zu diesem Zweck wird nicht nur ein Mindestschwellwert gesetzt, sondern auch ein Höchstschwellwert. Wird dieser prozentual gesehen zu der Bildgröße überschritten, wird für einige Sekunden das Erstellen neuer Einträge in den Storage geblockt.
+
+In einem weiteren Schritt werden die Bilder aus diesem Bereich analysiert und es wird ein neues Binär-Bild daraus erstellt. Dieses neue Bild fasst die Informationen von allen Bildern in dem Storage-Bereich zusammen und bildet diese ab.
+Das Vorgehen dabei ist in drei Schritte unterteilt.
+Im ersten Schritt wird ein Graustufen-Bild erstellt, in dem initial alle Pixel schwarz sind. 
+Im zweiten Schritt wird über die Bilder des Storage-Bereiches iteriert. Dabei wird für jeden weißen Pixel des Bildes im neuen Graustufen-Bild der entsprechende Pixel um einen gewissen Wert erhöht. Welcher Wert auf die Pixel addiert wird ist abhängig von der History-Größe des Background-Substractors.
+\begin{figure}[ht]
+\centering
+\subfloat[]{\includegraphics[width=0.48\textwidth]{media/undetected.png}}\qquad
+\caption{\textbf{Resultierendes Graustufen Bild}}
+\label{Fig:greyimg}
+\end{figure}
+\todo{Graustufen Bild einfügen}
+Ist das Graustufen-Bild gebildet, ein Beispiel ist in Abbildung \prettyref{Fig:greyimg} zu sehen, kann dieses im dritten Schritt verarbeitet werden. 
+Im letzten Schritt wird das Graustufen-Bild in ein Binär-Bild gewandelt und dabei ein Thresholding angewendet. So sind in dem resultierenden Bild nur die Regionen zu sehen, die in einem Großteil des Storage-Bereiches auftreten. 
+
+Dieses Vorgehen hat mehrere Gründe. 
+Zum einen kann so Rauschen aus einigen wenigen Bildern gemildert werden. 
+Ein weiterer Grund ist, dass auf diese Weise ein klarerer Umriss erstellt werden kann, aus dem später der Dart erkannt werden kann. 
+Dieser Vorgang ist der erste Part des in Abbildung \prettyref{Fig:pipeline} blau markierten Bereiches und der erste Schritt zur Punktzahlbestimmung aus den gelieferten Bildern. Das resultierende Binär-Bild wird von der Kontur Erkennung weiter verarbeitet.
 
 \section{Verarbeitung der Vordergrundinformationen}
 \label{sec:foreground}
 Stage 4 Im Extrahierten Vordergrund entscheiden was Pfeil ist
+\begin{itemize}
+\item Kontur erkennen
+\item Momente der Kontur erkennen
+\item Aus den Momenten die Spitze der Darts erkennen
+\item die 5 Arten der Spitze erläutern
+\end{itemize}
+
+
 \section{Punktzahlbestimmung}
 \label{sec:score}
 Stage 5 Parameter vom Pfeil bestimmen(Spitzen)
+Kapitel evtl eindampfen. könnte bisl wenig sein.
+An dieser Stelle evtl beschreiben, dass gespeichert und ausgewertet wird. 
+
