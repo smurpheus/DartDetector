@@ -277,6 +277,7 @@ Nun kann das aus der Bereichserkennung stammende Bild in die Kontur-Erkennung vo
 	\item \textbf{Eingrenzendes Rechteck (Bounding Rectangle)} Kleinstmögliches Rechteck, das die Kontur umschließt
 	\item \textbf{Linie durch Kontur}
 	\item \textbf{Schwerpunkt (Centroid)} 
+	\item \textbf{approximierte Kontur} Eine Approximierte Kontur, deren maximale Abweichung zur Ausgangs-Kontur in einem bestimmten Threshold liegt.
 \end{itemize}
 Diese Charakteristika werden genutzt, um zu bestimmen ob eine Kontur ein Dart sein kann und wo dessen Spitze liegt. Zur Bestimmung der genannten Features werden vorhandene OpenCV Funktionen genutzt. Unter anderen folgende:
 \begin{lstlisting}[frame=single]
@@ -302,7 +303,19 @@ Die Kontur und die errechneten Features können nun in den Schritt zur Erkennung
 
 \section{Punktzahlbestimmung}
 \label{sec:score}
-Stage 5 Parameter vom Pfeil bestimmen(Spitzen)
-Kapitel evtl eindampfen. könnte bisl wenig sein.
-An dieser Stelle evtl beschreiben, dass gespeichert und ausgewertet wird. 
+Zur Bestimmung der Punktzahl fließen nun bisher erlangte Informationen aus der Verarbeitung des Vordergrundes \prettyref{sec:foreground} und Informationen zum Dartboard \prettyref{sec:board} zusammen.
+So wird aus der Kontur und den zugehörigen Features die Spitze des Darts errechnet. Ist der Pixel der Spitze errechnet, kann mit Hilfe der Transformationsmatritzen der zugehörige Punkt im Modell des Dartboardes errechnet werden. Ist der Punkt errechnet kann aus dem Modell die Punktzahl des Feldes ermittelt werden. 
+
+Insgesamt wurden fünf verschiedene Varianten zu Bestimmung der Spitze der Darts durchgeführt. 
+\begin{enumerate}
+	\item Der Punkt auf der Kontur, der die höchste Distanz zum Centroid aufweist
+	\item Der Punkt, an dem die Linie durch die Kontur das umschließenden Rechteck schneidet. Aus den zwei resultierenden Punkten wird der gewählt, der die größere Distanz zum Centroid aufweist.
+	\item Der Punkt auf der approximierten Kontur, der die höchste Distanz zum Centroid  aufweist
+	\item Der Punkt an dem die approximierten Kontur die umschließende Box berührt und die höchste Distanz zum Centroid aufweist
+	\item Der Schwerpunkt, der vorigen vier Ansätze
+\end{enumerate}
+
+Für jeden dieser so bestimmten Punkte wird anschließend eine Transformation ein das Modell Koordinatensystem durchgeführt. \todo{Formel der inversen Aufzeigen.}
+Sind Punkt im Modell bestimmt und das zugehörige Feld des Dartboards bestimmt, wird das Ergebnis aller fünf möglichen Spitzen gespeichert. Zur Überprüfung wird der Nutzer gebeten zu bestätigen, welches Feld tatsächlich getroffen wurde. \todo{Bild der GUI einfügen}
+
 
