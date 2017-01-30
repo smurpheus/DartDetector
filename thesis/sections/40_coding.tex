@@ -240,7 +240,7 @@ Im ersten Schritt wird ein Graustufen-Bild erstellt, in dem initial alle Pixel s
 Im zweiten Schritt wird über die Bilder des Storage-Bereiches iteriert. Dabei wird für jeden weißen Pixel des Bildes im neuen Graustufen-Bild der entsprechende Pixel um einen gewissen Wert erhöht. Welcher Wert auf die Pixel addiert wird ist abhängig von der History-Größe des Background-Substractors.
 \begin{figure}[ht]
 \centering
-\subfloat[]{\includegraphics[width=0.48\textwidth]{media/undetected.png}}\qquad
+\includegraphics[width=0.48\textwidth]{media/undetected.png}
 \caption{\textbf{Resultierendes Graustufen Bild}}
 \label{Fig:greyimg}
 \end{figure}
@@ -262,6 +262,42 @@ Stage 4 Im Extrahierten Vordergrund entscheiden was Pfeil ist
 \item Aus den Momenten die Spitze der Darts erkennen
 \item die 5 Arten der Spitze erläutern
 \end{itemize}
+Im errechneten Vordergrund gilt es nun den Dart zu erkennen und die Spitze des Darts zu bestimmen. Da beim Dartsport keine Standardisierung für einheitliche Farbgebung der Darts gegeben ist, gibt es nicht die Möglichkeit diese anhand einer bestimmten Farbe auszumachen. Aus diesem Grund müssen die Darts aufgrund ihrer Form erkannt werden. In einem 2D-Bild entspricht das der Kontur.
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.48\textwidth]{media/undetected.png}
+\caption{\textbf{Ein Dart mit eingezeichneten Momenten und Spitzen}}
+\label{Fig:detecteddart}
+\end{figure}
+\todo{Bild von Dart mit Linie und Tips}
+Bereits 1985 gab es Forschungen Konturen in Binär-Bildern zu erkennen. Satoshi Suzuki hat einen Artikel veröffentlicht in dem ein solcher Algorithmus präsentiert wird \autocite{contour1985}. Dieser Algorithmus ist ebenfalls in OpenCV implementiert. 
+
+Nun kann das aus der Bereichserkennung stammende Bild in die Kontur-Erkennung von OpenCV übergeben werden. Auf den erkannten Konturen können dann weitere Charakteristika (Features) bestimmt werden. Einige der genutzten und wichtigsten sind:
+\begin{itemize}
+	\item \textbf{Eingrenzendes Rechteck (Bounding Rectangle)} Kleinstmögliches Rechteck, das die Kontur umschließt
+	\item \textbf{Linie durch Kontur}
+	\item \textbf{Schwerpunkt (Centroid)} 
+\end{itemize}
+Diese Charakteristika werden genutzt, um zu bestimmen ob eine Kontur ein Dart sein kann und wo dessen Spitze liegt. Zur Bestimmung der genannten Features werden vorhandene OpenCV Funktionen genutzt. Unter anderen folgende:
+\begin{lstlisting}[frame=single]
+contours,hierarchy = findContours(image, mode, method)
+rect = minAreaRect(contour)
+M = moments(contour)
+vector = fitLine(contour)
+\end{lstlisting}
+Dabei können der Funktion zur Kontur-Erkennung auf einem Binär-Bild noch ein Modus und eine Methode übergeben werden. Der Modus definiert, ob nur die äußersten Konturen zurückgegeben werden sollen, oder eine hierarchische Struktur aufgebaut werden soll. In unserem Fall ist nur die äußere Kontur des Darts von Interesse. Mit der Methode kann bestimmt werden, ob eine Approximation der Kontur stattfinden soll. So könnte bei einer rechteckigen Kontur diese Beispielsweise auf die Eckpunkte reduziert werden. Finde keine Approximation statt werden alle Punkte entlang der Kanten zurück gegeben. Von dieser Methode wird dann eine Liste an möglichen Konturen zurückgegeben. 
+
+Auf diesen Konturen werden anschließen die genannten Features berechnet.
+Zudem werden die errechneten Charakteristika später für die Erkennung der Spitze genutzt.
+Sind folgende Bedingungen gegeben wird die Kontur als Dart gewertet und es wird versucht eine Spitze zu erkennen:
+\begin{itemize}
+	\item Größe des umschließenden Rechteckes
+	\item Seitenverhältnis des umschließenden Rechteckes
+	\item Größe der Kontur
+	\item Centroid der Kontur ist in einem Mindestabstand zum Centroid des umschließenden Rechteckes. Dies tritt auf, da der Flight des Darts den Centroid der Kontur stark in die entgegengesetzte Richtung der Spitze verschiebt. 
+\end{itemize}
+
+Die Kontur und die errechneten Features können nun in den Schritt zur Erkennung der Dart-Spitzen übergeben werden.
 
 
 \section{Punktzahlbestimmung}
