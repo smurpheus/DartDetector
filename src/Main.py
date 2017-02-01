@@ -274,8 +274,9 @@ class BackgroundSubtractor(Thread):
     def get_storage(self):
         self.threadLock.acquire()
         return_list = list(self.storage.storage)
+        unaltered = list(self.storage.unaltered)
         self.threadLock.release()
-        return return_list
+        return return_list, unaltered
 
     def _add_to_storage(self, contours, f1, no_of_frame):
         self.threadLock.acquire()
@@ -507,8 +508,9 @@ class MainApplikacation(object):
                 cv2.imshow("Original", img)
                 cv2.imshow("Points", self.board.draw_board())
                 cv2.imshow("Current", self.Substractor.get_substracted())
-                storage = self.Substractor.get_storage()
+                storage, unaltered = self.Substractor.get_storage()
                 y = [x[2] for x in storage]
+                y = unaltered
                 self.line1.set_xdata(range(len(y)))
                 self.line1.set_ydata(y)
                 k = cv2.waitKey(1)
@@ -518,6 +520,7 @@ class MainApplikacation(object):
                     self.write_data()
                 if k == ord('w'):
                     pass
+                    self.figure.savefig(r"thesisimages/plot.jpg")
                 if k == ord('f'):
                     added = 0
                     self.Substractor.clear_arrows()

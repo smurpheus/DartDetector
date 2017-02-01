@@ -126,6 +126,7 @@ class Board:
 
     def draw_board(self):
         img = np.zeros((self.size, self.size, 3), np.uint8)
+        img[:] = (255,255,255)
         mid = int(self.size / 2.)
         rad = self.draw_radius
         for c in self.circles:
@@ -148,7 +149,7 @@ class Board:
             x = int(np.sin(an) * hyp) + int(mid * 0.98)
             y = int(mid * 1.02) - int(np.cos(an) * hyp)
             font = cv2.FONT_HERSHEY_SIMPLEX
-            cv2.putText(img, f_name, (x, y), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
+            cv2.putText(img, f_name, (x, y), font, 1, (0, 0, 0), 1, cv2.LINE_AA)
         return img
 
     def calculate_field(self, point):
@@ -455,6 +456,7 @@ class Arrow:
 
 class ContourStorage:
     size = 200
+    unaltered = deque([0] * size, size)
     storage = deque([], size)
     means = deque([0] * size, size)
     deviations = deque([0] * size, size)
@@ -507,6 +509,7 @@ class ContourStorage:
                     xcnt = max(cnts)
                 if not self.paused:
                     self.storage.append([image, acnts, xcnt, frame_no])
+                    self.unaltered.append(xcnt)
                 if self.plotting:
                     self.plot_data()
                 if self.pausetime > -10:

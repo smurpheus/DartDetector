@@ -10,7 +10,6 @@ Anfänglich werden einmalige Vorbereitungsschritte aufgeschlüsselt, hierzu geh�
 Darauf folgt in \prettyref{sec:board} die Kalibrierung und die Erkennung der Felder des Dartboardes. Es werden verschiedene getestete Ansätze erörtert und ihre Vor- und Nachteile dargestellt.
 
 Des Weiteren werden die einzelnen Abschnitte der Pipeline näher beleuchtet und auf die Implementierung und das Vorgehen eingegangen. Dies umfasst von der Segmentierung der Dinge, die nicht zum Dartboard gehören in \prettyref{sec:substraction}. Bis hin zur konkreten Bestimmung der erzielten Punktzahl in \prettyref{sec:score}. 
-\todo{Umsetzung einteilen und implementieren}
        
 \section{Pipeline Überblick}
 \label{sec:pipeline}
@@ -44,8 +43,8 @@ Es gibt mehrere verschiedene Möglichkeiten eine Kalibrierung der Kamera vorzune
 
 So muss für jede dieser Varianten bestimmte Features und deren Position bekannt sein. Dies ist bei einem 3D-Objekt schwieriger zu bestimmen, als bei einer Ebene. Daher wurde der Einfachheit halber auf die Ebene zurückgegriffen. 
 \begin{figure}
-\subfloat[Bild1]{\includegraphics[width=0.5\textwidth]{media/calibraw1.jpg}}\qquad
-\subfloat[Bild2]{\includegraphics[width=0.5\textwidth]{media/calibrated1.jpg}\\}
+\subfloat[Schachbrettmsuter]{\includegraphics[width=0.5\textwidth]{media/calibraw1.jpg}}\qquad
+\subfloat[Muster mit erkannten Punkten]{\includegraphics[width=0.5\textwidth]{media/calibrated1.jpg}\\}
 \caption{\textbf{Eines der zur Kalibrierung genutzten Bilder}}
 \label{Fig:calibplane}
 
@@ -159,16 +158,14 @@ Grundsätzlich werden dabei 3 Schritte angewandt:
 Hierbei ist der 3. Schritt eine optionale Möglichkeit um das Ergebnis zu verbessern. 
 Der 5. Schritt soll dabei nur andeuten, dass sich das Vorgehen für jedes neue Bild, des Videos bzw. Live-Bilder wiederholt wird.
 \begin{figure}[ht]
-\subfloat[Hintergrund]{\includegraphics[width=0.48\textwidth]{media/undetected.png}}\qquad
-\subfloat[Aktuelles Bild]{\includegraphics[width=0.48\textwidth]{media/greendetected.png}}\\
+\subfloat[Hintergrund]{\includegraphics[width=0.48\textwidth]{media/background}}\qquad
+\subfloat[Aktuelles Bild]{\includegraphics[width=0.48\textwidth]{media/current}}\\
 \begin{center}
-\subfloat[Vordergrund-Maske]{\includegraphics[width=0.48\textwidth]{media/greendetected.png}}
+\subfloat[Vordergrund-Maske]{\includegraphics[width=0.48\textwidth]{media/substracted}}
 \par\end{center}
 \caption{\textbf{Grundvorgehen Background-Substraction}}
 \label{Fig:background}
 \end{figure}
-\todo{Bilder für ein Modell raussuchen/machen}
-
 
 Ein naiver Ansatz wäre Beispielsweise ein Bild zu setzen, das als Hintergrund gewählt werden soll und in Schritt 2 eine einfache Differenz zwischen Hintergrund und Bild zu berechnen. Anschließen könnte man ein Thresholding betreiben und alle Pixel auswählen die eine Differenz aufweisen, die höher als der Schwellwert ist. \autocite[3]{foreground2003}
 Diese werden dann in das Binär Bild, der Maske übertragen. 
@@ -217,18 +214,17 @@ Dabei werden der zweite und dritte Parameter bestimmt, indem auf dem Binär-Bild
 Grundlegend wird dabei die Nachbarschaft, der weißen Pixel betrachtet. Zusammenhängende werden einem Blob zugeordnet. Auch an dieser Stelle wird auf bereitgestellte OpenCV Funktionen zurückgegriffen. Dem Eintrag wird nun die Anzahl der Pixel, des größten zusammenhängenden Blobs hinzugefügt. Zudem werden alle Blobs ausgeschlossen, die eine bestimmte Größe unterschreiten. Dadurch wird verhindert, dass Rauschen in späteren Schritten eine weiter Verarbeitung auslöst und so unnötigen Overhead verursacht.
 \begin{figure}[ht]
 \centering
-\subfloat[]{\includegraphics[width=0.48\textwidth]{media/undetected.png}}\qquad
+\subfloat[]{\includegraphics[width=0.9\textwidth]{media/plot.jpg}}\qquad
 \caption{\textbf{Plot des Storages}}
 \label{Fig:blobplot}
 \end{figure}
-\todo{Bilder vom Plot machen}
 
 Der Storage hat eine gewissen Größe und speichert die Bilder und Information. Der Storage ist als Queue entworfen. Wenn also Einträge entsprechend der Größe der Queue hinzugefügt wurden, werden die vorderen Einträge entfernt. In Abbildung \prettyref{Fig:blobplot} ist die Anzahl der Pixel des größten Blobs, den Einträgen im Verlauf gegenübergestellt.
 
 Nun soll im Storage ein Interessanter Bereich entdeckt werden, in dem ein Dart im Bild erkannt werden könnte. Die Grundidee ist, dass ein Dart mindestens eine gewissen Pixel-Anzahl im Bild einnimmt. Abhängig von der Background-Substraction kann Anzahl der Einträge in denen der Dart sichtbar ist variieren. So ist ein Bereich von Interesse, wenn die Anzahl an zusammenhängenden Pixeln größer ist als die vermutliche Anzahl die ein Dart einnimmt.
 
 Um einen Bereich zu bestimmen werden nun zusammenhängende Bereiche gesucht. Hierfür wird erst ein Startpunkt ermittelt und ausgehend von diesem der passende Endpunkt.
-Ab Eintrag X \todo{entsprechend des Plot Screenshots Wert einfügen} ein starker Anstieg zu erkennen. Steigen die Werte über einen gewissen Threshold wird der Start eines Abschnittes markiert. Das Ende eines Abschnittes wird markiert, wenn die Blob-Größe für eine gewisse Dauer unter dem Threshold liegt. Im abgebildeten Plot ist der Endpunkt an Eintrag Y \todo{Eintrag einfügen} erreicht. Somit ist der Bereich von X-Y von Interesse und wird für weitere Verarbeitung genutzt. 
+Ab Eintrag 98 ist ein starker Anstieg zu erkennen. Steigen die Werte über einen gewissen Threshold wird der Start eines Abschnittes markiert. Das Ende eines Abschnittes wird markiert, wenn die Blob-Größe für eine gewisse Dauer unter dem Threshold liegt. Im abgebildeten Plot ist der Endpunkt an Eintrag 120 erreicht. Somit ist der Bereich von 98 bis 120 von Interesse und wird für weitere Verarbeitung genutzt. 
 Wenn die Länge, der zusammenhängenden Bereiche unter einer Mindestlänge liegt werden diese ignoriert.
 
 An dieser Stelle wird noch eine weitere wichtige Funktion erfüllt. Es wird bereits eine erste Sondierung vorgenommen, welche Bilder und Storage-Bereiche nicht verwertbar sind. 
@@ -240,11 +236,10 @@ Im ersten Schritt wird ein Graustufen-Bild erstellt, in dem initial alle Pixel s
 Im zweiten Schritt wird über die Bilder des Storage-Bereiches iteriert. Dabei wird für jeden weißen Pixel des Bildes im neuen Graustufen-Bild der entsprechende Pixel um einen gewissen Wert erhöht. Welcher Wert auf die Pixel addiert wird ist abhängig von der History-Größe des Background-Substractors.
 \begin{figure}[ht]
 \centering
-\includegraphics[width=0.48\textwidth]{media/undetected.png}
+\includegraphics[width=0.9\textwidth]{media/blobimg}
 \caption{\textbf{Resultierendes Graustufen Bild}}
 \label{Fig:greyimg}
 \end{figure}
-\todo{Graustufen Bild einfügen}
 Ist das Graustufen-Bild gebildet, ein Beispiel ist in Abbildung \prettyref{Fig:greyimg} zu sehen, kann dieses im dritten Schritt verarbeitet werden. 
 Im letzten Schritt wird das Graustufen-Bild in ein Binär-Bild gewandelt und dabei ein Thresholding angewendet. So sind in dem resultierenden Bild nur die Regionen zu sehen, die in einem Großteil des Storage-Bereiches auftreten. 
 
@@ -265,11 +260,10 @@ Stage 4 Im Extrahierten Vordergrund entscheiden was Pfeil ist
 Im errechneten Vordergrund gilt es nun den Dart zu erkennen und die Spitze des Darts zu bestimmen. Da beim Dartsport keine Standardisierung für einheitliche Farbgebung der Darts gegeben ist, gibt es nicht die Möglichkeit diese anhand einer bestimmten Farbe auszumachen. Aus diesem Grund müssen die Darts aufgrund ihrer Form erkannt werden. In einem 2D-Bild entspricht das der Kontur.
 \begin{figure}[ht]
 \centering
-\includegraphics[width=0.48\textwidth]{media/undetected.png}
+\includegraphics[width=0.9\textwidth]{media/backgroundfeature}
 \caption{\textbf{Ein Dart mit eingezeichneten Momenten und Spitzen}}
 \label{Fig:detecteddart}
 \end{figure}
-\todo{Bild von Dart mit Linie und Tips}
 Bereits 1985 gab es Forschungen Konturen in Binär-Bildern zu erkennen. Satoshi Suzuki hat einen Artikel veröffentlicht in dem ein solcher Algorithmus präsentiert wird \autocite{contour1985}. Dieser Algorithmus ist ebenfalls in OpenCV implementiert. 
 
 Nun kann das aus der Bereichserkennung stammende Bild in die Kontur-Erkennung von OpenCV übergeben werden. Auf den erkannten Konturen können dann weitere Charakteristika (Features) bestimmt werden. Einige der genutzten und wichtigsten sind:
@@ -306,6 +300,13 @@ Die Kontur und die errechneten Features können nun in den Schritt zur Erkennung
 Zur Bestimmung der Punktzahl fließen nun bisher erlangte Informationen aus der Verarbeitung des Vordergrundes \prettyref{sec:foreground} und Informationen zum Dartboard \prettyref{sec:board} zusammen.
 So wird aus der Kontur und den zugehörigen Features die Spitze des Darts errechnet. Ist der Pixel der Spitze errechnet, kann mit Hilfe der Transformationsmatritzen der zugehörige Punkt im Modell des Dartboardes errechnet werden. Ist der Punkt errechnet kann aus dem Modell die Punktzahl des Feldes ermittelt werden. 
 
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.39\textwidth]{media/pointimg}
+\caption{\textbf{Markierung des getroffenen Feldes}}
+\label{Fig:acceptingimg}
+\end{figure}
+
 Insgesamt wurden fünf verschiedene Varianten zu Bestimmung der Spitze der Darts durchgeführt. 
 \begin{enumerate}
 	\item Der Punkt auf der Kontur, der die höchste Distanz zum Centroid aufweist
@@ -316,6 +317,8 @@ Insgesamt wurden fünf verschiedene Varianten zu Bestimmung der Spitze der Darts
 \end{enumerate}
 
 Für jeden dieser so bestimmten Punkte wird anschließend eine Transformation ein das Modell Koordinatensystem durchgeführt. \todo{Formel der inversen Aufzeigen.}
-Sind Punkt im Modell bestimmt und das zugehörige Feld des Dartboards bestimmt, wird das Ergebnis aller fünf möglichen Spitzen gespeichert. Zur Überprüfung wird der Nutzer gebeten zu bestätigen, welches Feld tatsächlich getroffen wurde. \todo{Bild der GUI einfügen}
+Sind Punkt im Modell bestimmt und das zugehörige Feld des Dartboards bestimmt, wird das Ergebnis aller fünf möglichen Spitzen gespeichert. Zur Überprüfung wird der Nutzer gebeten zu bestätigen, welches Feld tatsächlich getroffen wurde. 
+
+In Abbildung \prettyref{Fig:acceptingimg} wird dargestellt, wie dem Nutzer vermittelt wird, welches Feld getroffen wurde. Zudem kann an dieser Stelle eine Bestätigung statfinden, indem das tatsächlich getroffene Feld angeklickt wird.
 
 
