@@ -203,7 +203,8 @@ class BlobDetector(object):
                 c1.set(1, 0)
         cv2.destroyAllWindows()
 
-
+class NoImage(Exception):
+    pass
 class BackgroundSubtractor(Thread):
     ###Default ######
     history = 500
@@ -297,13 +298,20 @@ class BackgroundSubtractor(Thread):
         self._initialize_substractor()
 
     def run(self):
-        self.run_substraction()
+        try:
+            self.run_substraction()
+        except NoImage:
+            self.stopped = True
 
     def run_substraction(self):
 
         while not self.stopped:
             if not self.paused:
-                f1,reseted = self.camera.get_image()
+                res = self.camera.get_image()
+                if res is not None:
+                    f1,reseted = res
+                else:
+                    raise NoImage()
                 no_of_frame = self.camera.read_frame_no
                 if reseted:
                     self._initialize_substractor()
@@ -507,6 +515,9 @@ class MainApplikacation(object):
                 img = cv2.add(realboard,img)
                 cv2.imshow("Original", img)
                 cv2.imshow("Points", self.board.draw_board())
+                if self.Substractor.stopped:
+                    self.write_data()
+                    exit()
                 cv2.imshow("Current", self.Substractor.get_substracted())
                 storage, unaltered = self.Substractor.get_storage()
                 y = [x[2] for x in storage]
@@ -565,20 +576,29 @@ class MainApplikacation(object):
             pimg = self.board.draw_field(points)
             cv2.imshow("Points", pimg)
             cv2.imshow("Blobimg", arrow.img)
-            k = cv2.waitKey(-1)
-            while self.boardpoint is None:
+            k = -1
+            while k not in [13, 32]or self.boardpoint is None:
                 k = cv2.waitKey(-1)
-            self.real.append(self.board.calculate_field(self.boardpoint))
-            self.boardpoint = None
             if k == 13:
                 print "Enter"
                 print len(self.detected)
                 self.was_covert.append(False)
             if k == 32:
                 self.was_covert.append(True)
-            else:
-                self.was_covert.append(False)
+            self.real.append(self.board.calculate_field(self.boardpoint))
+            self.boardpoint = None
         # print("Adding an arrow:")
+        else:
+            k = -1
+            while k not in [13, 32] or self.boardpoint is None:
+                k = cv2.waitKey(-1)
+            if k == 13:
+                print "Enter"
+                print len(self.detected)
+                self.was_covert.append(False)
+            if k == 32:
+                self.was_covert.append(True)
+            self.real.append(self.board.calculate_field(self.boardpoint))
         self.frame_no.append(frame_no)
         # inp = raw_input("What were the real Points? Type 'n' if the dart is not at the board: ")
         # covert = raw_input("Was the arrow covert by another one? 'n' for no, 'y' for yes: ")

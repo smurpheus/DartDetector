@@ -503,7 +503,9 @@ class ContourStorage:
                         acnts.append(cnt)
                     else:
                         self.paused = True
-                        self.pausetime = self.history * 0.75# * self.percentage_of_history
+                        for index in range(int(self.size*0.75), self.size):
+                            self.storage[index] = [np.zeros_like(self.storage[index][0]), 0, 0, 0]
+                        self.pausetime = self.history * 0.3# * self.percentage_of_history
                 xcnt = 0
                 if len(cnts) > 0:
                     xcnt = max(cnts)
