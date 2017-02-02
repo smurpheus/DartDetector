@@ -75,6 +75,7 @@ def calc(data):
     tip4 = [x[3] for x in data if  isbool(x[6])]
     tip5 = [x[4] for x in data if  isbool(x[6])]
     real = [x[5] for x in data if  isbool(x[6])]
+    print float(len(real))/float(len(data))
     # print [x[6] for x in data]
     if len(real) != 0:
         perc1, percneigh1, posbile1 = calcPercentage(tip1, real)
