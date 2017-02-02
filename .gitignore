@@ -1,0 +1,12 @@
+*.aux
+thesis/thesis.bbl
+*.bcf
+thesis/thesis.blg
+*.log
+thesis/thesis.lof
+*.lot
+thesis/thesis.out
+*.toc
+thesis/thesis.tdo
+*.gz
+*.xcf

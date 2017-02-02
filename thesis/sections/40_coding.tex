@@ -250,14 +250,14 @@ Dieser Vorgang ist der erste Part des in Abbildung \prettyref{Fig:pipeline} blau
 
 \section{Verarbeitung der Vordergrundinformationen}
 \label{sec:foreground}
-Stage 4 Im Extrahierten Vordergrund entscheiden was Pfeil ist
-\begin{itemize}
-\item Kontur erkennen
-\item Momente der Kontur erkennen
-\item Aus den Momenten die Spitze der Darts erkennen
-\item die 5 Arten der Spitze erläutern
-\end{itemize}
-Im errechneten Vordergrund gilt es nun den Dart zu erkennen und die Spitze des Darts zu bestimmen. Da beim Dartsport keine Standardisierung für einheitliche Farbgebung der Darts gegeben ist, gibt es nicht die Möglichkeit diese anhand einer bestimmten Farbe auszumachen. Aus diesem Grund müssen die Darts aufgrund ihrer Form erkannt werden. In einem 2D-Bild entspricht das der Kontur.
+%Stage 4 Im Extrahierten Vordergrund entscheiden was Pfeil ist
+%\begin{itemize}
+%\item Kontur erkennen
+%\item Momente der Kontur erkennen
+%\item Aus den Momenten die Spitze der Darts erkennen
+%\item die 5 Arten der Spitze erläutern
+%\end{itemize}
+Im errechneten Vordergrund gilt es nun den Dart zu erkennen und die Spitze des Darts zu bestimmen. Grundsätzlich gibt es die Möglichkeit Objekte anhand der Farbgebung Objekte auszumachen. Da beim Dartsport keine Standardisierung für einheitliche Farbgebung der Darts gegeben ist, gibt es diese Möglichkeit nicht. Aus diesem Grund müssen die Darts aufgrund ihrer Form erkannt werden. In einem 2D-Bild entspricht das der Kontur.
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.9\textwidth]{media/backgroundfeature}
