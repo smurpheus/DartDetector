@@ -316,7 +316,9 @@ Insgesamt wurden fünf verschiedene Varianten zu Bestimmung der Spitze der Darts
 	\item Der Schwerpunkt, der vorigen vier Ansätze
 \end{enumerate}
 
-Für jeden dieser so bestimmten Punkte wird anschließend eine Transformation ein das Modell Koordinatensystem durchgeführt. \todo{Formel der inversen Aufzeigen.}
+Für jeden dieser so bestimmten Punkte wird anschließend eine Transformation in das Koordinatensystem des Modells durchgeführt. In Kapitel \prettyref{sec:camerageo} wurden die Grundlagen zur Transformation erläutert. Anhand dieser und der bestimmten Rotations- und Translationsmatrizen kann die Berechnung durchgeführt werden. Invertiert man die Berechnung, so ergibt sich folgendes: 
+$(R^{-1}A^{-1}sk)-R^{-1}t=P$, dabei ist $R$ die Rotationsmatrix, $t$ die Translationsmatrix, $A$ die Kameramatrix, $k$ der Bildpunkt und $s$ der Skalierungsfaktor. $P$ ist der Objektpunkt auf der Ebene des Dartboards.
+
 Sind Punkt im Modell bestimmt und das zugehörige Feld des Dartboards bestimmt, wird das Ergebnis aller fünf möglichen Spitzen gespeichert. Zur Überprüfung wird der Nutzer gebeten zu bestätigen, welches Feld tatsächlich getroffen wurde. 
 
 In Abbildung \prettyref{Fig:acceptingimg} wird dargestellt, wie dem Nutzer vermittelt wird, welches Feld getroffen wurde. Zudem kann an dieser Stelle eine Bestätigung statfinden, indem das tatsächlich getroffene Feld angeklickt wird.
