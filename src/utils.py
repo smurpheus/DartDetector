@@ -504,7 +504,8 @@ class ContourStorage:
                     else:
                         self.paused = True
                         for index in range(int(self.size*0.75), self.size):
-                            self.storage[index] = [np.zeros_like(self.storage[index][0]), 0, 0, 0]
+                            print "At index %s"%index
+                            self.storage[index] = [np.zeros_like(self.storage[0][0]), 0, 0, 0]
                         self.pausetime = self.history * 0.3# * self.percentage_of_history
                 xcnt = 0
                 if len(cnts) > 0:
@@ -772,6 +773,8 @@ class Camera:
             if self.from_file:
                 self.read_frame_no = 1
                 self.capture.set(1, 0)
+                print "####################################################### END ####################################################"
+                exit()
             able_to_read, f1 = self.capture.read()
             print "Reading Frame: ", self.capture.get(1)
             if able_to_read:
