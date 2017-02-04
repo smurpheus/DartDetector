@@ -15,15 +15,16 @@ Eine Verdeckung erkennen zu können ist teils mit Software realisierbar. So ist 
 Dieses Problem wäre vermeidbar, indem ein zweiter Kamera-Winkel hinzugefügt wird. 
 So wäre es denkbar eine zweite Webcam aufzustellen, die von der entgegengesetzten Seite auf das Dartboard gerichtet ist. Mit zwei Webcams gäbe es zwei Möglichkeiten diese zu nutzen. 
 Es ist denkbar die Kalibrierung, der zweiten Kamera parallel zur ersten durchzuführen. So könnte eine zweite Ansicht eingebracht werden. 
+
 Eine weitere denkbare Möglichkeit ist, die Kameras gemeinsam zu kalibrieren und eine Stereo-Sicht mit Tiefen-Informationen zu implementieren. Vorteilhaft daran wäre, dass erkannt werden könnte wie Darts ausgerichtet sind und daran eine Vermutung über die genaue Lage gemacht werden könnte. 
 
 Analog zu zwei Webcams, gibt es die Möglichkeit eine Stereo-Kamera mit Tiefen-Sensoren zu verwenden. Beispiele dafür sind die "`Kinect"' von Microsoft, oder die Asus "`Xtion"'. Diese ermöglichen ein tracking von Objekten im Raum.
 
-Durch die Beschaffenheit der Foreground-Detection treten bei sich berührenden Darts verfälschte Vordergrund-Masken auf. Dies entsteht, da ein geworfener Dart einen bereits im Dartboard befindlichen berühren und in Bewegung versetzen. Dadurch sind diese auf der Vordergrund-Maske sichtbar und verfälschen das Ergebnis.
-Eine Möglichkeit dies zu verhindern, ist den Background-Substractor anzupassen. Ebenfalls denkbar ist es sich auf Tiefendaten zu stützen, um Darts auf dem Board zu identifizieren. 
+Durch die Beschaffenheit der Background-Substraction treten bei sich berührenden Darts verfälschte Vordergrund-Masken auf. Dies entsteht, da ein geworfener Dart einen bereits im Dartboard befindlichen berührt und in Bewegung versetzen. Dadurch sind diese auf der Vordergrund-Maske sichtbar und verfälschen das Ergebnis.
+Eine Möglichkeit dies zu verhindern, ist den Background-Substractor anzupassen. Ebenfalls denkbar ist, sich auf Tiefeninformationen zu stützen, um Darts auf dem Board zu identifizieren. 
 
 
-Die häufige Erkennung eines Darts, im Nachbarfeld des tatsächlich erzielten, könnte bereits durch eine Kamera mit verbesserter Auflösung veringert werden. Betrachtet man die aufgenommenen Bilder, so sind die Spitzen der Darts oft nicht von der Umgebung zu unterscheiden, da das Bild zu unscharf ist. Denkbar ist es ebenfalls eine zweite Kamrea näher am Dartboard zu platzieren, um eine dichtere Ansicht zu erlangen. So könnte mit der ersten Kamera eine grundlegende Erkennung durchgeführt werden und mit der zweiten weitere Informationen zur Etnscheidung erlangt werden. 
+Die häufige Erkennung eines Darts, im Nachbarfeld des tatsächlich erzielten, könnte bereits durch eine Kamera mit verbesserter Auflösung veringert werden. Betrachtet man die aufgenommenen Bilder, so sind die Spitzen der Darts oft nicht von der Umgebung zu unterscheiden, da das Bild zu unscharf ist. Denkbar ist es ebenfalls eine zweite Kamrea näher am Dartboard zu platzieren, um eine schärfere Ansicht zu erlangen. So könnte mit der ersten Kamera eine grundlegende Erkennung durchgeführt werden und mit der zweiten weitere Informationen zur Etnscheidung erlangt werden. 
 
 \section*{Fazit}
 Abschließend betrachtet wurde eine Basis geschaffen, um eine Erkennung von Darts mit Hilfe einer Webcam zu verwirklichen. Dabei gilt es allerdings einige Barrieren zu überwinden. Mit der gegebenen Hardware wird es nur schwer Möglich sein, eine Erkennungsrate über $98\%$ zu erreichen. So ist es möglich auf dem Stand dieser Arbeit aufzusetzen und mit den vorgeschlagenen Verbesserungen eine Möglichkeit, zur Erfassung der eigenen Trainingswürfe, oder Hobby-Spiele zu implementieren. Dies bietet sich besonders an, da die notwendige Hardware vergleichsweise günstig ist. Zur Erfassung professioneller Dart-Turniere sollte auf die Multi-Kamera Lösung, beziehungsweise auf 3D-Kameras zurückgegriffen werden.

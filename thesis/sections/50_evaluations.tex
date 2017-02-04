@@ -4,7 +4,7 @@
 \label{chap:evaluation}
 In diesem Kapitel wird die Zuverlässigkeit und Präzision der Implementierung analysiert. Zu diesem Zweck wird die Erkennungsquote in verschiedenen Aspekten betrachtet.
 
-Dabei wurden die Daten auf einem System mit Ubuntu 16.04 LTS und OpenCV Version 3.1 für Python 3 erfaasst. Die hierbei genutzte Hardware ist ein Intel i7 4790k, mit 4 GHz und vier physischen Kernen. Zudem wurde eine Nvidia GTX 970 mit CUDA Support genutzt.
+Dabei wurden die Daten auf einem System mit Ubuntu 16.04 LTS und OpenCV Version 3.1 für Python 3 erfasst. Die hierbei genutzte Hardware ist ein Intel i7 4790k, mit 4 GHz und vier physischen Kernen. Zudem wurde eine Nvidia GTX 970 mit CUDA Support genutzt.
 Die eingesetzte Kamera ist eine Logitech C310. Dieser verfügt über eine HD Auflösung mit  $1.280\times720$ bei $30FPS$. 
 
 \begin{figure}[ht]
@@ -21,7 +21,7 @@ In Abbildung \prettyref{Fig:testsetup} ist das Setup abgebildet. Dabei wurde die
 \label{Fig:mydart}
 \end{figure}
 
-Zur Erfassung wurden rund 1000  Testwürfe durchgeführt und aufgezeichnet. Damit eine möglichst große Streuung der Würfe gegeben ist, wurde nicht der klassischen Turniermodus vorgegangen. Stattdessen wurde, der im Kapitel \prettyref{sec:motivation} genannte, Modus "`Rennen"' genutzt, da es bei diesem das Ziel ist, jedes Feld auf dem Dartboard zu treffen. Würden die Würfe im Turniermodus gesammelt, so hätten sich die Würfe zu sehr auf eine Region konzentriert.
+Zur Erfassung wurden rund 1000  Testwürfe durchgeführt und aufgezeichnet. Damit eine möglichst große Streuung der Würfe gegeben ist, wurde nicht im klassischen Turniermodus vorgegangen. Stattdessen wurde, der im Kapitel \prettyref{sec:motivation} genannte, Modus "`Rennen"' genutzt, da es bei diesem das Ziel ist, jedes Feld auf dem Dartboard zu treffen. Würden die Würfe im Turniermodus gesammelt, so hätten sich die Würfe zu sehr auf eine Region konzentriert.
 
 
 \section*{Ergebnisse}
@@ -29,7 +29,7 @@ Zur Erfassung wurden rund 1000  Testwürfe durchgeführt und aufgezeichnet. Dami
 Zunächst wurden alle Daten betrachtet und die fünf Spitzen dem real erzielten Feld gegenübergestellt. Zum einen wurde der prozentuale Anteil der korrekt ermittelten Felder bestimmt. So wird eine Übersicht gegeben, welche der verschiedenen Varianten der Spitzen-Erkennung die erfolgreichste ist. Zum anderen wurde bei den nicht korrekt erkannten Darts betrachtet wie groß die Abweichung zum tatsächlichen Ausgang ist. Hierfür wurde überprüft, ob das erkannte Feld in der direkten Nachbarschaft zum real erzielten Feld befindet. So wurden die Fehlerkennungen aufgeschlüsselt in grundlegend falsch und als direkter Nachbar erkannt.
 
 
-In Abbildung \prettyref{Fig:plainchart}  sind alle Daten unbereinigt gegenübersgestellt. Zu erkennen ist, dass eine reine Erkennungsrate von rund $87\%$ (grün markiert) erzielt wurde. In Tabelle \prettyref{Tab:plaindata} sind die Daten exakt abzulesen. Dabei zeigt sich, dass die erste Variante der Bestimmung der Dart-Spitze die zuverlässigste ist. Von den rund $12\%$ der nicht korrekt erkannten Darts liegt ein großteil in der direkten Nachbarschaft des real erzielten Feldes (gelb markiert). Somit sind nur rund $2\%$ tieferliegende Schwierigkeiten in der Erkennung.
+In Abbildung \prettyref{Fig:plainchart}  sind alle Daten unbereinigt gegenübersgestellt. Zu erkennen ist, dass eine reine Erkennungsrate von rund $87\%$ (grün markiert) erzielt wurde. In Tabelle \prettyref{Tab:plaindata} sind die Daten abzulesen. Dabei zeigt sich, dass die erste Variante der Bestimmung der Dart-Spitze die zuverlässigste ist. Von den rund $12\%$ der nicht korrekt erkannten Darts liegt ein großteil in der direkten Nachbarschaft des real erzielten Feldes (gelb markiert). Somit sind nur rund $2\%$ tieferliegende Schwierigkeiten in der Erkennung.
 \begin{figure}[ht]
 \centering
 \includegraphics[width=\textwidth]{media/chartplain}\\
@@ -49,8 +49,8 @@ Nicht erkannt & 2.22\% & 2.12\% & 2.03\% & 2.02\% & 1.93\% \\ \hline
 \label{Tab:plaindata}
 \end{table}
 
-Ebenso wurde ein weiterer wichtiger Aspekt betrachtet. Aufgrund des, einzelnen un unbeweglichen, Standpunktes der Kamera kann es zu einer Verdeckung der Darts kommen. So kann es vorkommen, dass Darts partiell, oder gänzlich, verdeckt werden. Bei der Aufzeichnung der Testdaten wurden, zusätzlich zu der Information über das real erzielte Feld, gespeichert ob eine Verdeckung auftrat. Dies war in $5.5\%$ des Testwürfe der Fall.
-Die in Abbildung \prettyref{Fig:chartcovert} gegenübergestellten Daten wurden nach Verdeckung gefiltert. So wird dargestellt, wie sich Verdeckung auf die Erkennungsrate auswirkt. So ist zu sehen, dass nur $37$ bis $45\%$ erfolgreich erkannt wurden und in etwa der gleiche Anteil in der direkten Nachbarschaft identifiziert wurde. 
+Ebenso wurde ein weiterer wichtiger Aspekt betrachtet. Aufgrund des, einzelnen und unbeweglichen, Standpunktes der Kamera kann es zu einer Verdeckung der Darts kommen. So kann es vorkommen, dass Darts partiell, oder gänzlich, verdeckt werden. Bei der Aufzeichnung der Testdaten wurden, zusätzlich zu der Information über das real erzielte Feld, gespeichert ob eine Verdeckung auftrat. Dies war in $5.5\%$ des Testwürfe der Fall.
+Die in Abbildung \prettyref{Fig:chartcovert} gegenübergestellten Daten wurden nach Verdeckung gefiltert. So wird dargestellt, wie sich Verdeckung auf die Erkennungsrate auswirkt. Es ist zu erkennen, dass nur $37$ bis $45\%$ erfolgreich erkannt wurden und in etwa der gleiche Anteil in der direkten Nachbarschaft identifiziert wurde. 
 Ersichtlich ist, dass die Verdeckung der Darts eines der größeren Probleme darstellt.
 
 \begin{figure}[ht]
