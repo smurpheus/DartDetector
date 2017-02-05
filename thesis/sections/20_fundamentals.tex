@@ -6,17 +6,17 @@ In diesem Kapitel werden Grundlagen des Dartsports und der Bildverarbeitung erl�
 
 Zum einen werden in \prettyref{sec:darts} die Grundlagen des Dartsportes erläutert, auf deren Wesen die Idee dieser Abhandlung fußt. Hierbei wird von dem Dartboard bis zu den Darts und den allgemeinen Turnierregeln ein Überblick gegeben, um den Nutzen und die Motivation verständlicher zu machen.
 
-Weiterhin werden in Abschnitt \prettyref{sec:basics} grundlegende Informationen der Bildverarbeitung vermittelt, zudem wird ebenfalls ein Überblick über die verwendeten Bibliotheken zur Implementierung gegeben.
+Weiterhin werden in \prettyref{sec:basics} grundlegende Informationen der Bildverarbeitung vermittelt, zudem wird ein Eindruck der, zur Implementierung, genutzten Bibliotheken vermittelt.
 
 %Anschließend wird im \prettyref{sec:setup} das genutzte Testsetup dargestellt, welches für die praktische Implementierung genutzt wird.
 \section{Dartsport}
 \label{sec:darts}
-Darts ist ein Sport, welcher eine gute Geschicklichkeit und ein besonderes Maß an Visuomotorik erfordert. Dabei werden Pfeile, genannt Dart, mit der Hand auf eine Zielscheibe geworfen, um Punkte zu erzielen. Damit es eine einheitliche Regulierung für das Spielmaterial gibt, hat der Dartsport im Jahre 1920 eine erste Standardisierung erhalten. Die 1924 gegründete "`National Dart Association"' hat diesen zum Standard ihrer Liga erklärt \autocite[5]{guide2013}. Diese Standardisierung findet sich in vielen heutigen Regelwerken der verschiedenen Verbänden wieder unter Anderem auch in der Sport- und Wettkampfordnung des Deutschen
-Dart-Verband (DDV) \autocite{DartsRegel2016}. Aus dieser sind die folgenden Erklärungen und Reglungen entnommen. 
+Darts ist ein Sport, welcher eine gute Geschicklichkeit und ein besonderes Maß an Visuomotorik erfordert. Dabei wird ein Pfeil, genannt Dart, mit der Hand auf eine Zielscheibe geworfen, um Punkte zu erzielen. Damit es eine einheitliche Regulierung für das Spielmaterial gibt, wurde der Dartsport im Jahre 1920 eine erster Standardisierung unterzogen. Die 1924 gegründete "`National Dart Association"' hat diesen zum Standard ihrer Liga erklärt \autocite[5]{guide2013}. Diese Standardisierung findet sich in vielen heutigen Regelwerken der verschiedenen Verbänden wieder; unter Anderem auch in der Sport- und Wettkampfordnung des Deutschen
+Dart-Verbandes (DDV) \autocite{DartsRegel2016}. Aus dieser sind die folgenden Erklärungen und Reglungen entnommen. 
 
 Zunächst einmal zum Dartboard. Das heutzutage genutzte Dartboard ist in Abbildung\prettyref{Fig:dartboard} zu sehen. In dieser Form wurde es zum Zeitpunkt der Standardisierung 1924 geschaffen. Die Größe des gesamten Boards und der einzelnen Felder ist hierbei normiert und standardisiert, wie es in Abbildung \prettyref{Fig:dartboard} abzulesen ist. 
 
-Heutzutage werden sogenannte Boards vom Typ "`Bristle"', welches sich von dem englischen Wort für "Bürste" ableitet, verwendet. Diese Boards werden aus Sisal-Fasern gefertigt, welche in Aufprallrichtung der Pfeile aufgestellt sind, sodass sich jene zwischen die Fasern schieben können. \autocite[6]{dph2015}. Die Drähte, welche die einzelnen Felder voneinander trennen werden "`Spider"' genannt.
+Heute werden sogenannte Boards vom Typ "`Bristle"', welches sich von dem englischen Wort für "`Bürste"' ableitet, verwendet. Diese Boards werden aus Sisal-Fasern gefertigt, welche in Aufprallrichtung der Pfeile aufgestellt sind, sodass sich jene zwischen die Fasern schieben können. \autocite[6]{dph2015}. Die Drähte, welche die einzelnen Felder voneinander trennen werden "`Spider"' genannt.
 \begin{figure}
 \includegraphics[width=\textwidth]{media/Dartboard_Abmessungen}\\
 \caption{\textbf{Standardisiertes Dartboard\cite{Board2016}}
@@ -25,7 +25,7 @@ Heutzutage werden sogenannte Boards vom Typ "`Bristle"', welches sich von dem en
 \end{figure}
 
 Die Ziffern sind von Oben im Uhrzeigersinn wie folgt angeordnet:  20-1-18-4-13-6-10-15-2-17-3-19-7-16-8-11-14-9-12-5. Diese Art der Anordnung wird als "`London Board"' bezeichnet. Hierbei wird der äußere, 8mm breite Ring als "`Double Ring"' bezeichnet, welcher die Punktzahl des Feldes verdoppelt. Der Innere wird als "`Triple Ring"' bezeichnet und verdreifacht die Punktzahl des Feldes. Der "`Bull"', der innere Bereich des Boards, ist unterteilt in den grünen Teil, genannt "`Half Bull"', und das "`Bullseye"', diese zählen 25, beziehungsweise 50 Punkte. 
-Somit ist das "`Bullseye"' nicht, wie viele glauben, das Feld mit der höchsten Punktzahl. Es gibt sogar gleich 4 Felder, die eine höhere Punktzahl erbringen. Die Triple 20, 19, 18 und 17. Die Tripple 20 hat somit mit 60 Punkten die höchste zu erreichende Punktzahl. Im folgenden werden Triple Felder als "`TX"' bezeichnet, wobei X für die Ziffer des jeweiligen Feldes steht, zum Beispiel also T20. Eine weitere nennenswerte Schreibweise ist analog die für Doppelte Felder mit "`DX"'. 
+Somit ist das "`Bullseye"' entgegen landläufiger Meinung, das Feld mit der höchsten Punktzahl. Es gibt sogar gleich 4 Felder, die eine höhere Punktzahl erbringen. Die Triple 20, 19, 18 und 17. Die Tripple 20 hat somit mit 60 Punkten die höchste zu erreichende Punktzahl. Im folgenden werden Triple Felder als "`TX"' bezeichnet, wobei X für die Ziffer des jeweiligen Feldes steht, zum Beispiel also T20. Eine weitere nennenswerte Schreibweise ist analog die für Doppelte Felder mit "`DX"'. 
 
 \begin{figure}
 \includegraphics[width=\textwidth]{media/Dartsfield}\\
@@ -36,7 +36,7 @@ Somit ist das "`Bullseye"' nicht, wie viele glauben, das Feld mit der höchsten 
 \end{figure}
 
 
-Das Board wird mit dem Mittelpunkt des "`Bullseyes"' auf eine Höhe von 1,73 Metern gehängt, in der Weise, bei das Feld mit der 20 mittig oben befindet \autocite[6-8]{DartsRegel2016}. In Abbildung \prettyref{Fig:dartsetup} ist eine Seitenansicht einer Dartanlage nach dem Regelwerk des DDV zu sehen. Die Standleiste, oder "`Oche"', befindet sich hier in einer Entfernung von 2.37 Metern zur Front-Seite des Boards.
+Das Board wird mit dem Mittelpunkt des "`Bullseyes"' auf eine Höhe von 1,73 Metern gehängt, sodass sich das Feld mit der 20 mittig oben befindet \autocite[6-8]{DartsRegel2016}. In Abbildung \prettyref{Fig:dartsetup} ist eine Seitenansicht einer Dartanlage nach dem Regelwerk des DDV zu sehen. Die Standleiste, oder "`Oche"', befindet sich hier in einer Entfernung von 2.37 Metern zur Front-Seite des Boards.
 
 Als letzten Teil der Ausrüstung gilt es den Dart selbst zu beschreiben. Bei einem Dart, wie in Abbildung \prettyref{Fig:darts} zu sehen, sind grundsätzlich vier Hauptbestandteile zu unterscheiden:
 \begin{enumerate}
@@ -65,13 +65,19 @@ Die weiteren Bestandteile sind optional und nicht zwingend notwendig für den Da
 
 \end{enumerate}
 
-Darts wird im Turniersport in hauptsächlich zwei verschiedenen Modi gespielt, welche sich sehr ähneln. Zum einen gibt es 501 und zum anderen 301 im Modus "`Straight in"'  und  "`Double Out"'.
+Darts wird im Turniersport in hauptsächlich zwei verschiedenen Varianten gespielt, welche sich sehr ähneln. Zum einen gibt es <501> und zum anderen <301>. Für beide Varianten gilt der Modus "`Straight in"', "`Double Out"'.
 
-Das Spiel, oder Match, zwischen zwei Spielern ist in zwei Bestandteile gegliedert. So besteht das Match aus einer variierenden, vorher definierten, Anzahl "`Sets"'. Ein "`Set"' wiederum besteht seinerseits aus einer variierenden, vorher definierten, Anzahl "`Legs"'.
+Jedes Spiel, oder Match, besteht aus einer definierten Anzahl sogenannter "`Sets"'. Ein "`Set"' wiederum besteht seinerseits aus einer bestimmten Anzahl "`Legs"'.
 
-Ein Spieler (Team), entscheidet ein "`Leg"' für sich, wenn die vom Modus abhängige Punktzahl erreicht wurde. Somit besteht in den verbreitetsten Varianten ein Leg aus 301, beziehungsweise 501, Punkten. Hierbei hat zunächst jeder Spieler (Team) einen Pool von genannter Punktzahl. Dieser wird mit jedem erzielten Punkt verringert. Ziel ist es als erste die Punktzahl auf 0 zu reduzieren. Hierbei ist zu beachten, dass genau auf 0 heruntergespielt werden muss. Des weiteren gilt, das Leg mit dem Erzielen eines Doppel-Feldes zu beenden,  jedoch ist es zusätzlich möglich ein "Bull Out" zu erlangen, bei dem das Leg mit dem Treffen des "`Bulls-Eyes"' beendet werden kann. Wird die Punktzahl mit einem Wurf, ein Wurf besteht aus den 3 Darts, auf 1 oder in den negativen Bereich gebracht so gilt es als überworfen und wird als "`Bust"' bezeichnet. In diesem Fall wird die Punktzahl vor dem Wurf wiederhergestellt. \autocite[5]{DartsRegel2016} 
+In der Variante 501 entscheidet ein Spieler (Team) ein "`Leg"' für sich, wenn er als Erster auf 0 herunter spielt. Analog gilt dies für Variante 301.
+Hierbei ist zu beachten, dass genau auf 0 heruntergespielt werden muss.
+Die Anzahl der dabei benötigten Würfe spielt dabei keine Rolle. Ein Wurf besteht hierbei aus drei geworfenen Darts.
+ 
+Des weiteren gilt, dass durch den Modus "`Double Out"' das Leg mit dem Erzielen eines Doppel-Feldes zu beenden ist. Bei einem "`Straight Out"' wäre diese Einschränkung nicht gegeben.
+Es ist es zusätzlich möglich ein "`Bull Out"' zu erlangen, bei dem das Leg mit dem Treffen des "`Bulls-Eyes"' beendet werden kann. 
+Wird die Punktzahl mit einem Wurf, auf 1 oder in den negativen Bereich reduziert so gilt es als überworfen und wird als "`Bust"' bezeichnet. In diesem Fall wird die Punktzahl vor dem Wurf wiederhergestellt. \autocite[5]{DartsRegel2016} 
 
-Das Leg gewonnen hat der Spieler (Team), der als erstes auf 0 herunter gespielt hat. Hat der Spieler (Team) die definierte Anzahl an Legs gewonnen entscheidet er ein Set für sich. Gewonnen ist ein Match von dem Spieler (Team), das als erstes die definierte Anzahl an Sets gewinnt.
+Hat ein Spieler (Team) die definierte Anzahl an Legs gewonnen, entscheidet er ein Set für sich. Gewonnen ist ein Match von dem Spieler (Team), der als Erster die definierte Anzahl an Sets gewinnt.
 
 \begin{example*}[Ein Spieler hat 10 Punkte verbleibend] 
 
@@ -85,7 +91,7 @@ Es müsste eine D5 erzielt werden, um mit dem ersten Dart abzuschließen. Es fol
 
 Rechnerisch ist es bei 501 also möglich, mit 9 Darts zu beenden (3xT20, 3xT20, 2xT20+Bullseye), der sogenannte "`Neun Darter"'.
 
-Die bisher beschriebene Dart Variante wird als "`Steeldart"' bezeichnet, da die Darts in der Regel eine Stahlspitze besitzen und einen Metallshaft haben. Dem gegenüber steht das sogenannte "`Softdart"'. Beim Softfdart besitzen die Darts eine Kunststoffspitze statt einer Stahlspitze. Dem entsprechend ist auch das Board ein Kunststoffboard mit vorgefertigten Löchern, in welche die Spitzen der Pfeile eindringen können. 
+Die bisher beschriebene Dart Ausstattung wird als "`Steeldart"' bezeichnet, da die Darts in der Regel eine Stahlspitze besitzen und einen Metallschaft haben. Dem gegenüber steht das sogenannte "`Softdart"'. Beim Softfdart besitzen die Darts eine Kunststoffspitze statt einer Stahlspitze. Dem entsprechend ist auch das Board ein Kunststoffboard mit vorgefertigten Löchern, in welche die Spitzen der Pfeile eindringen können. 
 
 \section{Grundlagen Bildverarbeitung}
 \label{sec:basics}
