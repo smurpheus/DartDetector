@@ -65,17 +65,18 @@ Die weiteren Bestandteile sind optional und nicht zwingend notwendig für den Da
 
 \end{enumerate}
 
-Darts wird im Turniersport in hauptsächlich zwei verschiedenen Varianten gespielt, welche sich sehr ähneln. Zum einen gibt es <501> und zum anderen <301>. Für beide Varianten gilt der Modus "`Straight in"', "`Double Out"'.
+Darts wird im Turniersport hauptsächlich in zwei verschiedenen Varianten gespielt, welche sich sehr ähneln. Zum einen gibt es <501> und zum anderen <301>. Für beide Varianten gilt der Modus "`Straight in"' und "`Double Out"'.
+"`Straight in"' bedeutet dabei, dass mit jedem beliebigen Feld eröffnet werden kann.
 
 Jedes Spiel, oder Match, besteht aus einer definierten Anzahl sogenannter "`Sets"'. Ein "`Set"' wiederum besteht seinerseits aus einer bestimmten Anzahl "`Legs"'.
 
-In der Variante 501 entscheidet ein Spieler (Team) ein "`Leg"' für sich, wenn er als Erster auf 0 herunter spielt. Analog gilt dies für Variante 301.
+In der Variante 501 entscheidet ein Spieler (Team) ein "`Leg"' für sich, wenn er als Erster auf genau 0 herunter spielt. Analog gilt dies für Variante 301.
 Hierbei ist zu beachten, dass genau auf 0 heruntergespielt werden muss.
 Die Anzahl der dabei benötigten Würfe spielt dabei keine Rolle. Ein Wurf besteht hierbei aus drei geworfenen Darts.
  
 Des weiteren gilt, dass durch den Modus "`Double Out"' das Leg mit dem Erzielen eines Doppel-Feldes zu beenden ist. Bei einem "`Straight Out"' wäre diese Einschränkung nicht gegeben.
 Es ist es zusätzlich möglich ein "`Bull Out"' zu erlangen, bei dem das Leg mit dem Treffen des "`Bulls-Eyes"' beendet werden kann. 
-Wird die Punktzahl mit einem Wurf, auf 1 oder in den negativen Bereich reduziert so gilt es als überworfen und wird als "`Bust"' bezeichnet. In diesem Fall wird die Punktzahl vor dem Wurf wiederhergestellt. \autocite[5]{DartsRegel2016} 
+Wird die Punktzahl durch einem Wurf, auf 1 oder in den negativen Bereich reduziert, so gilt er als überworfen und wird als "`Bust"' bezeichnet. In diesem Fall wird die Punktzahl vor dem Wurf wiederhergestellt. \autocite[5]{DartsRegel2016} 
 
 Hat ein Spieler (Team) die definierte Anzahl an Legs gewonnen, entscheidet er ein Set für sich. Gewonnen ist ein Match von dem Spieler (Team), der als Erster die definierte Anzahl an Sets gewinnt.
 
@@ -95,39 +96,39 @@ Die bisher beschriebene Dart Ausstattung wird als "`Steeldart"' bezeichnet, da d
 
 \section{Grundlagen Bildverarbeitung}
 \label{sec:basics}
-Im folgenden werden einige Grundlagen beschrieben, die nötig sind, um die verwendeten Algorithmen und Vorgehensweisen nachvollziehen zu können. Es wird davon ausgegangen das grundlegende Kenntnisse zum Aufbau eines digitalisierten Bildes vorhanden sind. 
+Im folgenden werden einige Grundlagen beschrieben, die nötig sind, um die verwendeten Algorithmen und Vorgehensweisen nachvollziehen zu können. Es wird davon ausgegangen, dass grundlegende Kenntnisse zum Aufbau eines digitalisierten Bildes vorhanden sind. 
 \subsection{Physik und Geometrie einer Kamera}
 \label{sec:camerageo}
-Beginnend mit der Entstehung der verarbeiteten Bilder. 
+Dieser Abschnitt beginnt mit der Entstehung der verarbeiteten Bilder. Ein Verständnis hierfür ist Voraussetzung, um die Abbildung von 3D-Objekt auf die 2D-Bilder nachvollziehen zu können.
 
 Zur Vereinfachung wird vorerst von dem sogenannten "`Pinhole Camera Model"' ausgegangen. In Abbildung \prettyref{Fig:simple-pinhole} ist ein solches Modell dargestellt. 
 
 Mittig ist die Barriere zu sehen, in welcher sich ein Loch c befindet, durch das die Lichtstrahlen auf die Image Plane I treffen können. Daraus resultiert ein auf dem Kopf stehendes Bild. $c$ ist hierbei das Zentrum des Koordinatensystems.
-Die Distanz zwischen I und der Barriere $(f)$ ist bei heutigen Kameras die Focal Length. Hierbei gilt es zu bemerken, dass Kameras heutzutage nicht mehr nur ein Loch besitzen, sondern eine Linse eingesetzt ist, welche die Lichtstrahlen brechen und auf die Image Plane lenken. Das grundlegende Modell bleibt aber auch bei heutigen Kameras bestehen. Darauf, wie die Linse das Bild verändert, wird später eingegangen. 
+Die Distanz zwischen I und der Barriere $(f)$ ist bei heutigen Kameras die Focal Length. Hierbei gilt es zu bemerken, dass Kameras heutzutage nicht mehr nur ein Loch besitzen, sondern eine Linse eingesetzt ist, welche die Lichtstrahlen bricht und auf die Image Plane lenkt. Das grundlegende Modell bleibt aber auch bei heutigen Kameras bestehen. Wie die Linse das Bild verändert wird später erläutert. 
 
-Auf diese Weise entsteht eine Abbildung des Punktes $P$ auf der zwei dimensionalen Fläche $I$. Sind alle Parameter bekannt, lässt sich folglich bestimmten, wo der Punkt $P$ später im Bild zu sehen sein wird. 
+Auf diese Weise entsteht eine Abbildung des Punktes $P$ auf der zwei dimensionalen Fläche $I$. Sind alle Parameter bekannt, lässt sich folglich bestimmen, wo der Punkt $P$ später im Bild zu sehen sein wird. 
 
 \begin{figure}
 \includegraphics[width=\textwidth]{media/simple-pinhole.png}\\
-\caption{\textbf{Einfache Darstellung, der Funktionsweise einer einfachen Loch Kamera}
+\caption{\textbf{Einfache Darstellung der Funktionsweise einer einfachen Loch Kamera}
 }
 \label{Fig:simple-pinhole}
 \includegraphics[width=\textwidth]{media/pinhole_camera_model}\\
-\caption{\textbf{Pinhole Camera Modell von.\autocite{OpencvCamera2016}}
+\caption{\textbf{Pinhole Camera Modell \autocite{OpencvCamera2016}.}
 }
 \label{Fig:pinhole}
 \end{figure}
 
-In Abbildung \prettyref{Fig:pinhole} ist eine andere Betrachtungsweise zu sehen. Hier wurde die Image Plane rotiert und vor den Koordinatenursprung verschoben. Zu sehen sind die Achsen u und v, welche der X- und Y-Achse des Bildes entsprechen. Rot markiert ist zu sehen wie sich der Objekt- oder Welt-Punkt auf der Image Plan am Punkt $(u, v)$ abbildet. Auf der Image Plane befindet sich in heutigen Kameras ein Bildsensor, der die Analogen Lichtsignale zu einem digitalen Bild umwandelt. 
+In Abbildung \prettyref{Fig:pinhole} ist eine andere Betrachtungsweise zu sehen. Hier wurde die Image Plane rotiert und vor den Koordinatenursprung verschoben. Zu sehen sind die Achsen u und v, welche der X- und Y-Achse des Bildes entsprechen. Rot markiert ist zu sehen wie sich der Objekt- oder Welt-Punkt auf der Image Plan am Punkt $(u, v)$ abbildet. Auf der Image Plane befindet sich in heutigen Kameras ein Bildsensor, der die analogen Lichtsignale zu einem digitalen Bild umwandelt. 
 
-Entlang der Z-Achse des Kamera-Koordinatensystems ist die optische Achse. Der Punkt $(c_x,c_y)$, in dem die optische Achse die Image Plane schneidet ist der "`principal point"' oder das "`Centre"' \autocite[8]{Medioni:2004:ETC:993884}
+Entlang der Z-Achse des Kamera-Koordinatensystems befindet sich die optische Achse. Der Punkt $(c_x,c_y)$, in dem die optische Achse die Image Plane schneidet, ist der "`principal point"' oder das "`Centre"' \autocite[8]{Medioni:2004:ETC:993884}
 
-Nun gilt es eine mathematische Abbildung zu finden um den Objektpunkt zu dem Bildpunkt zu transformieren. Folglich muss eine Rotation und eine Transformation vorgenommen werden.
-Die Rotationsmatrix mit dem Namen $R$ und die Transformationsmatrix $t$. Diese Bilden die extrinsischen Parameter der Kamera, welche bestimmen, wo diese sich im Raum im Verhältnis zu einem Objekt befindet. Anhand dieser Parameter kann ein  Objekt Punkt $P = \begin{bmatrix}X & Y& Z \\\end{bmatrix}^\intercal$ in den Punkt $ k = \begin{bmatrix}x & y& z \\\end{bmatrix}^\intercal$ des Kamera Koordinatensystems übertragen werden. Somit gilt: 
+Nun gilt es eine mathematische Abbildung zu finden, um den Objektpunkt in den entsprechenden Bildpunkt zu transformieren. Folglich muss eine Rotation und eine Transformation vorgenommen werden:
+Die Rotationsmatrix mit dem Namen $R$ und die Transformationsmatrix $t$. Diese bilden die extrinsischen Parameter der Kamera, welche bestimmen, wo diese sich im Raum im Verhältnis zu einem Objekt befindet. Anhand dieser Parameter kann ein  Objekt Punkt $P = \begin{bmatrix}X & Y& Z \\\end{bmatrix}^\intercal$ in den Punkt $ k = \begin{bmatrix}x & y& z \\\end{bmatrix}^\intercal$ des Kamera-Koordinatensystems übertragen werden. Somit gilt: 
 $k = R * P + t$ 
 
-Nun gilt es den Punkt im Kamera Koordinatensystem zum tatsächlichen Bildpunkt $m=(u,v)$ zu übertragen. Hierfür müssen die intrinsischen Parameter der Kamera bestimmt werden m,. Diese bleibt bei einer spezifischen Kamera bestehen, vorausgesetzt die Linse ist starr und nicht fokussierbar, ansonsten müssen diese Parameter erneut bestimmt werden.
-Zu diesem Parameter zählen die bereits erwähnte focal length und das Centre der Kamera. Wie bereits vorher erwähnt wirkt sich die Linse der Kamera auf das Bild aus. Die Linse verursacht eine Verzerrung des Bildes. Zum einen eine radiale Verzerrung (auch als "Fish Eye" bekannt), ein Beispiel zur Verdeutlichung ist in Abbildung \prettyref{Fig:radialdistortion} zu sehen, zum Anderen findet eine Verschiebung statt (tangential disortion).
+Nun gilt es den Punkt im Kamera-Koordinatensystem zum tatsächlichen Bildpunkt $m=(u,v)$ zu übertragen. Hierfür müssen die intrinsischen Parameter der Kamera bestimmt werden. Diese bleiben bei einer spezifischen Kamera bestehen, vorausgesetzt die Linse ist starr und nicht fokussierbar, ansonsten müssen sie erneut bestimmt werden.
+Zu diesen Parameter zählen die bereits erwähnte focal length und das Centre der Kamera. Wie vorher beschrieben wirkt sich die Linse der Kamera auf das Bild aus. Die Linse verursacht eine Verzerrung des Bildes. Zum Einen eine radiale Verzerrung (auch als "Fish Eye" bekannt), ein Beispiel zur Verdeutlichung ist in Abbildung \prettyref{Fig:radialdistortion} zu erkennen, zum Anderen findet eine Verschiebung statt (tangential disortion).
 
 \begin{figure}
 \includegraphics[width=\textwidth]{media/distortion_examples}\\
@@ -136,21 +137,21 @@ Zu diesem Parameter zählen die bereits erwähnte focal length und das Centre de
 \label{Fig:radialdistortion}
 \end{figure}
 
-Um nun den tatsächlichen Bildpunkt zu erhalten, müssen also noch diese Parameter berücksichtigt werden. Damit ergibt sich:
+Um nun den tatsächlichen Bildpunkt zu erhalten, müssen also noch die Verzerrungs-Parameter berücksichtigt werden. Damit ergibt sich:
 $sk = A [R | t] * P 
 $
 wobei $A = \begin{bmatrix} f_x & \gamma & c_x \\
                              0 &  f_y   & c_y \\
-                             0 &  0     &  1\end{bmatrix}$ und $s$ ein von der Auflösung abhängiger Skalierungsfaktor ist. $\gamma$ gibt an in welchem Winkel die Image Plane zum Kamera Koordinatensystem rotiert ist. Zuletzt wird nun der eigentliche Bildpunkt, beziehungsweise Pixel errechnet, indem $m=(x/z, y/z)=(u,v)$.
+                             0 &  0     &  1\end{bmatrix}$ und $s$ ein von der Auflösung abhängiger Skalierungsfaktor ist. $\gamma$ gibt an, in welchem Winkel die Image Plane zum Kamera-Koordinatensystem rotiert ist. Zuletzt wird nun der eigentliche Bildpunkt, beziehungsweise Pixel, errechnet, indem $m=(x/z, y/z)=(u,v)$.
 
 
 
 \subsection{Programmierung von Computer Vision}
 \label{sec:opencv}
-Da es viele Basisprobleme und Anwendungen in der Computer Vision gibt wurde eine open source Library implementiert. Die geläufigste ist die Open Source Computer Vision Library, kurz OpenCV, sie wurde unter BSD Lizenz veröffentlicht, sodass sie nahezu ohne Einschränkungen genutzt werden kann. Die Bibliothek ist größtenteils in C\# und C++  geschrieben und wurde anfänglich von Intel entwickelt \textbf{\autocite[512--]{Medioni:2004:ETC:993884} }.Einige Gründe hierfür waren der Wunsch der Forschungsgemeinschaft zu ermöglichen neue Anwendungen implementieren zu können, ohne sich um die grundlegende Implementierung kümmern zu müssen. So bietet OpenCV auch Möglichkeiten um eine Kamera mit einfachen Mitteln kalibrieren zu können. Auf das Vorgehen dabei wird in \prettyref{sec:camera} eingegangen.
-Die Bibliothek ist auf allen Gängigen Betriebssystemen verfügbar, somit existiert je eine Version für Windows, Linux und Mac. Zudem gibt es für mobile Applikationen noch eine Unterstützung von Android.
+Da es viele Basisprobleme und Anwendungen in der Computer Vision gibt, wurde eine open source Library implementiert. Die geläufigste ist die Open Source Computer Vision Library, kurz OpenCV, sie wurde unter BSD Lizenz veröffentlicht, sodass sie nahezu ohne Einschränkungen genutzt werden kann. Die Bibliothek ist größtenteils in C\# und C++  geschrieben und wurde anfänglich von Intel entwickelt \textbf{\autocite[512--]{Medioni:2004:ETC:993884}}. Einige Gründe hierfür waren der Wunsch, der Forschungsgemeinschaft zu ermöglichen neue Anwendungen implementieren zu können, ohne sich um die grundlegende Implementierung kümmern zu müssen. So bietet OpenCV auch Möglichkeiten um eine Kamera mit einfachen Mitteln kalibrieren zu können. Auf das Vorgehen dabei wird in \prettyref{sec:camera} eingegangen.
+Die Bibliothek ist auf allen gängigen Betriebssystemen verfügbar, somit existiert je eine Version für Windows, Linux und Mac. Zudem gibt es für mobile Applikationen noch eine Unterstützung von Android.
 
-Für OpenCV sind Interfaces zu anderen Sprachen implementiert worden, so ist es möglich OpenCV in Java und Python zu nutzen \autocite{OpenCV2016}. Insgesamt werden rund 2500 optimierte Algorithmen angeboten, hierzu zählen Algorithmen im Bereich Machine Learning, 3D Objekt Erkennung, Gesichtserkennung und vielem mehr. Zudem befinden sich Interfaces zu Nvidias CUDA, eine Bibliothek zur Parallelen Berechnung \autocite{cuda2017}, und zu OpenCL aktuell in der aktiven Entwicklung.
+Für OpenCV sind Interfaces zu anderen Sprachen implementiert worden, so ist es möglich OpenCV in Java und Python zu nutzen \autocite{OpenCV2016}. Insgesamt werden rund 2500 optimierte Algorithmen angeboten, hierzu zählen Algorithmen im Bereich Machine Learning, 3D Objekt Erkennung, Gesichtserkennung und vielem mehr. Zudem befinden sich Interfaces zu Nvidias CUDA, eine Bibliothek zur parallelen Berechnung \autocite{cuda2017}, und zu OpenCL aktuell in der aktiven Entwicklung.
 
 
 
