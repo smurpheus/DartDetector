@@ -2,7 +2,7 @@
 
 \chapter{Umsetzung}
 \label{chap:coding}
-In diesem Kapitel wird auf den Aufbau der Implementierung eingegangen. Zunächst wird ein allgemeiner Überblick über das Vorgehen gegeben. Dies wird im folgenden als Pipeline bezeichnet und wird im \prettyref{sec:pipeline} allgemein erläutert.
+In diesem Kapitel wird auf den Aufbau der Implementierung eingegangen. Zunächst wird ein allgemeiner Überblick über das Vorgehen gegeben, welches im folgenden als "`Pipeline"' bezeichnet und im \prettyref{sec:pipeline} allgemein erläutert wird.
 
 Nachdem ein genereller Überblick über die einzelnen Bestandteile gegeben wurde, wird auf die einzelnen Schritte der Pipeline genauer eingegangen.
 
@@ -10,30 +10,32 @@ Anfänglich werden einmalige Vorbereitungsschritte aufgeschlüsselt, hierzu geh�
 
 Darauf folgt in \prettyref{sec:board} die Kalibrierung und die Erkennung der Felder des Dartboardes. Es werden verschiedene getestete Ansätze erörtert und ihre Vor- und Nachteile dargestellt.
 
-Des Weiteren werden die einzelnen Abschnitte der Pipeline näher beleuchtet und auf die Implementierung und das Vorgehen eingegangen.  Dies umfasst die Segmentierung der Dinge, die nicht zum Dartboard gehören in Abschnitt \prettyref{sec:substraction}. Und ebenso die konkrete
-Bestimmung der erzielten Punktzahl in Abschnitt \prettyref{sec:score}.
+Des Weiteren werden die einzelnen Abschnitte der Pipeline näher beleuchtet und auf die Implementierung und das Vorgehen eingegangen.  Dies umfasst die Segmentierung der Dinge, die nicht zum Dartboard gehören in \prettyref{sec:substraction} sowie die konkrete
+Bestimmung der erzielten Punktzahl in \prettyref{sec:score}.
        
 \section{Pipeline Überblick}
 \label{sec:pipeline}
-In Abbildung \prettyref{Fig:pipeline} ist ein Überblick der einzelnen Schritte und wie sie verknüpft sind dargestellt. Dieser gesamte Zusammenhang wird im folgenden als Pipeline bezeichnet.
-Zu erkennen ist, dass es zwei sich wiederholende Teile gibt. Diese werden parallel zueinander ausgeführt.
- Als Verbindungsglied zwischen diesen steht der Storage. Dieser speichert Informationen zu jedem aufgenommenen Bild. Auf den Storage, seine Funktionsweise und die weitere Verarbeitung wird in \prettyref{sec:foreground} eingegangen. 
+In Abbildung \prettyref{Fig:pipeline} ist ein Überblick der einzelnen Schritte und wie diese verknüpft sind dargestellt. Dieser gesamte Zusammenhang wird im Folgenden als Pipeline bezeichnet.
+Zu erkennen ist, dass es zwei sich wiederholende Teile gibt, welche parallel zueinander ausgeführt werden.
+ Als Verbindungsglied zwischen diesen steht der "`Storage"'. Dieser speichert Informationen zu jedem aufgenommenen Bild. Auf den Storage, seine Funktionsweise und die weitere Verarbeitung wird in \prettyref{sec:foreground} eingegangen. 
 
-Zu Beginn wird eine einmalige Kalibrierung der Kamera ausgeführt. Die Kalibrierung durchzuführen ist optionaler ein Bestandteil der Pipeline. Die Kamera Kalibrierung muss für eine spezifische Kamera nur ein einziges mal ausgeführt werden, abgesehen von dem Fall, dass die Kamera eine Fokussierung besitzt. In diesem Fall muss dieser Schritt nach jedemr Fokussierung erneut ausgeführt werden. Auf die Kalibrierung der Kamera wird im einzelnen in \prettyref{sec:camera} eingegangen.
+Zu Beginn wird eine einmalige Kalibrierung der Kamera ausgeführt. Diese durchzuführen ist optionaler Bestandteil der Pipeline. Die Kamerakalibrierung muss für eine spezifische Kamera nur ein einziges mal ausgeführt werden, es sei denn, die Kamera besitzt eine Fokussierung. In diesem Fall muss dieser Schritt nach jeder Fokussierung erneut ausgeführt werden. Auf die Kalibrierung der Kamera wird im einzelnen in \prettyref{sec:camera} eingegangen.
 
-Ist die Kalibrierung abgeschlossen, können die hieraus gewonnenen Informationen genutzt werden, um das Dartboard und dessen Felder zu segmentieren und unterscheiden zu können. Das Resultat dieser Kalibrierung ist eine Funktion, die eine Abbildung von einem Pixel zu einer spezifischen Punktzahl auf dem Dartboard darstellt. In \prettyref{sec:board} wird darauf ein gegangen, welche Ansätze zu diesem Zweck verfolgt wurden und wie die letztendliche Umsetzung vorgenommen wurde.
-
-Diese beiden Schritte können übersprungen werden, sofern sich die Position der Kamera relativ zum Dartboard, bei einem erneuten Start der Software, nicht verändert hat. In diesem Fall kann die Kameramatrix aus einer Datei geladen werden.
-\begin{figure}
+\begin{figure}[ht]
 \includegraphics[width=\textwidth]{media/pipeline.png}\\
 \caption{\textbf{Übersicht der einzelnen Schritte}}
 \label{Fig:pipeline}
 \end{figure}
-Es werden zwei separate Threads gestartet. In der Abbildung ist der erste Thread grau markiert (Background-Substrator) und der zweite türkis. Der Background-Substractor dient dazu den Storage mit Informationen zu füllen. In \prettyref{sec:substraction} wird das Vorgehen erläutert und welche Informationen bestimmt und gespeichert werden.
+
+Ist die Kalibrierung abgeschlossen, können die hieraus gewonnenen Informationen genutzt werden, um das Dartboard und dessen Felder zu segmentieren und unterscheiden zu können. Das Resultat dieser Kalibrierung ist eine Funktion, die eine Abbildung von einem Pixel zu einer spezifischen Punktzahl auf dem Dartboard darstellt. In \prettyref{sec:board} wird darauf ein gegangen, welche Ansätze zu diesem Zweck verfolgt wurden und wie die letztendliche Umsetzung vorgenommen wurde.
+
+Diese beiden Schritte können übersprungen werden, sofern sich die Position der Kamera relativ zum Dartboard, bei einem erneuten Start der Software, nicht verändert hat. In diesem Fall kann die Kameramatrix aus einer Datei geladen werden.
+
+Es werden zwei separate Threads gestartet. In der Abbildung ist der erste Thread grau markiert (Background-Substrator) und der zweite türkis. Der Background-Substractor dient dazu, den Storage mit Informationen zu füllen. In \prettyref{sec:substraction} wird das Vorgehen erläutert und welche Informationen bestimmt und gespeichert werden.
 Der zweite Thread wird in mehrere Sub-Schritte unterteilt. 
 
-Zunächst verwendet die Blob-Erfassung die Informationen im Storage um ein Bild zur weiteren Verarbeitung zu generieren, weitere Erläuterung sind in Abschnitt \prettyref{sec:blob} zu finden.
-Die gewonnenen Informationen werden für die weitere Verarbeitung zu Kontur-Erkennung genutzt, nähere Beschreibung in \prettyref{sec:foreground}.
+Zunächst verwendet die Blob-Erfassung die Informationen im Storage, um ein Bild zur weiteren Verarbeitung zu generieren, weitere Erläuterungen sind in \prettyref{sec:blob} zu finden.
+Die gewonnenen Informationen werden für die weitere Verarbeitung zu Konturerkennung genutzt, nähere Beschreibung in \prettyref{sec:foreground}.
 
 Abschließend werden die Dart-Parameter bestimmt und in der Punktzahl-Erkennung in die erzielte Punktzahl überführt. Diese wird anschließend abgespeichert.
 
@@ -42,7 +44,7 @@ Abschließend werden die Dart-Parameter bestimmt und in der Punktzahl-Erkennung 
 \label{sec:camera}
 Im \prettyref{sec:camerageo} wurden bereits das Kamera Modell und die Parameter einer Kamera erläutert. So heißt es in \autocite[5]{Zhang2000} \textquote{Camera calibration is a necessary step in 3D computer vision in order to extract metric information from 2D images.} Nun gilt es eben diese Parameter zu bestimmen um genauere Daten aus den Bildern der Kamera zu erlangen. 
 
-Diese Kalibrierung ist vorrangig dafür gedacht die intrinsischen Parameter der Kamera zu bestimmen. Die extrinsischen Parameter werden auf andere Art bestimmt, beziehungsweise in einem anderen Schritt. Die Bestimmung der extrinsischen Parameter wird in \prettyref{sec:board} erläutert.
+Diese Kalibrierung ist vorrangig dafür gedacht, die intrinsischen Parameter der Kamera zu bestimmen. Die extrinsischen Parameter werden auf andere Art bestimmt beziehungsweise in einem anderen Schritt. Die Bestimmung der extrinsischen Parameter wird in \prettyref{sec:board} erläutert.
 
 Es gibt mehrere Möglichkeiten eine Kalibrierung der Kamera vorzunehmen. Diese sind: mit 3D-Objekten, mit 2D-Ebenen oder 1D-Linien. Dabei haben diese verschiedenen Varianten einen unterschiedlich hohen Aufwand, Genauigkeit und Komplexität in der Berechnung. 
 
@@ -59,7 +61,7 @@ Bei 3D-Objekten ist es sowohl aufwändiger die Objekpunkte zu bestimmen, als auc
 \end{figure}
 In Abbildung \prettyref{Fig:calibplane} (a) ist eines der Bilder zu sehen, mit denen die zum Test der Implementierung genutzten Kamera kalibriert wurde. Dies ist ein Muster von $9x6$ Schnittpunkten. In Abbildung  \prettyref{Fig:calibplane} (b) sind die erkannten Feature-Punkte eingezeichnet. Für dieses Schachbrettmuster ist der Abstand der einzelnen Schnittpunkte durch ausmessen bekannt und mit $26mm$ Abstand entlang der Graden voneinander gegeben. 
 
-Wie bereits beschrieben wird OpenCV \prettyref{sec:opencv} zur Implementierung genutzt. OpenCV bietet einige Funktionen, 6um die Kalibrierung einer Kamera durchzuführen. Die Dokumentation von OpenCV3 \autocite{Opencv3Camera2016} zeigt die dafür zur Verfügung gestellten Funktionen. 
+Wie bereits beschrieben wird OpenCV \prettyref{sec:opencv} zur Implementierung genutzt. OpenCV bietet einige Funktionen, um die Kalibrierung einer Kamera durchzuführen. Die Dokumentation von OpenCV3 \autocite{Opencv3Camera2016} zeigt die dafür zur Verfügung gestellten Funktionen. 
 \begin{lstlisting}[frame=single]
 ret, corners = findChessboardCorners(image, patternSize) 
 corners2 = cornerSubPix(image, corners, winSize, zeroZone,\\
@@ -71,17 +73,17 @@ ret, mtx, dist, rvecs, tvecs = calibrateCamera(\\
 newcameramtx, roi = getOptimalNewCameraMatrix(mtx, dist,\\
                imageSize, alpha , newimageSize)
 \end{lstlisting}
-So wird \textit{findChessboardCorners} verwendet um die Schnittpunkte im Schachbrettmuster zu erkennen und die dazugehörigen Koordinaten zu identifizieren. Hierzu wird eines der Bilder mit dem Schachbrettmuster in ein Graustufenbild gewandelt und der Funktion übergeben, zusätzlich wird die Größe des Schachbrettmusters übergeben $(9,6)$. Dies liefert zum einen den Erfolg der Funktion als Boolean zurück und zum anderen die Bildkoordinaten der gefundenen Schnittpunkte. 
+So wird \textit{findChessboardCorners} verwendet um die Schnittpunkte im Schachbrettmuster zu erkennen und die dazugehörigen Koordinaten zu identifizieren. Hierzu wird eines der Bilder mit dem Schachbrettmuster in ein Graustufenbild gewandelt und der Funktion übergeben, ein zusätzlicher Parameter ist die Größe des Schachbrettmusters $(9,6)$. Dies liefert zum einen den Erfolg der Funktion als Boolean zurück und zum anderen die Bildkoordinaten der gefundenen Schnittpunkte. 
 Die gefundenen Koordinaten sind allerdings nur approximierte Werte, daher ist es empfehlenswert \textit{cornerSubPix} auf demselben Bild mit den bereits ermittelten Schnittpunkten aufzurufen. Diese dient der genaueren Bestimmung der Bildkoordinaten, um eine höhere Genauigkeit zu erreichen. Die Funktion gibt die neuen Koordinaten der Schnittpunkte zurück. 
 Die Funktionsweise der Erkennung des Schachbrettmusters basiert auf einer Kantenerkennung nach John Canny \autocite{canny1986}.
 
 Um die Parameter der Kamera zu errechnen werden die Bildpunkte, der Schachbrettschnittpunkte und die zugehörigen Objektpunkte benötigt. Die Objektpunkte sind in diesem Fall die Punkte auf dem Schachbrett. Es wird davon ausgegangen, dass sich die Punkte alle auf einer Ebene befinden \textit{z=0}. Die Objektpunkte sehen in etwa wie folgt aus: $[[0,0,0], [26,0,0],...,[0,26,0],[0,52,0],...,[234,156,0]]$
 
-Da es zu einer Ungenauigkeit, durch Rauschen und andere Fehler kommen kann, werden mehrere Bilder zur Kalibrierung eingesetzt. Um eine der Gerade entlang des Schachbrettmusters zu bestimmen reichen in der Theorie zwei Punkte. Aus bereits genannten Gründen werden allerdings auch hier mehrere Punkte verwendet. Zudem wird kein quadratisches Schachbrett genutzt, da so die Orientierung des Musters erkannt werden kann. 
+Da es zu einer Ungenauigkeit, durch Rauschen oder andere Fehler kommen kann, werden mehrere Bilder zur Kalibrierung eingesetzt. Um eine der Gerade entlang des Schachbrettmusters zu bestimmen reichen in der Theorie zwei Punkte. Aus bereits genannten Gründen werden allerdings auch hier mehrere Punkte verwendet. Zudem wird kein quadratisches Schachbrett genutzt, da so die Orientierung des Musters erkannt werden kann. 
 Der in OpenCV verwendete Algorithmus basiert auf der Arbeit von Zhengyou Zhang. In "`Emerging Topics in Computer Vision"' \autocite{Medioni:2004:ETC:993884} empfiehlt dieser: \textquote{(...), we recommend 4 or 5 different orientations for better quality.} \autocite[24]{Zhang2000}.
 
 So werden zu mehreren Bildern, mit unterschiedlicher Orientierung des Schachbrettes zur Kamera, die Bildpunkte bestimmt und gespeichert. Diese werden anschließend gesammelt an die Funktion \textit{calibrateCamera} übergeben. \textit{criteria} enthält Informationen für den Berechnungsalgorithmus, wie zum Beispiel die Distanz zwischen zwei Schnittpunkten. Die weiteren Parameter der Funktion sind optional und dienen der genaueren Berechnung.
-Die Funktion gibt fünf Dinge zurück: \textit{ret} ist ein Boolean, ob die Berechnung erfolgreich war, \textit{mtx} die Kameramatrix, die die intrinsischen Parameter der Kamera enthält, \textit{dist} die Verzerrungsparameter, \textit{rvecs} eine Rotationsmatrix, welche die Rotation zwischen Kamera und Schachbrettmuster wiedergibt und zuletzt \textit{tvecs} eine Translationsmatrix, welche die Translation zwischen Kamera und Schachbrettmuster wiedergibt. Dabei sind Rotations- und Translationsvektor nicht weiter von Interesse, da diese nicht die Relation zum Dartboard wiedergeben. Wie die hierfür nötigen Vektoren bestimmt werden, wird in \prettyref{sec:board} erläutert. Ein Beispiel für die intrinsischen Parameter, der genutzten Kamera sieht wie folgt aus:
+Die Funktion gibt fünf Dinge zurück: \textit{ret} ist ein Boolean, welcher mitteilt, ob die Berechnung erfolgreich war, \textit{mtx} die Kameramatrix, die die intrinsischen Parameter der Kamera enthält, \textit{dist} die Verzerrungsparameter, \textit{rvecs} eine Rotationsmatrix, welche die Rotation zwischen Kamera und Schachbrettmuster wiedergibt und zuletzt \textit{tvecs} eine Translationsmatrix, welche die Translation zwischen Kamera und Schachbrettmuster wiedergibt. Dabei sind Rotations- und Translationsvektor nicht weiter von Interesse, da diese nicht die Relation zum Dartboard wiedergeben. Wie die hierfür benötigten Vektoren bestimmt werden, wird in \prettyref{sec:board} erläutert. Ein Beispiel für die intrinsischen Parameter der genutzten Kamera sieht wie folgt aus:
 $A= 
 \begin{bmatrix} 
 1416.55 & 0.0 & 687.84 \\
@@ -102,12 +104,12 @@ Damit der Kalibrierungsvorgang nicht zu jedem Start der Software durchgeführt w
 %\item        Dartboard Koordinaten bestimmen im Verhältnis zur Kamera. Eigentliche Kalibrierung via klicken,
 %\item       wie viele Punkte sind nötig
 %\end{itemize}
-Im Laufe der Implementierung wurden verschiedene Ansätze getestet, um das Dartboard und die Felder zu erkennen. Einige der Ansätze wurden verworfen, da sie nicht  zum gewünschten Ergebnis führten. Dabei wurde bei allen Ansätzen grundsätzlich ein gemeinsames Vorgehen verfolgt. Es wurde kein vollautomatischer Ansatz verfolgt, sonder auf eine Kalibrierung durch den Nutzer zurückgegriffen. 
+Im Laufe der Implementierung wurden verschiedene Ansätze getestet, um das Dartboard und die Felder zu erkennen. Einige der Ansätze wurden verworfen, da sie nicht  zum gewünschten Ergebnis führten. Dabei wurde bei allen Ansätzen grundsätzlich ein gemeinsames Vorgehen verfolgt. Es wurde kein vollautomatischer Ansatz verfolgt, sondern auf eine Kalibrierung durch den Nutzer zurückgegriffen. 
 
-Beim ersten Ansatz war die Grundidee, den farblichen Unterschied der Felder zu nutzen. So sind die einfachen Felder, entweder schwarz oder weiß. Zudem haben Doppel- und Tripplefelder bei weißen Feldern eine grüne Farbe und bei schwarzen eine rote Farbe. 
+Beim ersten Ansatz war die Grundidee, den farblichen Unterschied der Felder zu nutzen. So sind die einfachen Felder  entweder schwarz oder weiß. Zudem haben Doppel- und Tripplefelder bei weißen Feldern eine grüne Farbe und bei schwarzen eine rote. 
 Jedes der Felder, des Dartboards hat folglich eine von 4 Farben. 
 
-Der Nutzer wird aufgefordert jeweils bestimmte Felder im Bild anzuklicken. So kann nicht nur der tatsächliche Farbwert ermittelt werden, sondern auch die Position bestimmter Felder im Bild. Anhand der Information und des Wissens über die Anordnung der Felder eines Dartboards, kann also bestimmt werden wo sich jedes Feld relativ zu den angeklickten befindet. 
+Der Nutzer wird aufgefordert jeweils bestimmte Felder im Bild anzuklicken. So kann nicht nur der tatsächliche Farbwert ermittelt werden, sondern auch die Position bestimmter Felder im Bild. Anhand der Informationen und des Wissens über die Anordnung der Felder eines Dartboards, kann also bestimmt werden wo sich jedes Feld relativ zu den angeklickten befindet. 
 \begin{figure}[ht]
 \subfloat[Ausgangsbild]{\includegraphics[width=0.48\textwidth]{media/undetected.png}}\qquad
 \subfloat[grüne Felder]{\includegraphics[width=0.48\textwidth]{media/greendetected.png}}\\
@@ -117,12 +119,12 @@ Der Nutzer wird aufgefordert jeweils bestimmte Felder im Bild anzuklicken. So ka
 \label{Fig:dartblobs}
 \end{figure}
 In Abbildung \prettyref{Fig:dartblobs} ist ein Beispiel dafür zu sehen. Hier wurde im Ausgangsbild ein grünes, ein rotes und ein schwarzes Feld ausgewählt. Nun ist bereits im Bild \textbf{(d)} eines der aufgetretenen Probleme zu erkennen. Bei schwarzen und weißen Feldern kann es durch farbliche Nähe und den nicht komplett einfarbigen Feldern zu Unschärfe und Rauschen kommen. Zudem können Schatten und andere widrige Lichtverhältnisse ebenfalls sehr störend sein, da in diesem Fall die Farbwerte gleicher Felder stark abweichen können. 
-Zur Erzeugung der abgebildeten Masken, wurde ein einfaches Tresholding auf dem Ausgangsbild angewendet. Dabei werden alle Pixel in einem bestimmten Farbbereich in ein neues binär Bild übertragen. Auf diesem können dann Kontur-Erkennung und andere Algorithmen angewendet werden, um die zu einem Feld gehörigen Pixel zuzuordnen.
+Zur Erzeugung der abgebildeten Masken wurde ein einfaches Tresholding auf dem Ausgangsbild angewendet. Dabei werden alle Pixel in einem bestimmten Farbbereich in ein neues Binärbild übertragen. Auf diesem können dann Kontur-Erkennung und andere Algorithmen angewendet werden, um die zu einem Feld gehörigen Pixel zuzuordnen.
 
 
 Aus dem Grund der Anfälligkeit und Ungenauigkeit wurde ein weiterer Ansatz getestet.
 In diesem Ansatz wurde ebenfalls auf eine Interaktion mit dem Nutzer zurückgegriffen.
-Hierbei wurde genutzt, dass die Ausmaße der Dartboards standardisiert sind. So kann anhand der Ausmaße ein Modell eines Dartboards implementiert werden. Dabei werden die Punkte bestimmt, die die Schnittpunkte der Feldabgrenzung darstellen. 
+Hierbei wurde genutzt, dass die Ausmaße der Dartboards standardisiert sind. So kann anhand der Ausmaße ein Modell eines Dartboards implementiert werden. Dabei werden die Punkte bestimmt, welche die Schnittpunkte der Feldabgrenzung darstellen. 
 
 Abbildung \prettyref{Fig:dartmodel} wird dem Nutzer als Hilfestellung zur Kalibrierung angezeigt. Ausgegangen wird hier von einem Dartboard-Koordinatensystem, das den Ursprung in der Mitte des Boards hat.  
 \begin{figure}
@@ -137,19 +139,19 @@ $P_1 = \begin{bmatrix}0& 0& 0 \\\end{bmatrix}^\intercal
 P_2 = \begin{bmatrix}142.56& 72.64& 0 \\\end{bmatrix}^\intercal\\
 P_3 = \begin{bmatrix}25.03& -158.03& 0 \\\end{bmatrix}^\intercal
 P_4 = \begin{bmatrix}-113.14& 113.14& 0 \\\end{bmatrix}^\intercal$.
-Zum einen wurde das Zentrum $(P_1)$ gewählt und zum anderen Punkte $P_2,P_3,P_4$ auf dem Dartboard verteilt. Mit Hilfe des Nutzers wird so eine Zuordnung zwischen den Objektpunkten und Bildpunkten erstellt. Parallel zur in \prettyref{sec:camera} erläuterten Kamera-Kalibrierung kann nun aus aus diesen beiden zueinander gehörigen Punkten eine Translations- und eine Rotationsmatrix errechnet werden. Hierbei wird auf die bereits abgeschlossene Bestimmung der intrinsischen Parameter der Kamera zurückgegriffen. Die bereits bestimmten Parameter werden genutzt und in der Berechnung der resultierenden Matrizen berücksichtigt. Hierbei wird die in OpenCV implementierte Funktion \textit{solvePnP(objectPoints, imagePoints, cameraMatrix, distCoeffs)} genutzt. Diese ermöglicht die Berechnung der Matrizen aus bereits aufgezählten Parametern. Übergeben werden:
+Zum einen wurde das Zentrum $(P_1)$ gewählt und zum anderen die Punkte $P_2,P_3,P_4$ auf dem Dartboard verteilt. Mit Hilfe des Nutzers wird so eine Zuordnung zwischen den Objektpunkten und Bildpunkten erstellt. Parallel zur in \prettyref{sec:camera} erläuterten Kamera-Kalibrierung kann nun aus diesen beiden zueinander gehörigen Punkten eine Translations- und eine Rotationsmatrix errechnet werden. Hierbei wird auf die bereits abgeschlossene Bestimmung der intrinsischen Parameter der Kamera zurückgegriffen. Die bereits bestimmten Parameter werden genutzt und in der Berechnung der resultierenden Matrizen berücksichtigt. Hierbei wird die in OpenCV implementierte Funktion \textit{solvePnP(objectPoints, imagePoints, cameraMatrix, distCoeffs)} genutzt. Diese ermöglicht die Berechnung der Matrizen aus bereits aufgezählten Parametern. Übergeben werden:
 \begin{itemize}
 \item \textbf{objectPoints:} Punkte $P_1$ bis $P_4$ im Boardkoordinatensystem
 \item \textbf{imagePoints:} Die Bildkoordinaten der vom Nutzer angeklickten Pixel
 \item \textbf{cameraMatrix:} Intrinsische Parameter, entsprechend Matrix $A$ aus \prettyref{sec:camera}
 \item \textbf{distCoeffs:} Verzerrungsparameter ebenfalls durch Kamerakalibrierung bestimmt 
 \end{itemize}
-Mithilfe dieser Matrizen, kann nun der zu einem Bildpunkt assoziierte Objektpunkt berechnet werden. Aus dem Objektpunkt kann dann Anhand des Modelles des Dartboards die Punktzahl ermittelt werden. 
+Mit Hilfe dieser Matrizen kann nun der zu einem Bildpunkt assoziierte Objektpunkt berechnet werden. Aus dem Objektpunkt kann dann Anhand des Modelles des Dartboards die Punktzahl ermittelt werden. 
 
-Rückblickend auf die Kamera-Kalibrierung und in diesem Kapitel beschriebene Dartboard-Kalibrierung sind Optimierungen möglich. Aufgrund der bekannten Ausmaße des Dartboards ist es denkbar dessen Muster zur Bestimmung der intrinsischen Parameter der Kamera  genutzt werden. Dafür müssten im Idealfall alle Schnittpunkte zwischen Ringen und Feldlinien im Kamerabild erkannt und assoziiert werden können. 
+Rückblickend auf die Kamera-Kalibrierung und in diesem Kapitel beschriebene Dartboard-Kalibrierung sind Optimierungen möglich. Aufgrund der bekannten Ausmaße des Dartboards ist es denkbar dessen Muster zur Bestimmung der intrinsischen Parameter der Kamera  zu nutzen. Dafür müssten im Idealfall alle Schnittpunkte zwischen Ringen und Feldlinien im Kamerabild erkannt und assoziiert werden können. 
 
 Beim Versuch diese Möglichkeit umzusetzen, traten Schwierigkeiten auf. So können die Kanten nicht eindeutig erkannt werden.
-Der Grund liegt in der Beschaffenheit des Dartboardes, so ist die Abgrenzung der Felder nicht scharf genug und besitzt eine gewisse Breite. Weiterführend wäre es also denkbar, dass die Schritte der Kamera- und Dartboard-Kalibrierung zusammengefasst würden. 
+Der Grund hierfür liegt in der Beschaffenheit des Dartboardes, so ist die Abgrenzung der Felder nicht scharf genug und besitzt eine gewisse Breite. Weiterführend wäre es also denkbar, die Schritte der Kamera- und Dartboard-Kalibrierung zusammenzufassen. 
 
 
 \section{Extraktion des Vordergrundes}
@@ -163,10 +165,10 @@ Der hierfür genutzte Vorgang wird Background-Substraction genannt. Algorithmen 
 \item Aktuelles Bild mit dem Modell vergleichen, beziehungsweise das Bild vom Hintergrund subtrahieren \textit{(Abbildung \prettyref{Fig:background} b)}
 \item Daten nachbearbeiten
 \item Vordergrund-Maske bestimmen \textit{(Abbildung \prettyref{Fig:background} c)}
-\item Schritt 2.
+\item Schritt zwei
 \end{enumerate}
-Hierbei ist der 3. Schritt eine optionale Möglichkeit um das Ergebnis zu verbessern. 
-Der 5. Schritt soll dabei nur andeuten, dass sich das Vorgehen für jedes neue Bild, des Video-Streams wiederholt wird.
+Hierbei ist der dritte Schritt eine optionale Möglichkeit um das Ergebnis zu verbessern. 
+Der fünfte Schritt soll dabei nur andeuten, dass sich das Vorgehen für jedes neue Bild, des Video-Streams, wiederholt.
 \begin{figure}[ht]
 \subfloat[Hintergrund]{\includegraphics[width=0.48\textwidth]{media/background}}\qquad
 \subfloat[Aktuelles Bild]{\includegraphics[width=0.48\textwidth]{media/current}}\\
@@ -177,29 +179,29 @@ Der 5. Schritt soll dabei nur andeuten, dass sich das Vorgehen für jedes neue B
 \label{Fig:background}
 \end{figure}
 
-Ein naiver Ansatz wäre Beispielsweise ein Bild zu festzulegen, das als Hintergrund gewählt werden soll. In Schritt 2 wird eine einfache Differenz zwischen Hintergrund und Bild zu berechnet. Anschließend kann ein Thresholding angewendet werden. Die Pixel jenseits, des Schwellwertes werden in das Binär-Bild übertragen und bilden so die Vordergrund-Maske \autocite[3]{foreground2003}. 
+Ein naiver Ansatz wäre Beispielsweise ein Bild festzulegen, das als Hintergrund gewählt werden soll. In Schritt zwei wird eine einfache Differenz zwischen Hintergrund und Bild berechnet. Anschließend kann ein Thresholding angewendet werden. Die Pixel, welche jenseits des Schwellwertes liegen, werden in das Binärbild übertragen und bilden so die Vordergrund-Maske \autocite[3]{foreground2003}. 
 
-Dieser naive Ansatz ist allerdings anfällig gegen Beispielsweise sich verändernde Lichtverhältnisse. Zudem wird bei dem naiven Ansatz jedes Bild einzeln betrachtet. Die Bilder eines Video-Streams sind allerdings nicht völlig unabhängig voneinander. Es kann also Wissen aus einem Bild erlangt werden und für das nächste verwendet werden.  Aus diesen Gründen werden andere Modellierungen gewählt. Eine der beliebtesten und meist verbreitetsten ist ein Iterativer Ansatz, genauer Mixture of Gaussians (MoG). Hierbei wird das Modell regelmäßig aktualisiert, sodass langsame Veränderungen im Bild in es einfließen. \autocite[4]{foreground2003}
+Dieser naive Ansatz ist allerdings anfällig für, beispielsweise, sich verändernde Lichtverhältnisse. Zudem wird bei dem naiven Ansatz jedes Bild einzeln betrachtet. Die Bilder eines Video-Streams sind allerdings nicht völlig unabhängig voneinander. Es kann also Wissen aus einem Bild erlangt und für das nächste verwendet werden. Aus diesen Gründen werden andere Modellierungen gewählt. Eine der beliebtesten und meist verbreitetsten ist ein Iterativer Ansatz, genauer Mixture of Gaussians (MoG). Hierbei wird das Modell regelmäßig aktualisiert, sodass langsame Veränderungen im Bild in dieses einfließen. \autocite[4]{foreground2003}
 
-In OpenCV sind verschiedene Varianten von Background-Substractoren implementiert. Unter anderen auch zwei Versionen des MoG \autocite{OpenCVBack2016}. Im folgenden ein kurzer Überblick, über genutzte Funktionen:
+In OpenCV sind verschiedene Varianten von Background-Substractoren implementiert. Unter anderen auch zwei Versionen des MoG \autocite{OpenCVBack2016}. Im Folgenden ein kurzer Überblick über genutzte Funktionen:
 \begin{lstlisting}[frame=single,language=Python]
 substractor = createBackgroundSubtractorMOG2()
 fgmask = substractor.apply(image)
 \end{lstlisting}
-Dabei initiiert die erste den Substractor.
+Dabei initiiert die erste Funktion den Substractor.
 Mit \textit{apply(image)} wird der Substractor mit Bildern gespeist. Diese bilden dann intern das Hintergrundmodell. Ebenfalls wird mit dieser Funktion der Hintergrund subtrahiert und es wird die entsprechende Vordergrund-Maske zurückgegeben. 
-Der Substractor hat einige Parameter anhand derer man die Funktionalität abstimmen kann und auf das gegebene Szenario anpassen kann. Einige der wichtigsten sind:
+Der Substractor hat einige Parameter anhand derer man die Funktionalität abstimmen und auf das gegebene Szenario anpassen kann. Einige der wichtigsten sind:
 \begin{itemize}
 	\item \textbf{history:} Die Anzahl der Bilder, die in das Hintergrund-Modell einfließen
-	\item \textbf{detectShadows:} Gibt an ob Schatten erkannt werden sollen und als Graustufen in die Vordergrund-Maske einfließen
-	\item \textbf{varThreshold:} Der Threshold der die Masken-Bildung steuert
-	\item \textbf{shadowThreshold:} gibt den Treshold an bei dem ein Schatten erkannt werden soll
+	\item \textbf{detectShadows:} Gibt an, ob Schatten erkannt werden sollen und als Graustufen in die Vordergrund-Maske einfließen
+	\item \textbf{varThreshold:} Der Threshold der die Maskenbildung steuert
+	\item \textbf{shadowThreshold:} gibt den Treshold an, bei dem ein Schatten erkannt werden soll
 \end{itemize}
-Dabei ist die Größe der History stark von den Frames per second (FPS) des eingehenden Bilder-Streams abhängig, zudem vom eigentlichen Szenario. In dem hier betrachteten Fall treffen die Darts auf dem Dartboard auf und verändern anschließend ihre Position nicht mehr. Hinzu kommt, dass die Darts in schneller Abfolge geworfen werden können und auf das Board auftreffen. 
-Aus diesem Grund sollte als History ein Wert gewählt werden, der wenigen Sekunden entspricht. Dabei muss die Bild Rate des Video-Streams (FPS) berücksichtigt werden. Wenn bei $30FPS$ das Hintergrund-Modell aus den letzten 4 Sekunden erstellt werden soll, so ergibt sich: $30FPS * 4 Sekunden = 120 Frames$.
-Zu den beiden prozentualen Threshold-Werten gibt es jeweils noch Maximum und Minimum Werte die gesetzt werden können, um das Ergebnis zu beeinflussen.
+Dabei ist die Größe der History stark von den Frames per second (FPS) des eingehenden Video-Streams abhängig sowie von dem eigentlichen Szenario. In dem hier betrachteten Fall treffen die Darts auf dem Dartboard auf und verändern anschließend ihre Position nicht mehr. Hinzu kommt, dass die Darts in schneller Abfolge geworfen werden können und auf das Board auftreffen. 
+Aus diesem Grund sollte als History ein Wert gewählt werden, der wenigen Sekunden entspricht. Dabei muss die Bildrate des Video-Streams (FPS) berücksichtigt werden. Wenn bei $30FPS$ das Hintergrund-Modell aus den letzten 4 Sekunden erstellt werden soll, so ergibt sich: $30FPS * 4 Sekunden = 120 Frames$.
+Zu den beiden prozentualen Threshold-Werten gibt es jeweils noch Maximum und Minimum Werte, die gesetzt werden können, um das Ergebnis zu beeinflussen.
 
-Das Ergebnis der Background-Substraction ist ein Binär-Bild, das die Regionen im Bild aufzeigt, die potentiell zum Vordergrund gehören. Im folgenden muss entschieden werden, welche Regionen als Dart erkannt werden sollen. Dieses Binär-Bild wird dem Storage übergeben und weiter verarbeitet. Der beschriebene Vorgang ist in den grau hinterlegten Bereich in der Pipeline-Übersicht in Abbildung\prettyref{Fig:pipeline} einzuordnen und wird laufend für jedes eintreffende Bild wiederholt.
+Das Ergebnis der Background-Substraction ist ein Binär-Bild, das die Regionen im Bild aufzeigt, die potentiell zum Vordergrund gehören. Im Folgenden muss entschieden werden, welche Regionen als Dart erkannt werden sollen. Dieses Binär-Bild wird dem Storage übergeben und weiter verarbeitet. Der beschriebene Vorgang ist in den grau hinterlegten Bereich in der Pipeline-Übersicht in Abbildung\prettyref{Fig:pipeline} einzuordnen und wird laufend für jedes eintreffende Bild wiederholt.
 
 
 
@@ -216,12 +218,12 @@ Das Ergebnis der Background-Substraction ist ein Binär-Bild, das die Regionen i
 Werden die Binär-Bilder dem Storage hinzugefügt, werden einige Parameter bestimmt, die dem neuen Eintrag hinzugefügt werden.
 Einer dieser Einträge enthält dann Informationen:
 \begin{enumerate}
-	\item Das Binär-Bild der Vordergrund-Maske
+	\item Das Binärbild der Vordergrundmaske
 	\item Anzahl der Blobs, die größer sind als ein definierter Threshold
 	\item Größe des größten Blobs
 \end{enumerate}
 Dabei werden der zweite und dritte Parameter bestimmt, indem auf dem Binär-Bild Gruppen von zusammenhängenden Pixeln (Blobs) erkannt werden. 
-Grundlegend wird dabei die Nachbarschaft, der weißen Pixel betrachtet. Zusammenhängende werden einem Blob zugeordnet. Auch an dieser Stelle wird auf bereitgestellte OpenCV Funktionen zurückgegriffen. Dem Eintrag wird nun die Anzahl der Pixel, des größten zusammenhängenden Blobs hinzugefügt. Zudem werden alle Blobs ausgeschlossen, die eine definierte Größe unterschreiten. Dadurch wird verhindert, dass Rauschen in späteren Schritten eine weitere Verarbeitung auslöst und so unnötigen Overhead verursacht.
+Grundlegend wird dabei die Nachbarschaft der weißen Pixel betrachtet. Zusammenhängende werden einem Blob zugeordnet. Auch an dieser Stelle wird auf bereitgestellte OpenCV Funktionen zurückgegriffen. Dem Eintrag wird nun die Anzahl der Pixel des größten zusammenhängenden Blobs hinzugefügt. Zudem werden alle Blobs ausgeschlossen, die eine definierte Größe unterschreiten. Dadurch wird verhindert, dass Rauschen in späteren Schritten eine weitere Verarbeitung auslöst und so unnötigen Overhead verursacht.
 \begin{figure}[ht]
 \centering
 \subfloat[]{\includegraphics[width=0.9\textwidth]{media/plot.jpg}}\qquad
@@ -231,14 +233,14 @@ Grundlegend wird dabei die Nachbarschaft, der weißen Pixel betrachtet. Zusammen
 
 Der Storage hat eine gewissen Größe und speichert die Bilder und Information. Der Storage ist als Queue entworfen. Wenn eine Anzahl von Einträgen entsprechend der Größe der Queue hinzugefügt wurden, werden die zuerst hinzugefügten Einträge entfernt. In Abbildung \prettyref{Fig:blobplot} ist die Anzahl der Pixel des größten Blobs, den Einträgen im Verlauf gegenübergestellt.
 
-Unter diesen Einträgen muss entschieden werden welche Information, oder Blöcke von Informationen genutzt werden können, um einen Dart im Bild zu erkennen. Die zugrundeliegende Idee ist, dass ein Dart mindestens eine gewissen Pixel-Anzahl im Bild einnimmt. Abhängig von der Background-Substraction kann Anzahl der Einträge in denen der Dart sichtbar ist variieren. So sind die Einträge von Interessen, bei denen die Anzahl zusammenhängender Pixel größer ist als die vermutliche Anzahl die ein Dart einnimmt.
+Unter diesen Einträgen muss entschieden werden, welche Information oder Blöcke von Informationen genutzt werden können, um einen Dart im Bild zu erkennen. Die zugrundeliegende Idee ist, dass ein Dart mindestens eine gewissen Pixelanzahl im Bild einnimmt. Abhängig von der Background-Substraction kann die Anzahl der Einträge, in denen der Dart sichtbar ist, variieren. So sind die Einträge von Interesse, bei denen die Anzahl zusammenhängender Pixel größer ist als die vermutliche Anzahl die ein Dart einnimmt.
 
-Um diese Einträge zu bestimmen, werden zusammenhängende Bereiche im Storage gesucht. Hierfür wird erst ein Startpunkt ermittelt und ausgehend von diesem der passende Endpunkt.
-Im abgebildeten Beispiel ist ab Eintrag 98 ist ein starker Anstieg zu erkennen. Steigen die Werte über einen gewissen Threshold wird der Start eines Abschnittes markiert. Das Ende eines Abschnittes wird markiert, wenn die Blob-Größe für eine definierte Anzahl unter dem Threshold liegt. Im abgebildeten Plot ist der Endpunkt an Eintrag 120 erreicht. Somit sind die Einträge von 98 bis 120 von Interesse und wird für weitere Verarbeitung genutzt. 
-Wenn die Anzahl, der zusammenhängenden Einträge unter einer Mindestanzahl liegt werden diese ignoriert.
+Um diese Einträge zu bestimmen, werden zusammenhängende Bereiche im Storage gesucht. Hierfür wird erst ein Startpunkt ermittelt und, ausgehend von diesem, der passende Endpunkt.
+Im abgebildeten Beispiel ist ab Eintrag 98 ein starker Anstieg zu erkennen. Steigen die Werte über einen gewissen Threshold, wird der Start eines Abschnittes markiert. Das Ende eines Abschnittes wird markiert, wenn die Blob-Größe für eine definierte Anzahl unter dem Threshold liegt. Im abgebildeten Plot ist der Endpunkt an Eintrag 120 erreicht, woraus resultiert, dass die Einträge von 98 bis 120 von Interesse sind und für weitere Verarbeitung genutzt werden. 
+Sollte die Anzahl der zusammenhängenden Einträge unter einer Mindestanzahl liegen, so werden diese ignoriert.
 
-An dieser Stelle kann eine weitere Sondierung vorgenommen werden. Es werden Bilder und Storage-Bereiche ausgeschlossen, welche nicht verwendbar sind.
-Beispielsweise müssen die Darts wieder aus dem Dartboard entfernt werden. Hierbei greift der Nutzer in das Sichtfeld der Kamera und verursacht dadurch einen sehr großen Bereich in der Vordergrund-Maske. Dieser ist nicht verwendbar und wird daher aus der Berechnung ausgeschlossen. Zu diesem Zweck wird nicht nur ein Mindestschwellwert festgelegt, sondern auch ein maximaler Schwellwert. Dieser Schwellwert wird abhängig von der Bildgröße definiert. Wird dieser Schwellwert für eine definierte Anzahl von Einträgen überschritten, wird für einige Sekunden das Erstellen neuer Einträge des Storages blockiert.
+An dieser Stelle kann eine weitere Sondierung vorgenommen werden. Es werden Bilder und Storagebereiche ausgeschlossen, welche nicht verwendbar sind.
+Ein Beispiel hierfür wäre die Entfernung der Darts aus dem Dartboard. Hierbei greift der Nutzer in das Sichtfeld der Kamera und verursacht dadurch einen sehr großen Bereich in der Vordergrundmaske, welcher nicht verwendbar ist und daher aus der Berechnung ausgeschlossen wird. Zu diesem Zweck wird nicht nur ein Mindestschwellwert festgelegt, sondern auch ein maximaler Schwellwert. Dieser wird abhängig von der Bildgröße definiert. Wird dieser Schwellwert für eine definierte Anzahl von Einträgen überschritten, wird für einige Sekunden das Erstellen neuer Einträge des Storages blockiert.
 
 In einem weiteren Schritt werden die Bilder aus diesem Bereich analysiert und es wird ein neues Binär-Bild daraus erstellt. Dieses neue Bild fasst die Informationen von allen Bildern in dem Storage-Bereich zusammen und bildet diese ab.
 Das Vorgehen dabei ist in drei Schritte unterteilt.
@@ -251,12 +253,12 @@ Im zweiten Schritt wird über die Bilder des Storage-Bereiches iteriert. Dabei w
 \label{Fig:greyimg}
 \end{figure}
 Ist das Graustufen-Bild gebildet, ein Beispiel ist in Abbildung \prettyref{Fig:greyimg} zu sehen, kann dieses im dritten Schritt verarbeitet werden. 
-Im letzten Schritt wird das Graustufen-Bild in ein Binär-Bild gewandelt und dabei ein Thresholding angewendet. So sind in dem resultierenden Bild nur die Regionen zu sehen, die in einem Großteil des Storage-Bereiches auftreten. 
+Im letzten Schritt wird das Graustufen-Bild in ein Binärbild gewandelt und dabei ein Thresholding angewendet. So sind in dem resultierenden Bild nur die Regionen zu sehen, die in einem Großteil des Storage-Bereiches auftreten. 
 
 Dieses Vorgehen hat mehrere Gründe. 
 Zum einen kann so Rauschen aus einigen wenigen Bildern gemildert werden. 
-Ein weiterer Grund ist, dass auf diese Weise ein klarerer Umriss erstellt werden kann, aus dem später der Dart erkannt werden kann. 
-Dieser Vorgang ist der erste Teil des in Abbildung \prettyref{Fig:pipeline} blau markierten Bereiches und der erste Schritt zur Punktzahlbestimmung aus den gelieferten Bildern. Das resultierende Binär-Bild wird von der Kontur Erkennung weiter verarbeitet.
+Ein weiterer Grund ist, dass auf diese Weise ein klarerer Umriss erstellt wird, aus dem später der Dart erkannt werden kann. 
+Dieser Vorgang ist der erste Teil des in Abbildung \prettyref{Fig:pipeline} blau markierten Bereiches und der erste Schritt zur Punktzahlbestimmung aus den gelieferten Bildern. Das resultierende Binär-Bild wird von der Konturerkennung weiter verarbeitet.
 
 \section{Verarbeitung der Vordergrundinformationen}
 \label{sec:foreground}
@@ -267,7 +269,7 @@ Dieser Vorgang ist der erste Teil des in Abbildung \prettyref{Fig:pipeline} blau
 %\item Aus den Momenten die Spitze der Darts erkennen
 %\item die 5 Arten der Spitze erläutern
 %\end{itemize}
-Im errechneten Vordergrund gilt es nun den Dart zu erkennen und die Spitze des Darts zu bestimmen. Grundsätzlich gibt es die Möglichkeit Objekte anhand der Farbgebung Objekte auszumachen. Da beim Dartsport keine Standardisierung zur einheitlichen Farbgebung der Darts gegeben ist, entfällt diese Möglichkeit. Aus diesem Grund müssen die Darts anhand ihrer Form erkannt werden. In einem 2D-Bild entspricht das der Kontur.
+Im errechneten Vordergrund gilt es nun den Dart zu erkennen und die Spitze des Darts zu bestimmen. Grundsätzlich gibt es die Möglichkeit Objekte anhand der Farbgebung auszumachen. Da beim Dartsport keine Standardisierung zur einheitlichen Farbgebung der Darts gegeben ist, entfällt diese Möglichkeit. Aus diesem Grund müssen die Darts anhand ihrer Form erkannt werden. In einem 2D-Bild entspricht das der Kontur.
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.9\textwidth]{media/backgroundfeature}
@@ -275,27 +277,27 @@ Im errechneten Vordergrund gilt es nun den Dart zu erkennen und die Spitze des D
 \label{Fig:detecteddart}
 \end{figure}
 
-Bereits 1985 gab es Forschungen Konturen in Binär-Bildern zu erkennen. Satoshi Suzuki hat einen Artikel veröffentlicht in dem ein solcher Algorithmus präsentiert wird \autocite{contour1985}. Dieser Algorithmus ist ebenfalls in OpenCV implementiert. 
+Bereits 1985 gab es Forschungen Konturen in Binär-Bildern zu erkennen. Satoshi Suzuki hat einen Artikel veröffentlicht, in dem ein solcher Algorithmus präsentiert wird \autocite{contour1985}. Dieser Algorithmus ist ebenfalls in OpenCV implementiert. 
 
 Nun kann das aus der Vorverarbeitung stammende Bild in die Kontur-Erkennung von OpenCV übergeben werden. Auf den erkannten Konturen können dann weitere Charakteristika (Features) bestimmt werden. Einige der genutzten und wichtigsten sind:
 \begin{itemize}
 	\item \textbf{Eingrenzendes Rechteck (Bounding Rectangle)} Dies ist das kleinstmögliche Rechteck, das die Kontur umschließt.
 	\item \textbf{Gerade durch Kontur} Eine Gerade, auf der möglichst viele Punkte in der Kontur liegen.
 	\item \textbf{Schwerpunkt (Centroid)} 
-	\item \textbf{approximierte Kontur} Eine Approximierte Kontur, deren maximale Abweichung zur Ausgangs-Kontur in einem bestimmten Threshold liegt. Dabei soll die Anzahl der Eckpunkte minimiert werden.
+	\item \textbf{approximierte Kontur} Eine Approximierte Kontur, deren maximale Abweichung zur Ausgangskontur in einem bestimmten Threshold liegt. Dabei soll die Anzahl der Eckpunkte minimiert werden.
 \end{itemize}
-Diese Charakteristika werden genutzt, um zu bestimmen ob eine Kontur die eines Darts ist und wo dessen Spitze liegt. Zur Bestimmung der genannten Features werden vorhandene OpenCV Funktionen genutzt. Unter anderen folgende:
+Diese Charakteristika werden genutzt, um zu bestimmen, ob eine Kontur die eines Darts ist und wo dessen Spitze liegt. Zur Bestimmung der genannten Features werden vorhandene OpenCV Funktionen genutzt. Unter anderen folgende:
 \begin{lstlisting}[frame=single]
 contours,hierarchy = findContours(image, mode, method)
 rect = minAreaRect(contour)
 M = moments(contour)
 vector = fitLine(contour)
 \end{lstlisting}
-Dabei können der Funktion zur Kontur-Erkennung auf einem Binär-Bild ein Modus und eine Methode übergeben werden. Der Modus definiert, , ob bei geschachtelten Konturen die äußersten zurückgegeben werden, oder eine hierarchische Struktur aufgebaut wird. Im hier betrachteten Fall ist lediglich die äußere Kontur des Darts von Interesse. Mit der Methode kann bestimmt werden, ob eine Approximation der Kontur stattfinden soll. So könnte bei einer rechteckigen Kontur diese Beispielsweise auf die Eckpunkte reduziert werden. Findet keine Approximation statt werden alle Punkte entlang der Kanten zurück gegeben. So werden alle möglichen Konturen aufgedeckt und einer Liste hinzugefügt.
+Dabei können der Funktion zur Konturerkennung auf einem Binär-Bild ein Modus und eine Methode übergeben werden. Der Modus definiert, ob bei geschachtelten Konturen die äußersten zurückgegeben werden, oder eine hierarchische Struktur aufgebaut wird. Im hier betrachteten Fall ist lediglich die äußere Kontur des Darts von Interesse. Mit der Methode kann bestimmt werden, ob eine Approximation der Kontur stattfinden soll. So könnte bei einer rechteckigen Kontur diese, beispielsweise, auf die Eckpunkte reduziert werden. Findet keine Approximation statt werden alle Punkte entlang der Kanten zurückgegeben. So werden alle möglichen Konturen aufgedeckt und einer Liste hinzugefügt.
 
 Auf diesen Konturen werden anschließend die genannten Features berechnet.
 Zudem werden die errechneten Charakteristika im weiteren Verlauf für die Erkennung der Spitze genutzt.
-Eine Kontur wird als Dart identifiziert wenn folgende Bedingungen gegeben sind:
+Eine Kontur wird als Dart identifiziert, wenn folgende Bedingungen gegeben sind:
 \begin{itemize}
 	\item Größe des umschließenden Rechteckes
 	\item Seitenverhältnis des umschließenden Rechteckes
@@ -307,8 +309,8 @@ Die Kontur und die errechneten Features werden zur Erkennung der Dart-Spitzen ge
 
 \section{Punktzahlbestimmung}
 \label{sec:score}
-Zur Bestimmung der Punktzahl fließen nun bisher erlangte Informationen aus der Verarbeitung des Vordergrundes \prettyref{sec:foreground} und Informationen zum Dartboard \prettyref{sec:board} zusammen.
-So wird aus der Kontur und den zugehörigen Features die Spitze des Darts errechnet. Ist der Pixel, der die Spitze des Darts abbildet, errechnet, kann mit Hilfe der Transformationsmatrizen der zugehörige Punkt im Modell des Dartboardes errechnet werden. Ist der Punkt errechnet kann aus dem Modell die Punktzahl des Feldes ermittelt werden. 
+Zur Bestimmung der Punktzahl fließen nun bisher erlangte Informationen aus \prettyref{sec:foreground} und ebenso aus \prettyref{sec:board} zusammen.
+So wird aus der Kontur und den zugehörigen Features die Spitze des Darts errechnet. Ist der Pixel, der die Spitze des Darts abbildet, errechnet, kann mit Hilfe der Transformationsmatrizen der zugehörige Punkt im Modell des Dartboardes errechnet werden. Durch den errechneten Punkt kann aus dem Modell die Punktzahl des Feldes ermittelt werden. 
 
 \begin{figure}[ht]
 \centering
@@ -320,16 +322,16 @@ So wird aus der Kontur und den zugehörigen Features die Spitze des Darts errech
 Insgesamt wurden fünf verschiedene Varianten zu Bestimmung der Spitze der Darts ausgewertet. 
 \begin{enumerate}
 	\item Der Punkt auf der Kontur, der die höchste Distanz zum Centroid aufweist
-	\item Der Punkt, an dem die Linie durch die Kontur das umschließenden Rechteck schneidet. Aus den zwei resultierenden Punkten wird der gewählt, der die größere Distanz zum Centroid aufweist.
-	\item Der Punkt auf der approximierten Kontur, der die höchste Distanz zum Centroid  aufweist
-	\item Der Punkt an dem die approximierten Kontur die umschließende Box berührt und die höchste Distanz zum Centroid aufweist
+	\item Der Punkt, an dem die Linie durch die Kontur das umschließende Rechteck schneidet. Aus den zwei resultierenden Punkten wird der gewählt, der die größere Distanz zum Centroid aufweist
+	\item Der Punkt auf der approximierten Kontur, welcher die höchste Distanz zum Centroid  aufweist
+	\item Der Punkt, an dem die approximierten Kontur die umschließende Box berührt und die höchste Distanz zum Centroid aufweist
 	\item Der Schwerpunkt, der vorigen vier Ansätze
 \end{enumerate}
 
-Für jeden dieser so bestimmten Punkte wird anschließend eine Transformation in das Koordinatensystem des Dartboard-Modells durchgeführt. In Kapitel \prettyref{sec:camerageo} wurden die Grundlagen zur Transformation erläutert. Anhand dieser und der bestimmten Rotations- und Translationsmatrizen kann die Berechnung durchgeführt werden. Invertiert man die Berechnung, so ergibt sich folgendes: 
+Für jeden dieser so bestimmten Punkte wird anschließend eine Transformation in das Koordinatensystem des Dartboard-Modells durchgeführt. In \prettyref{sec:camerageo} wurden die Grundlagen zur Transformation erläutert. Anhand dieser und der bestimmten Rotations- und Translationsmatrizen kann die Berechnung durchgeführt werden. Invertiert man die Berechnung, so ergibt sich folgendes: 
 $(R^{-1}A^{-1}sk)-R^{-1}t=P$, dabei ist $R$ die Rotationsmatrix, $t$ die Translationsmatrix, $A$ die Kameramatrix, $k$ der Bildpunkt und $s$ der Skalierungsfaktor. $P$ ist der Objektpunkt auf der Ebene des Dartboards.
 
-Ist der Punkt im Modell und das zugehörige Felde des Dartboards bestimmt, wird das Ergebnis aller fünf möglichen Spitzen gespeichert. Zur Überprüfung wird der Nutzer gebeten zu bestätigen, welches Feld tatsächlich getroffen wurde. 
+Ist der Punkt im Modell und das zugehörige Feld des Dartboards bestimmt, wird das Ergebnis aller fünf möglichen Spitzen gespeichert. Zur Überprüfung wird der Nutzer gebeten zu bestätigen, welches Feld tatsächlich getroffen wurde. 
 
 In Abbildung \prettyref{Fig:acceptingimg} wird dargestellt, wie dem Nutzer vermittelt wird, welches Feld erzielt wurde. Zudem kann an dieser Stelle eine Bestätigung statfinden, indem das tatsächlich getroffene Feld angeklickt wird.
 
