@@ -11,10 +11,10 @@ Weiterhin werden in \prettyref{sec:basics} grundlegende Informationen der Bildve
 %Anschließend wird im \prettyref{sec:setup} das genutzte Testsetup dargestellt, welches für die praktische Implementierung genutzt wird.
 \section{Dartsport}
 \label{sec:darts}
-Darts ist ein Sport, welcher eine gute Geschicklichkeit und ein besonderes Maß an Visuomotorik erfordert. Dabei wird ein Pfeil, genannt Dart, mit der Hand auf eine Zielscheibe geworfen, um Punkte zu erzielen. Damit es eine einheitliche Regulierung für das Spielmaterial gibt, wurde der Dartsport im Jahre 1920 eine erster Standardisierung unterzogen. Die 1924 gegründete "`National Dart Association"' hat diesen zum Standard ihrer Liga erklärt \autocite[5]{guide2013}. Diese Standardisierung findet sich in vielen heutigen Regelwerken der verschiedenen Verbänden wieder; unter Anderem auch in der Sport- und Wettkampfordnung des Deutschen
+Darts ist ein Sport, welcher eine gute Geschicklichkeit und ein besonderes Maß an Visuomotorik erfordert. Dabei wird ein Pfeil, genannt Dart, mit der Hand auf eine Zielscheibe geworfen, um Punkte zu erzielen. Damit es eine einheitliche Regulierung für das Spielmaterial gibt, wurde der Dartsport im Jahre 1920 einer ersten Standardisierung unterzogen. Die 1924 gegründete "`National Dart Association"' hat diesen zum Standard ihrer Liga erklärt \autocite[5]{guide2013}. Diese Standardisierung findet sich in vielen heutigen Regelwerken der verschiedenen Verbänden wieder; unter Anderem auch in der Sport- und Wettkampfordnung des Deutschen
 Dart-Verbandes (DDV) \autocite{DartsRegel2016}. Aus dieser sind die folgenden Erklärungen und Reglungen entnommen. 
 
-Zunächst einmal zum Dartboard. Das heutzutage genutzte Dartboard ist in Abbildung\prettyref{Fig:dartboard} zu sehen. In dieser Form wurde es zum Zeitpunkt der Standardisierung 1924 geschaffen. Die Größe des gesamten Boards und der einzelnen Felder ist hierbei normiert und standardisiert, wie es in Abbildung \prettyref{Fig:dartboard} abzulesen ist. 
+Zunächst einmal zum Dartboard. Das heutzutage genutzte Dartboard ist in Abbildung \prettyref{Fig:dartboard} zu sehen. In dieser Form wurde es zum Zeitpunkt der Standardisierung 1924 geschaffen. Die Größe des gesamten Boards und der einzelnen Felder ist hierbei normiert und standardisiert, wie es in Abbildung \prettyref{Fig:dartboard} abzulesen ist. 
 
 Heute werden sogenannte Boards vom Typ "`Bristle"', welches sich von dem englischen Wort für "`Bürste"' ableitet, verwendet. Diese Boards werden aus Sisal-Fasern gefertigt, welche in Aufprallrichtung der Pfeile aufgestellt sind, sodass sich jene zwischen die Fasern schieben können. \autocite[6]{dph2015}. Die Drähte, welche die einzelnen Felder voneinander trennen werden "`Spider"' genannt.
 \begin{figure}
@@ -25,7 +25,7 @@ Heute werden sogenannte Boards vom Typ "`Bristle"', welches sich von dem englisc
 \end{figure}
 
 Die Ziffern sind von Oben im Uhrzeigersinn wie folgt angeordnet:  20-1-18-4-13-6-10-15-2-17-3-19-7-16-8-11-14-9-12-5. Diese Art der Anordnung wird als "`London Board"' bezeichnet. Hierbei wird der äußere, 8mm breite Ring als "`Double Ring"' bezeichnet, welcher die Punktzahl des Feldes verdoppelt. Der Innere wird als "`Triple Ring"' bezeichnet und verdreifacht die Punktzahl des Feldes. Der "`Bull"', der innere Bereich des Boards, ist unterteilt in den grünen Teil, genannt "`Half Bull"', und das "`Bullseye"', diese zählen 25, beziehungsweise 50 Punkte. 
-Somit ist das "`Bullseye"' entgegen landläufiger Meinung, das Feld mit der höchsten Punktzahl. Es gibt sogar gleich 4 Felder, die eine höhere Punktzahl erbringen. Die Triple 20, 19, 18 und 17. Die Tripple 20 hat somit mit 60 Punkten die höchste zu erreichende Punktzahl. Im folgenden werden Triple Felder als "`TX"' bezeichnet, wobei X für die Ziffer des jeweiligen Feldes steht, zum Beispiel also T20. Eine weitere nennenswerte Schreibweise ist analog die für Doppelte Felder mit "`DX"'. 
+Somit ist das "`Bullseye"' entgegen landläufiger Meinung, nicht das Feld mit der höchsten Punktzahl. Es gibt sogar gleich 4 Felder, die eine höhere Punktzahl erbringen. Die Triple 20, 19, 18 und 17. Die Tripple 20 hat somit mit 60 Punkten die höchste zu erreichende Punktzahl. Im folgenden werden Triple Felder als "`TX"' bezeichnet, wobei X für die Ziffer des jeweiligen Feldes steht, zum Beispiel also T20. Eine weitere nennenswerte Schreibweise ist analog die für Doppelte Felder mit "`DX"'. 
 
 \begin{figure}
 \includegraphics[width=\textwidth]{media/Dartsfield}\\
@@ -71,7 +71,7 @@ Darts wird im Turniersport hauptsächlich in zwei verschiedenen Varianten gespie
 Jedes Spiel, oder Match, besteht aus einer definierten Anzahl sogenannter "`Sets"'. Ein "`Set"' wiederum besteht seinerseits aus einer bestimmten Anzahl "`Legs"'.
 
 In der Variante 501 entscheidet ein Spieler (Team) ein "`Leg"' für sich, wenn er als Erster auf genau 0 herunter spielt. Analog gilt dies für Variante 301.
-Hierbei ist zu beachten, dass genau auf 0 heruntergespielt werden muss.
+Hierbei ist zu beachten, dass nicht überworfen werden darf.
 Die Anzahl der dabei benötigten Würfe spielt dabei keine Rolle. Ein Wurf besteht hierbei aus drei geworfenen Darts.
  
 Des weiteren gilt, dass durch den Modus "`Double Out"' das Leg mit dem Erzielen eines Doppel-Feldes zu beenden ist. Bei einem "`Straight Out"' wäre diese Einschränkung nicht gegeben.
@@ -104,7 +104,7 @@ Dieser Abschnitt beginnt mit der Entstehung der verarbeiteten Bilder. Ein Verst�
 Zur Vereinfachung wird vorerst von dem sogenannten "`Pinhole Camera Model"' ausgegangen. In Abbildung \prettyref{Fig:simple-pinhole} ist ein solches Modell dargestellt. 
 
 Mittig ist die Barriere zu sehen, in welcher sich ein Loch c befindet, durch das die Lichtstrahlen auf die Image Plane I treffen können. Daraus resultiert ein auf dem Kopf stehendes Bild. $c$ ist hierbei das Zentrum des Koordinatensystems.
-Die Distanz zwischen I und der Barriere $(f)$ ist bei heutigen Kameras die Focal Length. Hierbei gilt es zu bemerken, dass Kameras heutzutage nicht mehr nur ein Loch besitzen, sondern eine Linse eingesetzt ist, welche die Lichtstrahlen bricht und auf die Image Plane lenkt. Das grundlegende Modell bleibt aber auch bei heutigen Kameras bestehen. Wie die Linse das Bild verändert wird später erläutert. 
+Die Distanz zwischen I und der Barriere ist bei heutigen Kameras die Focal Length $(f)$. Hierbei gilt es zu bemerken, dass Kameras heutzutage nicht mehr nur ein Loch besitzen, sondern eine Linse eingesetzt ist, welche die Lichtstrahlen bricht und auf die Image Plane lenkt. Das grundlegende Modell bleibt aber auch bei heutigen Kameras bestehen. Wie die Linse das Bild verändert wird später erläutert. 
 
 Auf diese Weise entsteht eine Abbildung des Punktes $P$ auf der zwei dimensionalen Fläche $I$. Sind alle Parameter bekannt, lässt sich folglich bestimmen, wo der Punkt $P$ später im Bild zu sehen sein wird. 
 
@@ -119,16 +119,16 @@ Auf diese Weise entsteht eine Abbildung des Punktes $P$ auf der zwei dimensional
 \label{Fig:pinhole}
 \end{figure}
 
-In Abbildung \prettyref{Fig:pinhole} ist eine andere Betrachtungsweise zu sehen. Hier wurde die Image Plane rotiert und vor den Koordinatenursprung verschoben. Zu sehen sind die Achsen u und v, welche der X- und Y-Achse des Bildes entsprechen. Rot markiert ist zu sehen wie sich der Objekt- oder Welt-Punkt auf der Image Plan am Punkt $(u, v)$ abbildet. Auf der Image Plane befindet sich in heutigen Kameras ein Bildsensor, der die analogen Lichtsignale zu einem digitalen Bild umwandelt. 
+In Abbildung \prettyref{Fig:pinhole} ist eine andere Betrachtungsweise zu sehen. Hier wurde die Image Plane rotiert und vor den Koordinatenursprung verschoben. Zu sehen sind die Achsen u und v, welche der X- und Y-Achse des Bildes entsprechen. Rot markiert ist zu sehen wie sich der Objekt- oder Welt-Punkt auf der Image Plane am Punkt $(u, v)$ abbildet. Auf der Image Plane befindet sich in heutigen Kameras ein Bildsensor, der die analogen Lichtsignale zu einem digitalen Bild umwandelt. 
 
 Entlang der Z-Achse des Kamera-Koordinatensystems befindet sich die optische Achse. Der Punkt $(c_x,c_y)$, in dem die optische Achse die Image Plane schneidet, ist der "`principal point"' oder das "`Centre"' \autocite[8]{Medioni:2004:ETC:993884}
 
-Nun gilt es eine mathematische Abbildung zu finden, um den Objektpunkt in den entsprechenden Bildpunkt zu transformieren. Folglich muss eine Rotation und eine Transformation vorgenommen werden:
-Die Rotationsmatrix mit dem Namen $R$ und die Transformationsmatrix $t$. Diese bilden die extrinsischen Parameter der Kamera, welche bestimmen, wo diese sich im Raum im Verhältnis zu einem Objekt befindet. Anhand dieser Parameter kann ein  Objekt Punkt $P = \begin{bmatrix}X & Y& Z \\\end{bmatrix}^\intercal$ in den Punkt $ k = \begin{bmatrix}x & y& z \\\end{bmatrix}^\intercal$ des Kamera-Koordinatensystems übertragen werden. Somit gilt: 
+Nun gilt es eine mathematische Abbildung zu finden, um den Objektpunkt in den entsprechenden Bildpunkt zu transformieren. Folglich muss eine Rotation und eine Translation vorgenommen werden:
+Die Rotationsmatrix mit dem Namen $R$ und die Translationsmatrix $t$. Diese bilden die extrinsischen Parameter der Kamera, welche bestimmen, wo diese sich im Raum im Verhältnis zu einem Objekt befindet. Anhand dieser Parameter kann ein  Objektpunkt $P = \begin{bmatrix}X & Y& Z \\\end{bmatrix}^\intercal$ in den Punkt $ k = \begin{bmatrix}x & y& z \\\end{bmatrix}^\intercal$ des Kamera-Koordinatensystems übertragen werden. Somit gilt: 
 $k = R * P + t$ 
 
 Nun gilt es den Punkt im Kamera-Koordinatensystem zum tatsächlichen Bildpunkt $m=(u,v)$ zu übertragen. Hierfür müssen die intrinsischen Parameter der Kamera bestimmt werden. Diese bleiben bei einer spezifischen Kamera bestehen, vorausgesetzt die Linse ist starr und nicht fokussierbar, ansonsten müssen sie erneut bestimmt werden.
-Zu diesen Parameter zählen die bereits erwähnte focal length und das Centre der Kamera. Wie vorher beschrieben wirkt sich die Linse der Kamera auf das Bild aus. Die Linse verursacht eine Verzerrung des Bildes. Zum Einen eine radiale Verzerrung (auch als "Fish Eye" bekannt), ein Beispiel zur Verdeutlichung ist in Abbildung \prettyref{Fig:radialdistortion} zu erkennen, zum Anderen findet eine Verschiebung statt (tangential disortion).
+Zu diesen Parametern zählen die bereits erwähnte focal length und das Centre der Kamera. Wie vorher beschrieben wirkt sich die Linse der Kamera auf das Bild aus. Die Linse verursacht eine Verzerrung des Bildes. Zum Einen eine radiale Verzerrung (auch als "`Fish Eye"' bekannt), ein Beispiel zur Verdeutlichung ist in Abbildung \prettyref{Fig:radialdistortion} zu erkennen, zum Anderen findet eine Verschiebung statt (tangential disortion).
 
 \begin{figure}
 \includegraphics[width=\textwidth]{media/distortion_examples}\\

@@ -61,7 +61,7 @@ Bei 3D-Objekten ist es sowohl aufwändiger die Objekpunkte zu bestimmen, als auc
 \end{figure}
 In Abbildung \prettyref{Fig:calibplane} (a) ist eines der Bilder zu sehen, mit denen die zum Test der Implementierung genutzten Kamera kalibriert wurde. Dies ist ein Muster von $9x6$ Schnittpunkten. In Abbildung  \prettyref{Fig:calibplane} (b) sind die erkannten Feature-Punkte eingezeichnet. Für dieses Schachbrettmuster ist der Abstand der einzelnen Schnittpunkte durch ausmessen bekannt und mit $26mm$ Abstand entlang der Graden voneinander gegeben. 
 
-Wie bereits beschrieben wird OpenCV \prettyref{sec:opencv} zur Implementierung genutzt. OpenCV bietet einige Funktionen, um die Kalibrierung einer Kamera durchzuführen. Die Dokumentation von OpenCV3 \autocite{Opencv3Camera2016} zeigt die dafür zur Verfügung gestellten Funktionen. 
+Wie bereits beschrieben wird OpenCV (\prettyref{sec:opencv}) zur Implementierung genutzt. OpenCV bietet einige Funktionen, um die Kalibrierung einer Kamera durchzuführen. Die Dokumentation von OpenCV3 \autocite{Opencv3Camera2016} zeigt die dafür zur Verfügung gestellten Funktionen. 
 \begin{lstlisting}[frame=single]
 ret, corners = findChessboardCorners(image, patternSize) 
 corners2 = cornerSubPix(image, corners, winSize, zeroZone,\\
@@ -139,7 +139,7 @@ $P_1 = \begin{bmatrix}0& 0& 0 \\\end{bmatrix}^\intercal
 P_2 = \begin{bmatrix}142.56& 72.64& 0 \\\end{bmatrix}^\intercal\\
 P_3 = \begin{bmatrix}25.03& -158.03& 0 \\\end{bmatrix}^\intercal
 P_4 = \begin{bmatrix}-113.14& 113.14& 0 \\\end{bmatrix}^\intercal$.
-Zum einen wurde das Zentrum $(P_1)$ gewählt und zum anderen die Punkte $P_2,P_3,P_4$ auf dem Dartboard verteilt. Mit Hilfe des Nutzers wird so eine Zuordnung zwischen den Objektpunkten und Bildpunkten erstellt. Parallel zur in \prettyref{sec:camera} erläuterten Kamera-Kalibrierung kann nun aus diesen beiden zueinander gehörigen Punkten eine Translations- und eine Rotationsmatrix errechnet werden. Hierbei wird auf die bereits abgeschlossene Bestimmung der intrinsischen Parameter der Kamera zurückgegriffen. Die bereits bestimmten Parameter werden genutzt und in der Berechnung der resultierenden Matrizen berücksichtigt. Hierbei wird die in OpenCV implementierte Funktion \textit{solvePnP(objectPoints, imagePoints, cameraMatrix, distCoeffs)} genutzt. Diese ermöglicht die Berechnung der Matrizen aus bereits aufgezählten Parametern. Übergeben werden:
+Zum einen wurde das Zentrum $(P_1)$ gewählt und zum anderen die Punkte $P_2,P_3,P_4$ auf dem Dartboard verteilt. Mit Hilfe des Nutzers wird so eine Zuordnung zwischen den Objektpunkten und Bildpunkten erstellt. Parallel zur in \prettyref{sec:camera} erläuterten Kamera-Kalibrierung kann nun aus diesen beiden zueinander gehörigen Punkten eine Translations- und eine Rotationsmatrix errechnet werden. Hierbei wird auf die bereits abgeschlossene Bestimmung der intrinsischen Parameter der Kamera zurückgegriffen. Diese werden genutzt und in der Berechnung der resultierenden Matrizen berücksichtigt. Hierbei wird die in OpenCV implementierte Funktion \textit{solvePnP(objectPoints, imagePoints, cameraMatrix, distCoeffs)} genutzt. Diese ermöglicht die Berechnung der Matrizen aus bereits aufgezählten Parametern. Übergeben werden:
 \begin{itemize}
 \item \textbf{objectPoints:} Punkte $P_1$ bis $P_4$ im Boardkoordinatensystem
 \item \textbf{imagePoints:} Die Bildkoordinaten der vom Nutzer angeklickten Pixel
@@ -161,7 +161,7 @@ In den bisherigen Abschnitten wurden einzelne Kamerabilder betrachtet. Im folgen
 
 Der hierfür genutzte Vorgang wird Background-Substraction genannt. Algorithmen die dies umsetzen basieren auf einer gemeinsamen Idee. Grundsätzlich werden dabei 3 Schritte angewandt:
 \begin{enumerate}
-\item Hintergrundmodell erstellen \textit{Abbildung (\prettyref{Fig:background} a)}
+\item Hintergrundmodell erstellen \textit{(Abbildung \prettyref{Fig:background} a)}
 \item Aktuelles Bild mit dem Modell vergleichen, beziehungsweise das Bild vom Hintergrund subtrahieren \textit{(Abbildung \prettyref{Fig:background} b)}
 \item Daten nachbearbeiten
 \item Vordergrund-Maske bestimmen \textit{(Abbildung \prettyref{Fig:background} c)}
@@ -226,7 +226,7 @@ Dabei werden der zweite und dritte Parameter bestimmt, indem auf dem Binär-Bild
 Grundlegend wird dabei die Nachbarschaft der weißen Pixel betrachtet. Zusammenhängende werden einem Blob zugeordnet. Auch an dieser Stelle wird auf bereitgestellte OpenCV Funktionen zurückgegriffen. Dem Eintrag wird nun die Anzahl der Pixel des größten zusammenhängenden Blobs hinzugefügt. Zudem werden alle Blobs ausgeschlossen, die eine definierte Größe unterschreiten. Dadurch wird verhindert, dass Rauschen in späteren Schritten eine weitere Verarbeitung auslöst und so unnötigen Overhead verursacht.
 \begin{figure}[ht]
 \centering
-\subfloat[]{\includegraphics[width=0.9\textwidth]{media/plot.jpg}}\qquad
+\includegraphics[width=0.9\textwidth]{media/plot.jpg}
 \caption{\textbf{Plot des Storages}}
 \label{Fig:blobplot}
 \end{figure}
@@ -244,6 +244,7 @@ Ein Beispiel hierfür wäre die Entfernung der Darts aus dem Dartboard. Hierbei 
 
 In einem weiteren Schritt werden die Bilder aus diesem Bereich analysiert und es wird ein neues Binär-Bild daraus erstellt. Dieses neue Bild fasst die Informationen von allen Bildern in dem Storage-Bereich zusammen und bildet diese ab.
 Das Vorgehen dabei ist in drei Schritte unterteilt.
+
 Im ersten Schritt wird ein Graustufen-Bild erstellt, in dem initial alle Pixel schwarz sind. 
 Im zweiten Schritt wird über die Bilder des Storage-Bereiches iteriert. Dabei wird für jeden weißen Pixel des Bildes im neuen Graustufen-Bild der entsprechende Pixel um einen festgelegten Wert erhöht. Dieser Wert wird abhängig von der History-Größe des Background-Substractors bestimmt.
 \begin{figure}[ht]
@@ -270,16 +271,18 @@ Dieser Vorgang ist der erste Teil des in Abbildung \prettyref{Fig:pipeline} blau
 %\item die 5 Arten der Spitze erläutern
 %\end{itemize}
 Im errechneten Vordergrund gilt es nun den Dart zu erkennen und die Spitze des Darts zu bestimmen. Grundsätzlich gibt es die Möglichkeit Objekte anhand der Farbgebung auszumachen. Da beim Dartsport keine Standardisierung zur einheitlichen Farbgebung der Darts gegeben ist, entfällt diese Möglichkeit. Aus diesem Grund müssen die Darts anhand ihrer Form erkannt werden. In einem 2D-Bild entspricht das der Kontur.
+
+Bereits 1985 gab es Forschungen Konturen in Binär-Bildern zu erkennen. Satoshi Suzuki hat einen Artikel veröffentlicht, in dem ein solcher Algorithmus präsentiert wird \autocite{contour1985}. Dieser Algorithmus ist ebenfalls in OpenCV implementiert. 
+
+Nun kann das aus der Vorverarbeitung stammende Bild in die Kontur-Erkennung von OpenCV übergeben werden. Auf den erkannten Konturen können dann weitere Charakteristika (Features) bestimmt werden. 
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.9\textwidth]{media/backgroundfeature}
 \caption{\textbf{Ein Dart mit eingezeichneten Momenten und Spitzen}}
 \label{Fig:detecteddart}
 \end{figure}
-
-Bereits 1985 gab es Forschungen Konturen in Binär-Bildern zu erkennen. Satoshi Suzuki hat einen Artikel veröffentlicht, in dem ein solcher Algorithmus präsentiert wird \autocite{contour1985}. Dieser Algorithmus ist ebenfalls in OpenCV implementiert. 
-
-Nun kann das aus der Vorverarbeitung stammende Bild in die Kontur-Erkennung von OpenCV übergeben werden. Auf den erkannten Konturen können dann weitere Charakteristika (Features) bestimmt werden. Einige der genutzten und wichtigsten sind:
+\newpage
+Einige der genutzten und wichtigsten sind:
 \begin{itemize}
 	\item \textbf{Eingrenzendes Rechteck (Bounding Rectangle)} Dies ist das kleinstmögliche Rechteck, das die Kontur umschließt.
 	\item \textbf{Gerade durch Kontur} Eine Gerade, auf der möglichst viele Punkte in der Kontur liegen.
