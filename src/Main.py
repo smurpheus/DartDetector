@@ -214,8 +214,8 @@ class BackgroundSubtractor(Thread):
     var_min = 4
     #################
     history = 200
-    shad_tresh = 0.5
-    var_tresh = 14
+    shad_tresh = 0.55
+    var_tresh = 16
     var_max = 75
     var_min = 1
     arrows = []
@@ -319,9 +319,9 @@ class BackgroundSubtractor(Thread):
 
                 fgmask1 = self.fgbg.apply(f1)
                 fgmask1 = cv2.inRange(fgmask1, 250, 255)
-                kernel = np.ones((5, 5), np.uint8)
+                kernel = np.ones((6, 6), np.uint8)
                 closed = cv2.morphologyEx(fgmask1, cv2.MORPH_CLOSE, kernel)
-                kernel = np.ones((3, 3), np.uint8)
+                kernel = np.ones((4, 4), np.uint8)
                 opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel)
                 closed2 = np.array(closed)
                 self.set_substracted(closed)
@@ -484,8 +484,11 @@ class MainApplikacation(object):
         self.line1, = self.plt1.plot(range(200), [0] * 200, 'r.-')
         self.plt1.axis([0, 200, 0, 10000])
         cv2.namedWindow("Current", cv2.WINDOW_NORMAL)
+        cv2.moveWindow("Current", 20,20)
         cv2.namedWindow("Original", cv2.WINDOW_NORMAL)
+        cv2.moveWindow("Original", 20, 500)
         cv2.namedWindow("Points", cv2.WINDOW_NORMAL)
+        cv2.moveWindow("Current", 1000, 20)
         cv2.namedWindow("Blobimg", cv2.WINDOW_NORMAL)
         cv2.setMouseCallback("Points", self._click)
         mixer.init()
