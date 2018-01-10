@@ -6,9 +6,9 @@ In diesem Kapitel wird auf den Aufbau der Implementierung eingegangen. Zunächst
 
 Nachdem ein genereller Überblick über die einzelnen Bestandteile gegeben wurde, wird auf die einzelnen Schritte der Pipeline genauer eingegangen.
 
-Anfänglich werden einmalige Vorbereitungsschritte aufgeschlüsselt, hierzu gehört zu einem großen Teil die Kalibrierung der genutzten Kamera in \prettyref{sec:camera} und die Bestimmung der Charakteristika dieser. 
+Anfänglich werden einmalige Vorbereitungsschritte aufgeschlüsselt, hierzu gehört zu einem großen Teil die Kalibrierung der genutzten Kamera in \prettyref{sec:camera} und die Bestimmung ihrer Charakteristika. 
 
-Darauf folgt in \prettyref{sec:board} die Kalibrierung und die Erkennung der Felder des Dartboardes. Es werden verschiedene getestete Ansätze erörtert und ihre Vor- und Nachteile dargestellt.
+Darauf folgt in \prettyref{sec:board} die Kalibrierung und Erkennung der Felder des Dartboardes. Es werden verschiedene getestete Ansätze erörtert und ihre Vor- und Nachteile dargestellt.
 
 Des Weiteren werden die einzelnen Abschnitte der Pipeline näher beleuchtet und auf die Implementierung und das Vorgehen eingegangen.  Dies umfasst die Segmentierung der Dinge, die nicht zum Dartboard gehören in \prettyref{sec:substraction} sowie die konkrete
 Bestimmung der erzielten Punktzahl in \prettyref{sec:score}.
@@ -27,9 +27,9 @@ Zu Beginn wird eine einmalige Kalibrierung der Kamera ausgeführt. Diese durchzu
 \label{Fig:pipeline}
 \end{figure}
 
-Ist die Kalibrierung abgeschlossen, können die hieraus gewonnenen Informationen genutzt werden, um das Dartboard und dessen Felder zu segmentieren und unterscheiden zu können. Das Resultat dieser Kalibrierung ist eine Funktion, die eine Abbildung von einem Pixel zu einer spezifischen Punktzahl auf dem Dartboard darstellt. In \prettyref{sec:board} wird darauf ein gegangen, welche Ansätze zu diesem Zweck verfolgt wurden und wie die letztendliche Umsetzung vorgenommen wurde.
+Ist die Kalibrierung abgeschlossen, können die hieraus gewonnenen Informationen genutzt werden, um das Dartboard und dessen Felder segmentieren und unterscheiden zu können. Das Resultat dieser Kalibrierung ist eine Funktion, die eine Abbildung von einem Pixel zu einer spezifischen Punktzahl auf dem Dartboard darstellt. In \prettyref{sec:board} wird darauf eingegangen, welche Ansätze zu diesem Zweck verfolgt wurden und wie die letztendliche Umsetzung vorgenommen wurde.
 
-Diese beiden Schritte können übersprungen werden, sofern sich die Position der Kamera relativ zum Dartboard, bei einem erneuten Start der Software, nicht verändert hat. In diesem Fall kann die Kameramatrix aus einer Datei geladen werden.
+Diese beiden Schritte können übersprungen werden, sofern sich die Position der Kamera relativ zum Dartboard bei einem erneuten Start der Software nicht verändert hat. In diesem Fall kann die Kameramatrix aus einer Datei geladen werden.
 
 Es werden zwei separate Threads gestartet. In der Abbildung ist der erste Thread grau markiert (Background-Substrator) und der zweite türkis. Der Background-Substractor dient dazu, den Storage mit Informationen zu füllen. In \prettyref{sec:substraction} wird das Vorgehen erläutert und welche Informationen bestimmt und gespeichert werden.
 Der zweite Thread wird in mehrere Sub-Schritte unterteilt. 
@@ -40,18 +40,18 @@ Die gewonnenen Informationen werden für die weitere Verarbeitung zu Konturerken
 Abschließend werden die Dart-Parameter bestimmt und in der Punktzahl-Erkennung in die erzielte Punktzahl überführt. Diese wird anschließend abgespeichert.
 
 
-\section{Kamera Kalibrierung}
+\section{Kamera-Kalibrierung}
 \label{sec:camera}
-Im \prettyref{sec:camerageo} wurden bereits das Kamera Modell und die Parameter einer Kamera erläutert. So heißt es in \autocite[5]{Zhang2000} \textquote{Camera calibration is a necessary step in 3D computer vision in order to extract metric information from 2D images.} Nun gilt es eben diese Parameter zu bestimmen um genauere Daten aus den Bildern der Kamera zu erlangen. 
+In \prettyref{sec:camerageo} wurden bereits das Kameramodell und die Parameter einer Kamera erläutert. So heißt es in \autocite[5]{Zhang2000} \textquote{Camera calibration is a necessary step in 3D computer vision in order to extract metric information from 2D images.} Nun gilt es eben diese Parameter zu bestimmen um genauere Daten aus den Bildern der Kamera zu erhalten. 
 
 Diese Kalibrierung ist vorrangig dafür gedacht, die intrinsischen Parameter der Kamera zu bestimmen. Die extrinsischen Parameter werden auf andere Art bestimmt beziehungsweise in einem anderen Schritt. Die Bestimmung der extrinsischen Parameter wird in \prettyref{sec:board} erläutert.
 
 Es gibt mehrere Möglichkeiten eine Kalibrierung der Kamera vorzunehmen. Diese sind: mit 3D-Objekten, mit 2D-Ebenen oder 1D-Linien. Dabei haben diese verschiedenen Varianten einen unterschiedlich hohen Aufwand, Genauigkeit und Komplexität in der Berechnung. 
 
 Eine Gemeinsamkeit dieser Varianten ist, dass zu bekannten Punkten der Objekte die entsprechenden Bildpunkte bestimmt werden müssen.
-Bei 3D-Objekten ist es sowohl aufwändiger die Objekpunkte zu bestimmen, als auch die Zuordnung zu den entsprechenden Bildpunkten vorzunehmen. Daher wurde der Einfachheit halber auf eine Kalibrierung mit einer Ebene zurückgegriffen. 
+Bei 3D-Objekten ist es sowohl aufwändiger die Objektpunkte zu bestimmen, als auch die Zuordnung zu den entsprechenden Bildpunkten vorzunehmen. Daher wurde der Einfachheit halber auf eine Kalibrierung mit einer Ebene zurückgegriffen. 
 \begin{figure}
-\subfloat[Schachbrettmsuter]{\includegraphics[width=0.5\textwidth]{media/calibraw1.jpg}}\qquad
+\subfloat[Schachbrettmuster]{\includegraphics[width=0.5\textwidth]{media/calibraw1.jpg}}\qquad
 \subfloat[Muster mit erkannten Punkten]{\includegraphics[width=0.5\textwidth]{media/calibrated1.jpg}\\}
 \caption{\textbf{Eines der zur Kalibrierung genutzten Bilder}}
 \label{Fig:calibplane}
@@ -59,7 +59,7 @@ Bei 3D-Objekten ist es sowohl aufwändiger die Objekpunkte zu bestimmen, als auc
 %\caption{\textbf{Erkannte Feature Punkte/Schnittpunkte}}
 %\label{Fig:calibplanefeature}
 \end{figure}
-In Abbildung \prettyref{Fig:calibplane} (a) ist eines der Bilder zu sehen, mit denen die zum Test der Implementierung genutzten Kamera kalibriert wurde. Dies ist ein Muster von $9x6$ Schnittpunkten. In Abbildung  \prettyref{Fig:calibplane} (b) sind die erkannten Feature-Punkte eingezeichnet. Für dieses Schachbrettmuster ist der Abstand der einzelnen Schnittpunkte durch ausmessen bekannt und mit $26mm$ Abstand entlang der Graden voneinander gegeben. 
+In Abbildung \prettyref{Fig:calibplane} (a) ist eines der Bilder zu sehen, mit denen die zum Test der Implementierung genutzte Kamera kalibriert wurde. Dies ist ein Muster von $9x6$ Schnittpunkten. In Abbildung  \prettyref{Fig:calibplane} (b) sind die erkannten Feature-Punkte eingezeichnet. Für dieses Schachbrettmuster ist der Abstand der einzelnen Schnittpunkte durch Ausmessen bekannt und mit $26mm$ Abstand entlang der Graden voneinander gegeben. 
 
 Wie bereits beschrieben wird OpenCV (\prettyref{sec:opencv}) zur Implementierung genutzt. OpenCV bietet einige Funktionen, um die Kalibrierung einer Kamera durchzuführen. Die Dokumentation von OpenCV3 \autocite{Opencv3Camera2016} zeigt die dafür zur Verfügung gestellten Funktionen. 
 \begin{lstlisting}[frame=single]
@@ -73,13 +73,13 @@ ret, mtx, dist, rvecs, tvecs = calibrateCamera(\\
 newcameramtx, roi = getOptimalNewCameraMatrix(mtx, dist,\\
                imageSize, alpha , newimageSize)
 \end{lstlisting}
-So wird \textit{findChessboardCorners} verwendet um die Schnittpunkte im Schachbrettmuster zu erkennen und die dazugehörigen Koordinaten zu identifizieren. Hierzu wird eines der Bilder mit dem Schachbrettmuster in ein Graustufenbild gewandelt und der Funktion übergeben, ein zusätzlicher Parameter ist die Größe des Schachbrettmusters $(9,6)$. Dies liefert zum einen den Erfolg der Funktion als Boolean zurück und zum anderen die Bildkoordinaten der gefundenen Schnittpunkte. 
-Die gefundenen Koordinaten sind allerdings nur approximierte Werte, daher ist es empfehlenswert \textit{cornerSubPix} auf demselben Bild mit den bereits ermittelten Schnittpunkten aufzurufen. Diese dient der genaueren Bestimmung der Bildkoordinaten, um eine höhere Genauigkeit zu erreichen. Die Funktion gibt die neuen Koordinaten der Schnittpunkte zurück. 
-Die Funktionsweise der Erkennung des Schachbrettmusters basiert auf einer Kantenerkennung nach John Canny \autocite{canny1986}.
+So wird \textit{findChessboardCorners} verwendet, um die Schnittpunkte im Schachbrettmuster zu erkennen und die dazugehörigen Koordinaten zu identifizieren. Hierzu wird eines der Bilder mit dem Schachbrettmuster in ein Graustufenbild gewandelt und der Funktion übergeben, ein zusätzlicher Parameter ist die Größe des Schachbrettmusters $(9,6)$. Dies liefert zum Einen den Erfolg der Funktion als Boolean zurück und zum anderen die Bildkoordinaten der gefundenen Schnittpunkte. 
+Die gefundenen Koordinaten sind allerdings nur approximierte Werte, daher ist es empfehlenswert, \textit{cornerSubPix} auf demselben Bild mit den bereits ermittelten Schnittpunkten aufzurufen. Diese dient der genaueren Bestimmung der Bildkoordinaten, um eine höhere Genauigkeit zu erreichen. Die Funktion gibt die neuen Koordinaten der Schnittpunkte zurück. 
+Die Funktionsweise der Erkennung des Schachbrettmusters basiert auf der Kantenerkennung nach John Canny \autocite{canny1986}.
 
 Um die Parameter der Kamera zu errechnen werden die Bildpunkte, der Schachbrettschnittpunkte und die zugehörigen Objektpunkte benötigt. Die Objektpunkte sind in diesem Fall die Punkte auf dem Schachbrett. Es wird davon ausgegangen, dass sich die Punkte alle auf einer Ebene befinden \textit{z=0}. Die Objektpunkte sehen in etwa wie folgt aus: $[[0,0,0], [26,0,0],...,[0,26,0],[0,52,0],...,[234,156,0]]$
 
-Da es zu einer Ungenauigkeit, durch Rauschen oder andere Fehler kommen kann, werden mehrere Bilder zur Kalibrierung eingesetzt. Um eine der Gerade entlang des Schachbrettmusters zu bestimmen reichen in der Theorie zwei Punkte. Aus bereits genannten Gründen werden allerdings auch hier mehrere Punkte verwendet. Zudem wird kein quadratisches Schachbrett genutzt, da so die Orientierung des Musters erkannt werden kann. 
+Da es durch Rauschen und andere Fehler zu Ungenauigkeiten kommen kann, werden mehrere Bilder zur Kalibrierung eingesetzt. Um eine der Gerade entlang des Schachbrettmusters zu bestimmen, reichen in der Theorie zwei Punkte. Aus bereits genannten Gründen werden allerdings auch hier mehrere Punkte verwendet. Zudem wird kein quadratisches Schachbrett genutzt, da so die Orientierung des Musters erkannt werden kann. 
 Der in OpenCV verwendete Algorithmus basiert auf der Arbeit von Zhengyou Zhang. In "`Emerging Topics in Computer Vision"' \autocite{Medioni:2004:ETC:993884} empfiehlt dieser: \textquote{(...), we recommend 4 or 5 different orientations for better quality.} \autocite[24]{Zhang2000}.
 
 So werden zu mehreren Bildern, mit unterschiedlicher Orientierung des Schachbrettes zur Kamera, die Bildpunkte bestimmt und gespeichert. Diese werden anschließend gesammelt an die Funktion \textit{calibrateCamera} übergeben. \textit{criteria} enthält Informationen für den Berechnungsalgorithmus, wie zum Beispiel die Distanz zwischen zwei Schnittpunkten. Die weiteren Parameter der Funktion sind optional und dienen der genaueren Berechnung.
