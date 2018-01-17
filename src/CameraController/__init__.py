@@ -4,8 +4,12 @@ from threading import Lock, Event, Thread
 
 import time
 
+import os
+
 from src.CameraController.Input import Controller
 
+def servo_value(inperc):
+    return inperc * 0.000005 + 0.05
 
 class SteeringUnit(Thread):
     Deadzone = 0.18
@@ -34,6 +38,8 @@ class SteeringUnit(Thread):
                 #     print("In Neutral X")
                 if abs(self.velocity_y) > self.Deadzone:
                     self.change_y(self.velocity_y * self.Sensitivity)
+                os.system("echo 17={} > /dev/pi-blaster".format(self.current_y))
+                os.system("echo 18={} > /dev/pi-blaster".format(self.current_x))
                 stdout.write("\rX:{:02.2f}Y:{:02.2f}".format(self.current_x, self.current_y))
                 stdout.flush()
                 # else:
@@ -70,16 +76,20 @@ class SteeringUnit(Thread):
             self.current_x = 0
             self.current_y = 0
 
-# c = Controller()
-# su = SteeringUnit()
-# c.init_controller(0)
-# c.register_to_event("Axis0", su.set_velocity_x)
-# c.register_to_event("Axis1", su.set_velocity_y)
-# c.register_to_event("Button6", su.reset)
-# c.start()
-# su.start()
-# c.wait_for("Button7")
-# su.running.set()
-# c.running.set()
-# c.emit("Axis0", 0)
-# c.do_run()
+
+
+
+
+c = Controller()
+su = SteeringUnit(maxx=1000, minx=0, maxy=1000, miny=0)
+c.init_controller(0)
+c.register_to_event("Axis0", su.set_velocity_x)
+c.register_to_event("Axis1", su.set_velocity_y)
+c.register_to_event("Button6", su.reset)
+c.start()
+su.start()
+c.wait_for("Button7")
+su.running.set()
+c.running.set()
+c.emit("Axis0", 0)
+c.do_run()
