@@ -24,9 +24,10 @@ class Board:
     fields_in_order = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5]
     size = 800
     pixel_map = {}
+
     def __init__(self, radius=170, center=(0, 0)):
-        self.radius = self.size/2 * 0.9
-        self.draw_radius = self.size/2 * 0.9
+        self.radius = self.size / 2 * 0.9
+        self.draw_radius = self.size / 2 * 0.9
         self.center = center
 
         for x in range(self.size):
@@ -126,7 +127,7 @@ class Board:
 
     def draw_board(self):
         img = np.zeros((self.size, self.size, 3), np.uint8)
-        img[:] = (255,255,255)
+        img[:] = (255, 255, 255)
         mid = int(self.size / 2.)
         rad = self.draw_radius
         for c in self.circles:
@@ -185,13 +186,12 @@ class Board:
                     mult = i
                     break
         if isinstance(mult, str):
-            if mult in ["25","50"]:
+            if mult in ["25", "50"]:
                 return mult
             else:
-                return mult+str(fields_in_order[indexof])
+                return mult + str(fields_in_order[indexof])
         else:
             return abs(mult) * fields_in_order[indexof]
-
 
     def get_config_hint(self, cur_point=-1):
         img = self.draw_board()
@@ -226,7 +226,8 @@ def centeroidnp(arr):
     length = arr.shape[0]
     sum_x = np.sum(arr[:, 0])
     sum_y = np.sum(arr[:, 1])
-    return [sum_x / length, sum_y / length]
+    return [round(sum_x / length), round(sum_y / length)]
+
 
 def save_vid(fname="Deafaultoutput", size=(640, 480), device=0):
     fname += '.avi'
@@ -302,6 +303,7 @@ def _get_points_on_cnt(img, cnt):
     # pts = zip(pts[1], pts[0])
     return result
 
+
 class Arrow:
     centroid = None
     tip = None
@@ -326,10 +328,9 @@ class Arrow:
     def __repr__(self):
         output = ""
         output += "Centroid=%s;;tip=%s;;Contour_num=%s;;Contour_sizes=%s;;ratio=%s;;success=%s" % (
-        self.centroid, self.tip, len(self.contours), [cv2.contourArea(x) for x in self.contours], self.ratio,self.success)
+            self.centroid, self.tip, len(self.contours), [cv2.contourArea(x) for x in self.contours], self.ratio,
+            self.success)
         return output
-
-
 
     def detect_arrow(self):
         ncontours = []
@@ -390,7 +391,6 @@ class Arrow:
                     self.tip = mpt
                     # Approximate a contour
 
-
                     box = np.int0(box)
                     boxpts = _get_points_on_cnt(self.img, box)
                     pts_on_line2 = []
@@ -411,7 +411,6 @@ class Arrow:
                     # tip2 is the point where the line crosses the bounding box
                     self.tip2 = mpt2
 
-
                     #######################################################
                     # Point where approx contour cuts outline Box
                     #######################################################
@@ -428,7 +427,6 @@ class Arrow:
                         self.tip3 = centeroidnp(np.array(diff))
                     else:
                         self.tip3 = self.tip
-
 
                     #######################################################
                     # Point where
@@ -449,10 +447,11 @@ class Arrow:
                     except:
                         pass
                 else:
-                    print "Ratio of Contours does not fit %s"%ratio
+                    print("Ratio of Contours does not fit %s" % ratio)
             else:
-                print "Contour was too small to be an arrow %s"%cv2.contourArea(cnt)
+                print("Contour was too small to be an arrow %s" % cv2.contourArea(cnt))
         self.contours = ncontours
+
 
 class ContourStorage:
     size = 200
@@ -467,6 +466,7 @@ class ContourStorage:
     paused = False
     pausetime = 0
     ready = False
+
     def __init__(self, plotting=False):
         self.plotting = plotting
         if plotting:
@@ -503,10 +503,10 @@ class ContourStorage:
                         acnts.append(cnt)
                     else:
                         self.paused = True
-                        for index in range(int(self.size*0.75), self.size):
-                            print "At index %s"%index
+                        for index in range(int(self.size * 0.75), self.size):
+                            print("At index %s" % index)
                             self.storage[index] = [np.zeros_like(self.storage[0][0]), 0, 0, 0]
-                        self.pausetime = self.history * 0.3# * self.percentage_of_history
+                        self.pausetime = self.history * 0.3  # * self.percentage_of_history
                 xcnt = 0
                 if len(cnts) > 0:
                     xcnt = max(cnts)
@@ -518,7 +518,7 @@ class ContourStorage:
                 if self.pausetime > -10:
                     self.pausetime -= 1
             else:
-                print("Execution was paused because of a blob that was to big. %s"%self.pausetime)
+                print("Execution was paused because of a blob that was to big. %s" % self.pausetime)
                 if self.pausetime <= 0:
                     self.paused = False
                 self.pausetime -= 1
@@ -537,9 +537,9 @@ class ContourStorage:
                 open_close_mask = 5
                 kernel = np.ones((open_close_mask, open_close_mask), np.uint8)
                 closed = cv2.morphologyEx(thresh1, cv2.MORPH_CLOSE, kernel)
-                im2, contours, hierarchy = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                contours, hierarchy = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                 cv2.drawContours(closed, contours, -1, color=255, thickness=2)
-                arrow = Arrow(contours, blob_img, blobs[i][1]-blobs[i][0]/2+blobs[i][0])
+                arrow = Arrow(contours, blob_img, blobs[i][1] - blobs[i][0] / 2 + blobs[i][0])
                 if arrow.success and arrow is not None:
                     result.append(arrow)
                 i += 1
@@ -605,8 +605,6 @@ class ContourStorage:
                 index += 1
             best.append(bindex + blob[0])
 
-
-
             # blob_mean = np.mean(blob_contours)
             # diffs = []
             # min_num = blob_mean
@@ -647,7 +645,7 @@ class ContourStorage:
     def _find_blob(self, history=500):
         self.history = history
         y = [x[2] for x in self.storage]
-        mean = Arrow.min_cnt_size#np.mean(y)
+        mean = Arrow.min_cnt_size  # np.mean(y)
         blobs = []
         start = False
         y3 = []
@@ -674,7 +672,7 @@ class ContourStorage:
                     nblobs.append(blob)
                 else:
                     s = blob[1] - blob[0]
-                    print "BLOB as discovered but it was to small %s"%s
+                    print("BLOB as discovered but it was to small %s" % s)
                     for i in range(blob[0], blob[1]):
                         self.storage[i][2] = mean
         return nblobs
@@ -699,7 +697,6 @@ class ContourStorage:
         #         dist1 = np.linalg.norm(box[0] - box[1])
         #         dist2 = np.linalg.norm(box[1] - box[2])
         #     y4.append(dist2/dist1)
-
 
         deviation = np.std(y)
         mean = np.mean(y)
@@ -734,7 +731,7 @@ class Camera:
     read_frame_no = 1
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
 
-    def __init__(self, width=1280, heigth=960, device=None,output="output.avi"):
+    def __init__(self, width=1280, heigth=960, device=None, output="output.avi", save_file=True):
         self.cameramatrix = None
         self.width = width
         self.height = heigth
@@ -742,14 +739,17 @@ class Camera:
         self.config = []
         self.was_configured = False
         self.device = device
-        output+=".avi"
+        self.save_file = save_file
+        output += ".avi"
+        self.capture = cv2.VideoCapture(self.device)
         if isinstance(self.device, int):
-            self.out = cv2.VideoWriter(output, self.fourcc, 30, (width, heigth))
+            if self.save_file:
+                self.out = cv2.VideoWriter(output, self.fourcc, 30, (width, heigth))
             self.from_file = False
             self.capture = cv2.VideoCapture(self.device)
             while self.capture.isOpened() == False:
                 time.sleep(1)
-                print "Waiting"
+                print("Waiting")
             self.capture.set(3, self.width)
             self.capture.set(4, self.height)
             self.capture.set(cv2.CAP_PROP_FPS, 30)
@@ -757,7 +757,7 @@ class Camera:
             self.from_file = True
             self.capture = cv2.VideoCapture(self.device)
             tot_frame = self.capture.get(cv2.CAP_PROP_FRAME_COUNT)
-            print "There are %s Frames in this File" % tot_frame
+            print("There are %s Frames in this File" % tot_frame)
 
             self.width = int(self.capture.get(3))
             self.heigth = int(self.capture.get(4))
@@ -766,19 +766,20 @@ class Camera:
         able_to_read, f1 = self.capture.read()
         if able_to_read:
             self.read_frame_no += 1
-            if not self.from_file:
+            if not self.from_file and self.save_file:
                 self.out.write(f1)
             return f1, False
         else:
             if self.from_file:
                 self.read_frame_no = 1
                 self.capture.set(1, 0)
-                print "####################################################### END ####################################################"
+                print(
+                    "####################################################### END ####################################################")
                 exit()
             able_to_read, f1 = self.capture.read()
-            print "Reading Frame: ", self.capture.get(1)
+            print("Reading Frame: ", self.capture.get(1))
             if able_to_read:
-                if not self.from_file:
+                if not self.from_file and self.save_file:
                     self.out.write(f1)
                 self.read_frame_no += 1
                 return f1, True
@@ -786,7 +787,7 @@ class Camera:
                 time.sleep(2)
                 able_to_read, f1 = self.capture.read()
                 if able_to_read:
-                    if not self.from_file:
+                    if not self.from_file and self.save_file:
                         self.out.write(f1)
                     self.read_frame_no += 1
                     return f1, True
@@ -824,11 +825,11 @@ class Camera:
         except:
             return False
         nconfig = {}
-        nconfig['mtx'] = np.resize(np.array(json.loads(config['mtx'])), (3,3))
+        nconfig['mtx'] = np.resize(np.array(json.loads(config['mtx'])), (3, 3))
         nconfig['dist'] = np.array(json.loads(config['dist']))
         nconfig['tvecs'] = np.array(json.loads(config['tvecs']))
         nconfig['rvecs'] = np.array(json.loads(config['rvecs']))
-        print nconfig['mtx'], nconfig['dist'], (self.width, self.height), 1, (self.width, self.height)
+        print(nconfig['mtx'], nconfig['dist'], (self.width, self.height), 1, (self.width, self.height))
         newcameramtx, roi = cv2.getOptimalNewCameraMatrix(nconfig['mtx'], nconfig['dist'],
                                                           (self.width, self.height), 1, (self.width, self.height))
         self.cameramatrix = newcameramtx
@@ -844,7 +845,7 @@ class Camera:
                 try:
                     config[k] = json.dumps(v)
                 except:
-                    print k
+                    print(k)
                     config[k] = json.dumps(v.tolist())
             with open(filename, "w") as f:
                 f.write(json.dumps(config))
@@ -903,9 +904,9 @@ class Camera:
                     cv2.imwrite("./calib.jpg", frame)
                     # Load the required library
 
-                    mixer.init()
-                    mixer.music.load('beep.mp3')
-                    mixer.music.play()
+                    # mixer.init()
+                    # mixer.music.load('beep.mp3')
+                    # mixer.music.play()
                     print("""##########################################################################################\r\n
                                 FOUND CORNERS STILL %d!!!!!!! \r\n
                              ###########################################################################################
@@ -923,7 +924,7 @@ class Camera:
                         corners2 = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
                         imgpoints.append(corners)
                         cv2.drawChessboardCorners(frame, (chess_w, chess_h), corners2, ret)
-                        cv2.imwrite('./drawncalib/%s'%fname.split('/')[-1], frame)
+                        cv2.imwrite('./drawncalib/%s' % fname.split('/')[-1], frame)
                         cv2.imshow("Calibration Window", frame)
                         cv2.waitKey(1)
             # print("Objpoints %s" % objpoints)
@@ -957,7 +958,8 @@ class Camera:
             self.config = config
             # newcameramtx, roi = cv2.getOptimalNewCameraMatrix(np.array(config['mtx']), np.array(config['dist']),
             # (self.width, self.height))
-            print "COOOOFNIG", np.array(config['mtx']), np.array(config['dist']), (self.width, self.height), 0, (self.width, self.height)
+            print("COOOOFNIG", np.array(config['mtx']), np.array(config['dist']), (self.width, self.height), 0,
+                  (self.width, self.height))
             newcameramtx, roi = cv2.getOptimalNewCameraMatrix(np.array(config['mtx']), np.array(config['dist']),
                                                               (self.width, self.height), 0, (self.width, self.height))
             self.cameramatrix = newcameramtx
@@ -965,12 +967,12 @@ class Camera:
             print(self.cameramatrix)
             self.was_configured = True
             mean_error = 0
-            for i in xrange(len(objpoints)):
+            for i in range(len(objpoints)):
                 imgpoints2, _ = cv2.projectPoints(objpoints[i], rvecs[i], tvecs[i], newcameramtx, np.array(dist))
                 error = cv2.norm(imgpoints[i], imgpoints2, cv2.NORM_L2) / len(imgpoints2)
                 mean_error += error
 
-            print "total error: ", mean_error / len(objpoints)
+            print("total error: ", mean_error / len(objpoints))
 
 
         except KeyboardInterrupt:
@@ -1009,33 +1011,33 @@ def projectReverse(imgpoints, rvec, tvec, cameramatrix):
 def test_image(camera):
     roto, _ = cv2.Rodrigues(camera.config['rvecs'][0])
     invroto = np.linalg.inv(roto)
-    print "Rotation Matrix: \r\n %s" % roto
-    print "InverseRotation Matrix: \r\n %s" % invroto
+    print("Rotation Matrix: \r\n %s" % roto)
+    print("InverseRotation Matrix: \r\n %s" % invroto)
     tvec = camera.config['tvecs']
-    print "Translation vector: \r\n %s" % tvec
-    print "Camera Matrix: \r\n %s" % camera.config['mtx']
+    print("Translation vector: \r\n %s" % tvec)
+    print("Camera Matrix: \r\n %s" % camera.config['mtx'])
     invcam = np.linalg.inv(camera.config['mtx'])
-    print "Inverse Camera Matrix: \r\n %s" % invcam
-    print "dist parameter: \r\n %s" % camera.config['dist']
+    print("Inverse Camera Matrix: \r\n %s" % invcam)
+    print("dist parameter: \r\n %s" % camera.config['dist'])
     newp, _ = cv2.projectPoints(np.array(camera.config['objpoints'][0]), roto, tvec, camera.config['mtx'],
                                 camera.config['dist'])
-    # print np.array(camera.config['imgpoints'][0])
+    # print(np.array(camera.config['imgpoints'][0])
     # for i, x in zip(newp, np.array(camera.config['imgpoints'][0])):
-    #     print "%s::: %s"%(i, x)
-    # print newp
+    #     print("%s::: %s"%(i, x)
+    # print(newp
     trans = np.concatenate((roto, tvec), 1)
-    print "combined Trans and Rot: \r\n %s" % trans
+    print("combined Trans and Rot: \r\n %s" % trans)
     newp2 = []
     for i in camera.config['objpoints'][0]:
         p = np.array(i + [1]).reshape(4, 1)
         ip = np.array(np.array(i).reshape(3, 1))
-        # print ip
+        # print(ip
         # newpoint =  np.dot(np.array(camera.config['mtx']), np.dot(trans, p))
-        # print "NP normal: %s"%newpoint
+        # print("NP normal: %s"%newpoint
         newpoint = np.dot(np.array(camera.config['mtx']), np.dot(roto, ip) + tvec)
 
         nnp = [[newpoint[0][0] / newpoint[2][0]], [newpoint[1][0] / newpoint[2][0]]]
-        print "NP crazy: %s" % nnp
+        print("NP crazy: %s" % nnp)
         # tempmat =  np.dot(np.dot(invroto, invcam), nnp)
         # tempmat2 = np.dot(invroto, tvec)
         # s = 0 + tempmat2[2][0]
@@ -1044,14 +1046,14 @@ def test_image(camera):
 
         reverse = projectReverse([nnp], roto, tvec, camera.config['mtx'])
         # reverse = np.dot(invroto,np.dot(invcam, np.array(nnp)*s)) - np.dot(invroto,tvec)
-        print "reversed: %s" % reverse
+        print("reversed: %s" % reverse)
         newp2.append(nnp)
     for i, x in zip(newp, newp2):
-        print "%s::: %s" % (i, x)
+        print("%s::: %s" % (i, x))
 
         #     rotated = np.dot(roto, ip)
-        #     # print np.add(rotated, tvec)
-        #     # print np.dot(np.array(camera.config['mtx']), np.dot(trans, p))
+        #     # print(np.add(rotated, tvec)
+        #     # print(np.dot(np.array(camera.config['mtx']), np.dot(trans, p))
 
 
 class Test:
@@ -1060,15 +1062,15 @@ class Test:
     cannylow = 50
 
     def fix_val1(self, params):
-        print "called"
+        print("called")
         self.param = params
 
     def fix_val2(self, params):
-        print "called"
+        print("called")
         self.cannyup = params
 
     def fix_val3(self, params):
-        print "called"
+        print("called")
         self.cannylow = params
 
     def show_image_with_calib(self, size=(1280, 960), device=0):
@@ -1083,7 +1085,7 @@ class Test:
             lines = f.read()
             print(lines)
             config = json.loads(lines)
-        print config
+        print(config)
         newcameramtx, roi = cv2.getOptimalNewCameraMatrix(np.array(config['mtx']), np.array(config['dist']),
                                                           (width, height), 1, (width, height))
         cv2.namedWindow("Original", cv2.WINDOW_NORMAL)
@@ -1108,7 +1110,7 @@ class Test:
                     # lines = cv2.HoughLinesP(edges, 1, np.pi / 180, minLineLength, maxLineGap)
                     # for x1, y1, x2, y2 in lines[0]:
                     #     cv2.line(dst, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                    print self.param
+                    print(self.param)
                     lines = cv2.HoughLines(edges, 1, np.pi / 180, self.param)
                     if lines is not None and len(lines) > 0:
                         for i in lines:
@@ -1123,7 +1125,6 @@ class Test:
                             y2 = int(y0 - 1000 * (a))
 
                             cv2.line(dst, (x1, y1), (x2, y2), (0, 0, 255), 1)
-
 
                             # write the flipped frame
                     cv2.imshow('Original', frame)
@@ -1144,8 +1145,8 @@ def main(argv):
     try:
         opts, args = getopt.getopt(argv, "h:i:o:s:d:r:c:", ["ofile=", "size=", "device="])
     except getopt.GetoptError as e:
-        print 'utils.py -o <outputfile>'
-        print e
+        print('utils.py -o <outputfile>')
+        print(e)
         sys.exit(2)
     width = 640
     height = 480
@@ -1154,7 +1155,7 @@ def main(argv):
     calibrate = False
     for opt, arg in opts:
         if opt == '-h':
-            print 'utils.py -o <outputfile>'
+            print('utils.py -o <outputfile>')
             sys.exit()
         elif opt in ("-o", "--ofile"):
             outputfile = arg
@@ -1171,7 +1172,7 @@ def main(argv):
         elif opt in ("-c", "--calibrate"):
             calibrate = True
 
-    print 'Output file is "', outputfile
+    print('Output file is "', outputfile)
     if record:
         if device:
             save_vid(outputfile, (width, height), device)

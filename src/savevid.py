@@ -16,7 +16,7 @@ while(cap1.isOpened()):
     ret, frame1 = cap1.read()
     ret2, frame2 = cap2.read()
     if ret==True:
-        print frame1.size
+        print(frame1.size)
         # write the flipped frame
         out.write(frame1)
         out2.write(frame2)

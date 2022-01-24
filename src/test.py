@@ -34,7 +34,7 @@ def print_all(b):
         im = b.get_config_hint()
         for p in points:
             im[p[1],p[0]] = [255,255,0]
-        print each
+        print(each)
         cv2.imshow("asd",im)
         cv2.waitKey(1000)
 print_all(b)
